@@ -1,6 +1,7 @@
 // ===== РАСТЕНИЯ: СПИСОК, МОДАЛКА, POPUP =====
 
 let currentSettingsPlantId = null;
+let currentContextMenu = null;
 
 function loadCustomPlants() {
   const saved = localStorage.getItem('customPlants');
@@ -11,6 +12,7 @@ function loadCustomPlants() {
       customPlantCounter = customs.length + 1;
     } catch (e) { }
   }
+  loadFolders();
 }
 
 function saveCustomPlants() {
@@ -55,7 +57,6 @@ function updateEndMonthSelect(startSelect, endSelect, includeNoneOption = false)
   }
 }
 
-// Обновление превью иконки при изменении формы или цвета
 function updateShapePreview(context) {
   const shape = document.getElementById(`${context}PlantShape`).value;
   const color = document.getElementById(`${context}PlantColor`).value;
@@ -66,44 +67,201 @@ function updateShapePreview(context) {
   }
 }
 
+function createPlantItem(p) {
+  const el = document.createElement('div');
+  el.className = 'plant-item' + (state.selectedPlant === p.id ? ' selected' : '');
+  el.dataset.id = p.id;
+  
+  const shape = p.defaultShape || 'circle';
+  
+  el.innerHTML = `
+    <button class="plant-settings-btn" title="Настройки вида" data-settings="${p.id}">⚙</button>
+    <svg class="plant-shape-icon" viewBox="0 0 16 16" style="width:24px;height:24px;margin:0 auto 4px;display:block;">
+      ${getShapeSVGMini(shape, p.color)}
+    </svg>
+    ${p.name}
+    <button class="plant-del" title="Удалить">×</button>
+  `;
+  el.onclick = (e) => {
+    if (e.target.classList.contains('plant-del')) {
+      e.stopPropagation();
+      deletePlant(p.id);
+      return;
+    }
+    if (e.target.classList.contains('plant-settings-btn')) {
+      e.stopPropagation();
+      openPlantSettings(p.id);
+      return;
+    }
+    selectPlant(p.id);
+  };
+  return el;
+}
+
 function renderPlantList() {
   const list = document.getElementById('plantList');
   list.innerHTML = '';
-  plants.forEach(p => {
-    const el = document.createElement('div');
-    el.className = 'plant-item' + (state.selectedPlant === p.id ? ' selected' : '');
-    el.dataset.id = p.id;
+  
+  // Кнопка создания папки
+  const addFolderBtn = document.createElement('div');
+  addFolderBtn.className = 'add-folder-btn';
+  addFolderBtn.textContent = '📁 Новая папка';
+  addFolderBtn.onclick = () => {
+    const name = prompt('Название папки:');
+    if (name && name.trim()) {
+      createFolder(name.trim());
+    }
+  };
+  list.appendChild(addFolderBtn);
+  
+  // === СЕКЦИЯ ПАПОК ===
+  if (folders.length > 0) {
+    const foldersSectionHeader = document.createElement('div');
+    foldersSectionHeader.className = 'section-header';
+    foldersSectionHeader.textContent = ' Папки';
+    list.appendChild(foldersSectionHeader);
     
-    const shape = p.defaultShape || 'circle';
+    folders.forEach(folder => {
+      const folderPlants = plants.filter(p => p.folderId === folder.id);
+      const isExpanded = state.expandedFolders.has(folder.id);
+      
+      const folderEl = document.createElement('div');
+      folderEl.className = 'folder-container';
+      
+      const folderHeader = document.createElement('div');
+      folderHeader.className = 'folder-header';
+      folderHeader.innerHTML = `
+        <span class="folder-arrow">${isExpanded ? '▼' : '▶'}</span>
+        <span class="folder-icon">📁</span>
+        <span class="folder-name">${folder.name}</span>
+        <span class="folder-count">(${folderPlants.length})</span>
+        <button class="folder-delete-btn" title="Удалить папку">×</button>
+      `;
+      
+      folderHeader.onclick = (e) => {
+        if (e.target.classList.contains('folder-delete-btn')) {
+          e.stopPropagation();
+          deleteFolder(folder.id);
+        } else {
+          toggleFolder(folder.id);
+        }
+      };
+      
+      folderHeader.oncontextmenu = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showFolderContextMenu(e, folder.id);
+      };
+      
+      folderEl.appendChild(folderHeader);
+      
+      if (isExpanded) {
+        const folderContent = document.createElement('div');
+        folderContent.className = 'folder-content';
+        
+        if (folderPlants.length === 0) {
+          const emptyMsg = document.createElement('div');
+          emptyMsg.style.cssText = 'font-size:11px;color:#999;padding:8px;text-align:center;grid-column:span 2;';
+          emptyMsg.textContent = 'Папка пуста';
+          folderContent.appendChild(emptyMsg);
+        } else {
+          folderPlants.forEach(p => {
+            folderContent.appendChild(createPlantItem(p));
+          });
+        }
+        
+        // Кнопка добавления нового цветка в папку
+        const addPlantBtn = document.createElement('div');
+        addPlantBtn.className = 'add-plant-btn folder-add-btn';
+        addPlantBtn.textContent = '➕ Добавить цветок';
+        addPlantBtn.onclick = (e) => {
+          e.stopPropagation();
+          openPlantModalInFolder(folder.id);
+        };
+        folderContent.appendChild(addPlantBtn);
+        
+        folderEl.appendChild(folderContent);
+      }
+      
+      list.appendChild(folderEl);
+    });
+  }
+  
+  // === СЕКЦИЯ ОТДЕЛЬНЫХ РАСТЕНИЙ ===
+  const noFolderPlants = plants.filter(p => !p.folderId);
+  if (noFolderPlants.length > 0) {
+    const plantsSectionHeader = document.createElement('div');
+    plantsSectionHeader.className = 'section-header';
+    plantsSectionHeader.textContent = '🌸 Отдельные растения';
+    list.appendChild(plantsSectionHeader);
     
-    el.innerHTML = `
-      <button class="plant-settings-btn" title="Настройки вида" data-settings="${p.id}">⚙</button>
-      <svg class="plant-shape-icon" viewBox="0 0 16 16" style="width:24px;height:24px;margin:0 auto 4px;display:block;">
-        ${getShapeSVGMini(shape, p.color)}
-      </svg>
-      ${p.name}
-      <button class="plant-del" title="Удалить">×</button>
-    `;
-    el.onclick = (e) => {
-      if (e.target.classList.contains('plant-del')) {
-        e.stopPropagation();
-        deletePlant(p.id);
-        return;
-      }
-      if (e.target.classList.contains('plant-settings-btn')) {
-        e.stopPropagation();
-        openPlantSettings(p.id);
-        return;
-      }
-      selectPlant(p.id);
-    };
-    list.appendChild(el);
-  });
+    noFolderPlants.forEach(p => {
+      list.appendChild(createPlantItem(p));
+    });
+  }
+  
+  // Кнопка добавления нового растения (без папки)
   const addBtn = document.createElement('div');
   addBtn.className = 'add-plant-btn';
   addBtn.textContent = '➕ Свой цветок';
   addBtn.onclick = openPlantModal;
   list.appendChild(addBtn);
+  
+  document.addEventListener('click', () => {
+    hideContextMenu();
+  });
+}
+
+// Открыть модалку создания нового растения с уже выбранной папкой
+function openPlantModalInFolder(folderId) {
+  openPlantModal();
+  // После открытия модалки устанавливаем выбранную папку
+  setTimeout(() => {
+    const folderSelect = document.getElementById('newPlantFolder');
+    if (folderSelect) {
+      folderSelect.value = folderId.toString();
+    }
+  }, 0);
+}
+
+function showFolderContextMenu(e, folderId) {
+  hideContextMenu();
+  
+  const folder = folders.find(f => f.id === folderId);
+  if (!folder) return;
+  
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.style.left = e.pageX + 'px';
+  menu.style.top = e.pageY + 'px';
+  
+  menu.innerHTML = `
+    <div class="context-menu-item" data-action="rename">✏️ Переименовать</div>
+    <div class="context-menu-item" data-action="delete">🗑️ Удалить папку</div>
+  `;
+  
+  menu.onclick = (ev) => {
+    const action = ev.target.dataset.action;
+    if (action === 'rename') {
+      const newName = prompt('Новое название папки:', folder.name);
+      if (newName && newName.trim()) {
+        renameFolder(folderId, newName.trim());
+      }
+    } else if (action === 'delete') {
+      deleteFolder(folderId);
+    }
+    hideContextMenu();
+  };
+  
+  document.body.appendChild(menu);
+  currentContextMenu = menu;
+}
+
+function hideContextMenu() {
+  if (currentContextMenu) {
+    currentContextMenu.remove();
+    currentContextMenu = null;
+  }
 }
 
 function selectPlant(id) {
@@ -152,6 +310,12 @@ function openPlantSettings(plantId) {
   document.getElementById('settingsPlantName').value = plant.name;
   document.getElementById('settingsPlantColor').value = plant.color;
   document.getElementById('settingsPlantShape').value = plant.defaultShape || 'circle';
+  
+  const folderSelect = document.getElementById('settingsPlantFolder');
+  folderSelect.innerHTML = '<option value="">Без папки</option>';
+  folders.forEach(f => {
+    folderSelect.innerHTML += `<option value="${f.id}" ${plant.folderId === f.id ? 'selected' : ''}>${f.name}</option>`;
+  });
   
   const startSelect = document.getElementById('settingsBloomStartMonth');
   const endSelect = document.getElementById('settingsBloomEndMonth');
@@ -248,12 +412,14 @@ function savePlantSettings() {
   const color = document.getElementById('settingsPlantColor').value;
   const mode = document.querySelector('input[name="settingsBloomMode"]:checked').value;
   const shape = document.getElementById('settingsPlantShape').value;
+  const folderId = document.getElementById('settingsPlantFolder').value ? parseInt(document.getElementById('settingsPlantFolder').value) : null;
   
   if (!name) { alert('Введите название'); return; }
   
   plant.name = name;
   plant.color = color;
   plant.defaultShape = shape;
+  plant.folderId = folderId;
   
   if (mode === 'months') {
     plant.bloomStartMonth = document.getElementById('settingsBloomStartMonth').value ? parseInt(document.getElementById('settingsBloomStartMonth').value) : null;
@@ -386,6 +552,12 @@ function openPlantModal() {
   document.getElementById('newPlantName').focus();
   renderColorPresets();
   
+  const folderSelect = document.getElementById('newPlantFolder');
+  folderSelect.innerHTML = '<option value="">Без папки</option>';
+  folders.forEach(f => {
+    folderSelect.innerHTML += `<option value="${f.id}">${f.name}</option>`;
+  });
+  
   const startSelect = document.getElementById('newPlantBloomStartMonth');
   const endSelect = document.getElementById('newPlantBloomEndMonth');
   
@@ -436,13 +608,15 @@ function saveNewPlant() {
   const color = document.getElementById('newPlantColor').value;
   const mode = document.querySelector('input[name="newBloomMode"]:checked').value;
   const shape = document.getElementById('newPlantShape').value;
+  const folderId = document.getElementById('newPlantFolder').value ? parseInt(document.getElementById('newPlantFolder').value) : null;
   
   if (!name) { alert('Введите название'); return; }
   
   const plant = { 
     id: 'custom_' + (customPlantCounter++),
     name, color, custom: true,
-    defaultShape: shape
+    defaultShape: shape,
+    folderId: folderId
   };
   
   if (mode === 'months') {

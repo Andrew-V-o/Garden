@@ -1,17 +1,17 @@
 // ===== КОНСТАНТЫ =====
 const DEFAULT_PLANTS = [
-  { id: 'rose', name: 'Розы', color: '#e91e63', custom: false, bloomStartMonth: 6, bloomEndMonth: 9, defaultShape: 'circle' },
-  { id: 'tulip', name: 'Тюльпаны', color: '#ff5722', custom: false, bloomStartMonth: 4, bloomEndMonth: 5, defaultShape: 'drop' },
-  { id: 'lavender', name: 'Лаванда', color: '#9c27b0', custom: false, bloomStartMonth: 6, bloomEndMonth: 8, defaultShape: 'oval' },
-  { id: 'sunflower', name: 'Подсолнухи', color: '#ffc107', custom: false, bloomStartMonth: 7, bloomEndMonth: 9, defaultShape: 'flower' },
-  { id: 'daisy', name: 'Ромашки', color: '#ffffff', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'flower' },
-  { id: 'peony', name: 'Пионы', color: '#f06292', custom: false, bloomStartMonth: 5, bloomEndMonth: 6, defaultShape: 'circle' },
-  { id: 'hosta', name: 'Хосты', color: '#4caf50', custom: false, bloomStartMonth: 7, bloomEndMonth: 8, defaultShape: 'leaf' },
-  { id: 'fern', name: 'Папоротник', color: '#2e7d32', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'leaf' },
-  { id: 'grass', name: 'Газон', color: '#8bc34a', custom: false, bloomStartMonth: 4, bloomEndMonth: 10, defaultShape: 'leaf' },
-  { id: 'mulch', name: 'Мульча', color: '#795548', custom: false, defaultShape: 'square' },
-  { id: 'stone', name: 'Камни', color: '#9e9e9e', custom: false, defaultShape: 'square' },
-  { id: 'water', name: 'Водоём', color: '#29b6f6', custom: false, defaultShape: 'oval' },
+  { id: 'rose', name: 'Розы', color: '#e91e63', custom: false, bloomStartMonth: 6, bloomEndMonth: 9, defaultShape: 'circle', folderId: null },
+  { id: 'tulip', name: 'Тюльпаны', color: '#ff5722', custom: false, bloomStartMonth: 4, bloomEndMonth: 5, defaultShape: 'drop', folderId: null },
+  { id: 'lavender', name: 'Лаванда', color: '#9c27b0', custom: false, bloomStartMonth: 6, bloomEndMonth: 8, defaultShape: 'oval', folderId: null },
+  { id: 'sunflower', name: 'Подсолнухи', color: '#ffc107', custom: false, bloomStartMonth: 7, bloomEndMonth: 9, defaultShape: 'flower', folderId: null },
+  { id: 'daisy', name: 'Ромашки', color: '#ffffff', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'flower', folderId: null },
+  { id: 'peony', name: 'Пионы', color: '#f06292', custom: false, bloomStartMonth: 5, bloomEndMonth: 6, defaultShape: 'circle', folderId: null },
+  { id: 'hosta', name: 'Хосты', color: '#4caf50', custom: false, bloomStartMonth: 7, bloomEndMonth: 8, defaultShape: 'leaf', folderId: null },
+  { id: 'fern', name: 'Папоротник', color: '#2e7d32', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'leaf', folderId: null },
+  { id: 'grass', name: 'Газон', color: '#8bc34a', custom: false, bloomStartMonth: 4, bloomEndMonth: 10, defaultShape: 'leaf', folderId: null },
+  { id: 'mulch', name: 'Мульча', color: '#795548', custom: false, defaultShape: 'square', folderId: null },
+  { id: 'stone', name: 'Камни', color: '#9e9e9e', custom: false, defaultShape: 'square', folderId: null },
+  { id: 'water', name: 'Водоём', color: '#29b6f6', custom: false, defaultShape: 'oval', folderId: null },
 ];
 
 const COLOR_PRESETS = [
@@ -46,7 +46,9 @@ const DAYS_IN_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const CANVAS_PAD_M = 1;
 
 let plants = [...DEFAULT_PLANTS];
+let folders = [];
 let customPlantCounter = 1;
+let nextFolderId = 1;
 
 const state = {
   tool: 'select',
@@ -66,6 +68,7 @@ const state = {
   canvasHeightM: 50,
   viewBox: null,
   bloomFilter: null,
+  expandedFolders: new Set(),
 };
 
 let svg, objectsLayer, handlesLayer, previewLayer, canvasWrap, plotLayer;
@@ -214,4 +217,73 @@ function copyBloomDataFromPlant(plant, planting) {
   planting.bloomStartDate = plant.bloomStartDate || null;
   planting.bloomEndDate = plant.bloomEndDate || null;
   planting.shape = plant.defaultShape || 'circle';
+}
+
+// ===== ФУНКЦИИ ДЛЯ РАБОТЫ С ПАПКАМИ =====
+
+function createFolder(name) {
+  const folder = {
+    id: nextFolderId++,
+    name: name,
+    color: '#4a7c59'
+  };
+  folders.push(folder);
+  state.expandedFolders.add(folder.id);
+  saveFolders();
+  renderPlantList();
+}
+
+function deleteFolder(folderId) {
+  if (!confirm('Удалить папку? Растения останутся без папки.')) return;
+  folders = folders.filter(f => f.id !== folderId);
+  plants.forEach(p => {
+    if (p.folderId === folderId) p.folderId = null;
+  });
+  state.expandedFolders.delete(folderId);
+  saveFolders();
+  renderPlantList();
+}
+
+function renameFolder(folderId, newName) {
+  const folder = folders.find(f => f.id === folderId);
+  if (folder) {
+    folder.name = newName;
+    saveFolders();
+    renderPlantList();
+  }
+}
+
+function toggleFolder(folderId) {
+  if (state.expandedFolders.has(folderId)) {
+    state.expandedFolders.delete(folderId);
+  } else {
+    state.expandedFolders.add(folderId);
+  }
+  renderPlantList();
+}
+
+function movePlantToFolder(plantId, folderId) {
+  const plant = plants.find(p => p.id === plantId);
+  if (plant) {
+    plant.folderId = folderId;
+    saveCustomPlants();
+    renderPlantList();
+  }
+}
+
+function saveFolders() {
+  localStorage.setItem('plantFolders', JSON.stringify(folders));
+  localStorage.setItem('nextFolderId', nextFolderId.toString());
+}
+
+function loadFolders() {
+  const saved = localStorage.getItem('plantFolders');
+  if (saved) {
+    try {
+      folders = JSON.parse(saved);
+      nextFolderId = parseInt(localStorage.getItem('nextFolderId') || '1');
+    } catch (e) {
+      folders = [];
+    }
+  }
 }

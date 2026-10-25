@@ -141,18 +141,26 @@ function render() {
           const r = pl.r || state.scale * 0.4;
           const isSelectedPlanting = pl.id === state.selectedPlantingId;
 
+          const isBlooming = plant ? isPlantBlooming(plant, state.bloomFilter) : true;
+
           const shapeEl = createShapeElement(shape, pl.x, pl.y, r, color);
           if (shapeEl.tagName === 'g') {
             shapeEl.setAttribute('stroke', isSelectedPlanting ? '#ff6b00' : 'white');
             shapeEl.setAttribute('stroke-width', isSelectedPlanting ? 2 : 1.5);
             shapeEl.style.cursor = state.tool === 'move' ? 'grab' : 'pointer';
             shapeEl.setAttribute('data-planting-id', pl.id);
+            if (state.bloomFilter) {
+              shapeEl.classList.add(isBlooming ? 'planting-blooming' : 'planting-not-blooming');
+            }
             objectsLayer.appendChild(shapeEl);
           } else {
             shapeEl.setAttribute('stroke', isSelectedPlanting ? '#ff6b00' : 'white');
             shapeEl.setAttribute('stroke-width', isSelectedPlanting ? 2 : 1.5);
             shapeEl.style.cursor = state.tool === 'move' ? 'grab' : 'pointer';
             shapeEl.setAttribute('data-planting-id', pl.id);
+            if (state.bloomFilter) {
+              shapeEl.classList.add(isBlooming ? 'planting-blooming' : 'planting-not-blooming');
+            }
             objectsLayer.appendChild(shapeEl);
           }
 
@@ -198,13 +206,13 @@ function drawResizeHandles(obj) {
   const offset = 8;
   const handles = [
     { id: 'nw', cx: x - offset, cy: y - offset },
-    { id: 'n',  cx: x + w / 2, cy: y - offset },
+    { id: 'n', cx: x + w / 2, cy: y - offset },
     { id: 'ne', cx: x + w + offset, cy: y - offset },
-    { id: 'e',  cx: x + w + offset, cy: y + h / 2 },
+    { id: 'e', cx: x + w + offset, cy: y + h / 2 },
     { id: 'se', cx: x + w + offset, cy: y + h + offset },
-    { id: 's',  cx: x + w / 2, cy: y + h + offset },
+    { id: 's', cx: x + w / 2, cy: y + h + offset },
     { id: 'sw', cx: x - offset, cy: y + h + offset },
-    { id: 'w',  cx: x - offset, cy: y + h / 2 },
+    { id: 'w', cx: x - offset, cy: y + h / 2 },
   ];
   handles.forEach(h => {
     const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -415,7 +423,7 @@ function renderProps() {
     const bbox = getObjBBox(obj);
     const plotWM = bbox ? Math.round(bbox.w / state.scale) : 0;
     const plotHM = bbox ? Math.round(bbox.h / state.scale) : 0;
-    
+
     html += `
       <div class="prop-row">
         <span>Название:</span>
@@ -446,12 +454,12 @@ function renderProps() {
         ${obj.morphModified ? '<span style="color:#d4a017;">⚠ Форма изменена</span>' : ''}
       </div>
     `;
-    
+
     if (isFigureMode) {
       const baseCount = obj.originalPointCount;
       const currentCount = obj.points.length;
       const maxMultiplier = Math.floor(FIGURE_POINTS_LIMIT / baseCount);
-      
+
       const decimateButtons = [2, 3, 4, 5].map(div => {
         const targetPoints = currentCount / div;
         const canDecimate = Number.isInteger(targetPoints) && targetPoints >= baseCount;
@@ -467,7 +475,7 @@ function renderProps() {
           </button>
         `;
       }).join('');
-      
+
       const atBase = currentCount === baseCount;
       const resetBtn = `
         <button onclick="setMorphPoints(${obj.id}, ${baseCount})" 
@@ -480,7 +488,7 @@ function renderProps() {
           ×1
         </button>
       `;
-      
+
       const increaseButtons = [2, 3, 4, 5].map(mult => {
         const targetPoints = currentCount * mult;
         const canIncrease = targetPoints <= FIGURE_POINTS_LIMIT;
@@ -496,7 +504,7 @@ function renderProps() {
           </button>
         `;
       }).join('');
-      
+
       html += `
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
           <span style="font-size:12px;color:#555;">Уменьшить количество точек:</span>
@@ -545,7 +553,7 @@ function renderProps() {
         </div>
       `;
     }
-    
+
     html += `
       <button onclick="fitPlotToCanvas()" style="
         width: 100%;
@@ -580,12 +588,12 @@ function renderProps() {
         ${obj.morphModified && !obj.originalPointCount ? '<span style="color:#d4a017;">⚠ Форма изменена</span>' : ''}
       </div>
     `;
-    
+
     if (isFigureMode) {
       const baseCount = obj.originalPointCount;
       const currentCount = obj.points.length;
       const maxMultiplier = Math.floor(FIGURE_POINTS_LIMIT / baseCount);
-      
+
       const decimateButtons = [2, 3, 4, 5].map(div => {
         const targetPoints = currentCount / div;
         const canDecimate = Number.isInteger(targetPoints) && targetPoints >= baseCount;
@@ -601,7 +609,7 @@ function renderProps() {
           </button>
         `;
       }).join('');
-      
+
       const atBase = currentCount === baseCount;
       const resetBtn = `
         <button onclick="setMorphPoints(${obj.id}, ${baseCount})" 
@@ -614,7 +622,7 @@ function renderProps() {
           ×1
         </button>
       `;
-      
+
       const increaseButtons = [2, 3, 4, 5].map(mult => {
         const targetPoints = currentCount * mult;
         const canIncrease = targetPoints <= FIGURE_POINTS_LIMIT;
@@ -630,7 +638,7 @@ function renderProps() {
           </button>
         `;
       }).join('');
-      
+
       html += `
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
           <span style="font-size:12px;color:#555;">Уменьшить количество точек:</span>

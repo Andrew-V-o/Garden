@@ -510,3 +510,27 @@ header button:hover { background: rgba(255,255,255,0.35); }
 }
 .plant-popup .popup-buttons .close-btn { background: #888; color: white; }
 .plant-popup .popup-buttons .delete-btn { background: #d9534f; color: white; }
+
+/* Подсветка цветущих растений */
+.planting-blooming {
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
+}
+
+.planting-not-blooming {
+  opacity: 0.3;
+  filter: grayscale(0.7);
+}
+
+#bloomMapModal .modal {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+input[type="radio"] {
+  margin-right: 4px;
+  cursor: pointer;
+}
+
+input[type="number"]::-webkit-inner-spin-button {
+  opacity: 1;
+}

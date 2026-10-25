@@ -9,7 +9,9 @@ function saveProject() {
     canvasWidthM: state.canvasWidthM,
     canvasHeightM: state.canvasHeightM,
     scale: state.scale,
-    version: 6,
+    viewBox: state.viewBox,
+    bloomFilter: state.bloomFilter, // ДОБАВЛЕНО
+    version: 7,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

@@ -50,14 +50,21 @@ function loadProject() {
             createDefaultPlot();
           }
 
+          // В loadProject, после загрузки объектов:
           state.objects.forEach(o => {
-            if (o.type === 'rect' || o.type === 'circle' || o.type === 'poly' || o.type === 'morph') {
-              migrateObjToBed(o);
+            if (o.plants) {
+              o.plants.forEach(pl => {
+                if (!pl.shape) pl.shape = 'circle';
+                if (!pl.r) pl.r = state.scale * 0.4;
+                // Миграция: если у посадки нет своих дат — копируем из вида
+                if (pl.bloomStartMonth === undefined && pl.bloomStartDate === undefined) {
+                  const plant = plants.find(p => p.id === pl.plantId);
+                  if (plant) {
+                    copyBloomDataFromPlant(plant, pl);
+                  }
+                }
+              });
             }
-            if (o.plants) o.plants.forEach(pl => {
-              if (!pl.shape) pl.shape = 'circle';
-              if (!pl.r) pl.r = state.scale * 0.4;
-            });
           });
 
           if (raw.plants) {

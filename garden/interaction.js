@@ -49,17 +49,17 @@ function selectPlot() {
 
 function toggleBedSubmenu(e) {
   e.stopPropagation();
-  
+
   if (state.drawing && (state.drawing.type === 'poly' || state.drawing.type === 'path')) {
     finishPolyOrPath();
   }
-  
+
   state.bedSubmenuOpen = !state.bedSubmenuOpen;
   const submenu = document.getElementById('bedSubmenu');
   const btn = document.querySelector('.obj-btn[data-obj="bed"]');
   submenu.classList.toggle('open', state.bedSubmenuOpen);
   btn.classList.toggle('open', state.bedSubmenuOpen);
-  
+
   if (state.bedSubmenuOpen) {
     setBedShape('rect');
   }
@@ -107,7 +107,7 @@ function fitPlotToCanvas() {
   const w = state.canvasWidthM * state.scale;
   const h = state.canvasHeightM * state.scale;
   const newPoints = generateRectPoints(pad, pad, w, h);
-  
+
   plot.points = newPoints;
   plot.basePoints = newPoints.map(p => p.slice());
   plot.morphModified = false;
@@ -173,28 +173,28 @@ function resetZoomOnDblClick(e) {
 function setMorphPoints(objId, numPoints) {
   const obj = state.objects.find(o => o.id === objId);
   if (!obj || !obj.points) return;
-  
+
   const currentCount = obj.points.length;
-  
+
   if (obj.originalPointCount !== undefined) {
     const base = obj.originalPointCount;
-    
+
     if (numPoints % base !== 0) return;
-    
+
     const multiplier = numPoints / base;
-    
+
     if (multiplier < 1) {
       alert(`Нельзя уменьшить ниже исходного количества точек (${base}).`);
       return;
     }
-    
+
     if (numPoints > FIGURE_POINTS_LIMIT) {
       alert(`Превышен лимит в ${FIGURE_POINTS_LIMIT} точек морфологии.\nМаксимальный множитель: ×${Math.floor(FIGURE_POINTS_LIMIT / base)}`);
       return;
     }
-    
+
     if (numPoints === currentCount) return;
-    
+
     if (numPoints > currentCount) {
       const interpMultiplier = numPoints / currentCount;
       obj.points = interpolateFigurePoints(obj.points, interpMultiplier);
@@ -205,13 +205,13 @@ function setMorphPoints(objId, numPoints) {
   } else {
     numPoints = Math.max(3, Math.min(64, numPoints));
     if (numPoints === currentCount) return;
-    
+
     if (!obj.basePoints) {
       obj.basePoints = obj.points.map(p => p.slice());
     }
-    
+
     const basePoints = obj.basePoints;
-    
+
     if (numPoints < basePoints.length) {
       obj.points = thinPoints(basePoints, numPoints);
     } else if (numPoints > basePoints.length) {
@@ -220,7 +220,7 @@ function setMorphPoints(objId, numPoints) {
       obj.points = basePoints.map(p => p.slice());
     }
   }
-  
+
   render();
 }
 
@@ -294,7 +294,7 @@ function onMouseDown(e) {
   if (state.tool === 'move') {
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
-      if (obj.type === 'plot') continue; 
+      if (obj.type === 'plot') continue;
       if (obj.plants) {
         for (let j = obj.plants.length - 1; j >= 0; j--) {
           const pl = obj.plants[j];
@@ -339,12 +339,18 @@ function onMouseDown(e) {
     const obj = state.objects.find(o => o.id === state.selectedId);
     if (obj && obj.type === 'bed' && pointInObject(obj, pos.x, pos.y)) {
       obj.plants = obj.plants || [];
+      const plant = plants.find(p => p.id === state.selectedPlant);
       const planting = {
         id: state.nextPlantingId++,
         plantId: state.selectedPlant,
         x: pos.x, y: pos.y,
         r: state.scale * 0.4,
         shape: 'circle',
+        // Копируем даты из вида растения — дальше каждая посадка живёт своей жизнью
+        bloomStartMonth: plant?.bloomStartMonth || null,
+        bloomEndMonth: plant?.bloomEndMonth || null,
+        bloomStartDate: plant?.bloomStartDate || null,
+        bloomEndDate: plant?.bloomEndDate || null,
       };
       obj.plants.push(planting);
       state.selectedPlantingId = planting.id;
@@ -454,7 +460,7 @@ function onMouseMove(e) {
         if (obj.type === 'plot') {
           const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
           const bbox = d.startBBox;
-          
+
           let newX = bbox.x + dx;
           let newY = bbox.y + dy;
 
@@ -516,22 +522,22 @@ function onMouseMove(e) {
       const obj = state.objects.find(o => o.id === state.selectedId);
       if (obj) {
         let newBBox = computeNewBBox(d.startBBox, d.handle, pos.x - d.startX, pos.y - d.startY);
-        
+
         // ЖЕСТКОЕ ОГРАНИЧЕНИЕ: не даем участку стать больше окна при ресайзе
         if (obj.type === 'plot') {
           const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
-          
+
           // Ограничиваем ширину и высоту размером окна
           newBBox.w = Math.min(newBBox.w, vb.w);
           newBBox.h = Math.min(newBBox.h, vb.h);
-          
+
           // Ограничиваем координаты, чтобы bbox не вылезал за пределы viewBox
           if (newBBox.x < vb.x) newBBox.x = vb.x;
           if (newBBox.y < vb.y) newBBox.y = vb.y;
           if (newBBox.x + newBBox.w > vb.x + vb.w) newBBox.x = vb.x + vb.w - newBBox.w;
           if (newBBox.y + newBBox.h > vb.y + vb.h) newBBox.y = vb.y + vb.h - newBBox.h;
         }
-        
+
         resizeObjToBBox(obj, newBBox);
         render();
       }
@@ -541,7 +547,7 @@ function onMouseMove(e) {
         // ЖЕСТКОЕ ОГРАНИЧЕНИЕ: не даем точке морфологии участка вылезти за окно
         let targetX = pos.x;
         let targetY = pos.y;
-        
+
         if (obj.type === 'plot') {
           const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
           targetX = Math.max(vb.x, Math.min(pos.x, vb.x + vb.w));
@@ -549,22 +555,22 @@ function onMouseMove(e) {
         }
 
         obj.points[d.idx] = [targetX, targetY];
-        
+
         if (!obj.basePoints) {
           obj.basePoints = obj.points.map(p => p.slice());
         }
-        
+
         if (obj.basePoints.length === obj.points.length) {
           obj.basePoints[d.idx] = [targetX, targetY];
         } else {
           obj.basePoints = obj.points.map(p => p.slice());
         }
-        
+
         obj.morphModified = true;
         if (!obj.originalPointCount) {
           obj.originalPointCount = obj.basePoints.length;
         }
-        
+
         render();
       }
     }
@@ -631,7 +637,7 @@ function onDblClick(e) {
         alert(`Достигнут лимит в ${FIGURE_POINTS_LIMIT} точек морфологии.`);
         return;
       }
-      
+
       const pos = getMousePos(e);
       let minDist = Infinity, bestIdx = -1, bestPoint = null;
       for (let i = 0; i < obj.points.length; i++) {

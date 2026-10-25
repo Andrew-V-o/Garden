@@ -141,7 +141,8 @@ function render() {
           const r = pl.r || state.scale * 0.4;
           const isSelectedPlanting = pl.id === state.selectedPlantingId;
 
-          const isBlooming = plant ? isPlantBlooming(plant, state.bloomFilter) : true;
+          // Проверяем цветение по ДАННЫМ ПОСАДКИ, а не вида
+          const isBlooming = isPlantBlooming(pl, state.bloomFilter);
 
           const shapeEl = createShapeElement(shape, pl.x, pl.y, r, color);
           if (shapeEl.tagName === 'g') {

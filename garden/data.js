@@ -35,7 +35,6 @@ const MONTHS = [
   'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'
 ];
 
-// Дней в каждом месяце (невисокосный год)
 const DAYS_IN_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 const CANVAS_PAD_M = 1;
@@ -105,7 +104,6 @@ function fitCanvasToScreen() {
 
 // ===== РАБОТА С ДАТАМИ БЕЗ ГОДА =====
 
-// Формат хранения даты: "MM-DD" (например, "06-15")
 function makeDateStr(month, day) {
   if (!month) return null;
   const d = Math.max(1, Math.min(day || 1, DAYS_IN_MONTH[month] || 31));
@@ -122,7 +120,6 @@ function getDayFromStr(dateStr) {
   return parseInt(dateStr.split('-')[1]);
 }
 
-// Сравнение дат "MM-DD" (возвращает -1, 0, 1)
 function compareDates(a, b) {
   if (!a && !b) return 0;
   if (!a) return -1;
@@ -132,34 +129,33 @@ function compareDates(a, b) {
   return 0;
 }
 
-// Конвертация месяца в дату (1-е число)
 function monthToStartDate(month) {
   return makeDateStr(month, 1);
 }
 
-// Конвертация месяца в последний день месяца
 function monthToEndDate(month) {
   return makeDateStr(month, DAYS_IN_MONTH[month] || 31);
 }
 
 // ===== ЛОГИКА ПРОВЕРКИ ЦВЕТЕНИЯ =====
+// Принимает любой объект с полями цветения (вид растения ИЛИ посадка)
 
-function isPlantBlooming(plant, filter) {
+function isPlantBlooming(bloomObj, filter) {
   if (!filter) return true;
+  if (!bloomObj) return false;
   
-  const hasPlantMonths = plant.bloomStartMonth && plant.bloomEndMonth;
-  const hasPlantDates = plant.bloomStartDate && plant.bloomEndDate;
-  if (!hasPlantMonths && !hasPlantDates) return false;
+  const hasMonths = bloomObj.bloomStartMonth && bloomObj.bloomEndMonth;
+  const hasDates = bloomObj.bloomStartDate && bloomObj.bloomEndDate;
+  if (!hasMonths && !hasDates) return false;
   
   const filterByMonths = filter.start.month && !filter.start.date;
   const filterByDates = filter.start.date && !filter.start.month;
   
-  // === Фильтр по месяцам, растение по месяцам ===
-  if (filterByMonths && hasPlantMonths) {
+  if (filterByMonths && hasMonths) {
     const fStart = filter.start.month;
     const fEnd = filter.end.month || fStart;
-    const pStart = plant.bloomStartMonth;
-    const pEnd = plant.bloomEndMonth;
+    const pStart = bloomObj.bloomStartMonth;
+    const pEnd = bloomObj.bloomEndMonth;
     
     if (fStart <= fEnd) {
       return pStart <= fEnd && pEnd >= fStart;
@@ -168,23 +164,20 @@ function isPlantBlooming(plant, filter) {
     }
   }
   
-  // === Фильтр по датам, растение по датам ===
-  if (filterByDates && hasPlantDates) {
+  if (filterByDates && hasDates) {
     const fStart = filter.start.date;
     const fEnd = filter.end.date || fStart;
-    const pStart = plant.bloomStartDate;
-    const pEnd = plant.bloomEndDate;
+    const pStart = bloomObj.bloomStartDate;
+    const pEnd = bloomObj.bloomEndDate;
     
-    // Растение цветёт, если его период пересекается с фильтром
     return compareDates(pStart, fEnd) <= 0 && compareDates(pEnd, fStart) >= 0;
   }
   
-  // === Фильтр по месяцам, растение по датам ===
-  if (filterByMonths && hasPlantDates) {
+  if (filterByMonths && hasDates) {
     const fStart = filter.start.month;
     const fEnd = filter.end.month || fStart;
-    const pStartMonth = getMonthFromStr(plant.bloomStartDate);
-    const pEndMonth = getMonthFromStr(plant.bloomEndDate);
+    const pStartMonth = getMonthFromStr(bloomObj.bloomStartDate);
+    const pEndMonth = getMonthFromStr(bloomObj.bloomEndDate);
     
     if (!pStartMonth || !pEndMonth) return false;
     
@@ -195,12 +188,11 @@ function isPlantBlooming(plant, filter) {
     }
   }
   
-  // === Фильтр по датам, растение по месяцам ===
-  if (filterByDates && hasPlantMonths) {
+  if (filterByDates && hasMonths) {
     const fStartMonth = getMonthFromStr(filter.start.date);
     const fEndMonth = getMonthFromStr(filter.end.date || filter.start.date);
-    const pStart = plant.bloomStartMonth;
-    const pEnd = plant.bloomEndMonth;
+    const pStart = bloomObj.bloomStartMonth;
+    const pEnd = bloomObj.bloomEndMonth;
     
     if (!fStartMonth || !fEndMonth) return false;
     
@@ -212,4 +204,13 @@ function isPlantBlooming(plant, filter) {
   }
   
   return false;
+}
+
+// Скопировать даты цветения из вида растения в посадку
+function copyBloomDataFromPlant(plant, planting) {
+  if (!plant || !planting) return;
+  planting.bloomStartMonth = plant.bloomStartMonth || null;
+  planting.bloomEndMonth = plant.bloomEndMonth || null;
+  planting.bloomStartDate = plant.bloomStartDate || null;
+  planting.bloomEndDate = plant.bloomEndDate || null;
 }

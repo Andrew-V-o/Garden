@@ -1,5 +1,7 @@
 // ===== РАСТЕНИЯ: СПИСОК, МОДАЛКА, POPUP =====
 
+let currentSettingsPlantId = null;
+
 function loadCustomPlants() {
   const saved = localStorage.getItem('customPlants');
   if (saved) {
@@ -15,7 +17,6 @@ function saveCustomPlants() {
   localStorage.setItem('customPlants', JSON.stringify(plants.filter(p => p.custom)));
 }
 
-// Заполнить select месяцами
 function fillMonthSelect(selectEl, includeNoneOption = false, selectedMonth = null) {
   let html = '';
   if (includeNoneOption) {
@@ -28,6 +29,33 @@ function fillMonthSelect(selectEl, includeNoneOption = false, selectedMonth = nu
   selectEl.innerHTML = html;
 }
 
+// Обновить правый селект месяцев на основе выбранного в левом
+function updateEndMonthSelect(startSelect, endSelect, includeNoneOption = false) {
+  const startMonth = startSelect.value ? parseInt(startSelect.value) : null;
+  const currentEndMonth = endSelect.value ? parseInt(endSelect.value) : null;
+  
+  let html = '';
+  if (includeNoneOption) {
+    html += `<option value="">Не цветёт</option>`;
+  }
+  
+  MONTHS.forEach((m, i) => {
+    const val = i + 1;
+    if (!startMonth || val >= startMonth) {
+      html += `<option value="${val}" ${currentEndMonth === val ? 'selected' : ''}>${m}</option>`;
+    }
+  });
+  
+  endSelect.innerHTML = html;
+  
+  if (currentEndMonth && startMonth && currentEndMonth < startMonth) {
+    const firstOption = endSelect.querySelector('option[value]');
+    if (firstOption) {
+      endSelect.value = firstOption.value;
+    }
+  }
+}
+
 function renderPlantList() {
   const list = document.getElementById('plantList');
   list.innerHTML = '';
@@ -36,6 +64,7 @@ function renderPlantList() {
     el.className = 'plant-item' + (state.selectedPlant === p.id ? ' selected' : '');
     el.dataset.id = p.id;
     el.innerHTML = `
+      <button class="plant-settings-btn" title="Настройки вида" data-settings="${p.id}">⚙</button>
       <div class="plant-dot" style="background:${p.color}${p.color === '#ffffff' ? ';border:1px solid #ccc' : ''}"></div>
       ${p.name}
       <button class="plant-del" title="Удалить">×</button>
@@ -44,6 +73,11 @@ function renderPlantList() {
       if (e.target.classList.contains('plant-del')) {
         e.stopPropagation();
         deletePlant(p.id);
+        return;
+      }
+      if (e.target.classList.contains('plant-settings-btn')) {
+        e.stopPropagation();
+        openPlantSettings(p.id);
         return;
       }
       selectPlant(p.id);
@@ -94,22 +128,70 @@ function deletePlant(id) {
   render();
 }
 
-// ===== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ С КОНВЕРТАЦИЕЙ =====
+// ===== НАСТРОЙКИ ВИДА РАСТЕНИЯ =====
 
-function toggleBloomMode() {
-  const mode = document.querySelector('input[name="bloomMode"]:checked').value;
-  document.getElementById('bloomMonthsSection').style.display = mode === 'months' ? 'flex' : 'none';
-  document.getElementById('bloomDatesSection').style.display = mode === 'dates' ? 'flex' : 'none';
-  
-  const plant = plants.find(p => {
-    const obj = state.objects.find(o => o.id === state.selectedId);
-    return obj && obj.plants && obj.plants.find(pl => pl.id === state.selectedPlantingId)?.plantId === p.id;
-  });
-  
+function openPlantSettings(plantId) {
+  const plant = plants.find(p => p.id === plantId);
   if (!plant) return;
   
+  currentSettingsPlantId = plantId;
+  
+  document.getElementById('settingsPlantName').value = plant.name;
+  document.getElementById('settingsPlantColor').value = plant.color;
+  document.getElementById('settingsColorPreview').style.background = plant.color;
+  
+  const startSelect = document.getElementById('settingsBloomStartMonth');
+  const endSelect = document.getElementById('settingsBloomEndMonth');
+  
+  fillMonthSelect(startSelect, true, plant.bloomStartMonth);
+  fillMonthSelect(endSelect, true, plant.bloomEndMonth);
+  fillMonthSelect(document.getElementById('settingsBloomStartMonth2'), false, plant.bloomStartMonth);
+  fillMonthSelect(document.getElementById('settingsBloomEndMonth2'), false, plant.bloomEndMonth);
+  
+  if (plant.bloomStartDate) {
+    document.getElementById('settingsBloomStartDay').value = getDayFromStr(plant.bloomStartDate);
+  } else {
+    document.getElementById('settingsBloomStartDay').value = '';
+  }
+  if (plant.bloomEndDate) {
+    document.getElementById('settingsBloomEndDay').value = getDayFromStr(plant.bloomEndDate);
+  } else {
+    document.getElementById('settingsBloomEndDay').value = '';
+  }
+  
+  if (plant.bloomStartMonth || plant.bloomEndMonth) {
+    document.querySelector('input[name="settingsBloomMode"][value="months"]').checked = true;
+  } else if (plant.bloomStartDate || plant.bloomEndDate) {
+    document.querySelector('input[name="settingsBloomMode"][value="dates"]').checked = true;
+  } else {
+    document.querySelector('input[name="settingsBloomMode"][value="months"]').checked = true;
+  }
+  
+  toggleSettingsBloomMode();
+  
+  const deleteBtn = document.getElementById('settingsDeleteBtn');
+  deleteBtn.style.display = plant.custom ? 'block' : 'none';
+  
+  document.getElementById('plantSettingsModal').classList.add('show');
+}
+
+function closePlantSettings() {
+  document.getElementById('plantSettingsModal').classList.remove('show');
+  currentSettingsPlantId = null;
+}
+
+function toggleSettingsBloomMode() {
+  const mode = document.querySelector('input[name="settingsBloomMode"]:checked').value;
+  document.getElementById('settingsBloomMonthsSection').style.display = mode === 'months' ? 'flex' : 'none';
+  document.getElementById('settingsBloomDatesSection').style.display = mode === 'dates' ? 'flex' : 'none';
+  
+  const plant = plants.find(p => p.id === currentSettingsPlantId);
+  if (!plant) return;
+  
+  const startSelect = document.getElementById('settingsBloomStartMonth');
+  const endSelect = document.getElementById('settingsBloomEndMonth');
+  
   if (mode === 'months') {
-    // Конвертируем даты в месяцы
     if (plant.bloomStartDate) {
       plant.bloomStartMonth = getMonthFromStr(plant.bloomStartDate);
       plant.bloomStartDate = null;
@@ -118,14 +200,11 @@ function toggleBloomMode() {
       plant.bloomEndMonth = getMonthFromStr(plant.bloomEndDate);
       plant.bloomEndDate = null;
     }
-    saveCustomPlants();
     
-    const s = document.getElementById('popupBloomStartMonth');
-    const e = document.getElementById('popupBloomEndMonth');
-    s.value = plant.bloomStartMonth || '';
-    e.value = plant.bloomEndMonth || '';
+    startSelect.value = plant.bloomStartMonth || '';
+    updateEndMonthSelect(startSelect, endSelect, true);
+    endSelect.value = plant.bloomEndMonth || '';
   } else {
-    // Конвертируем месяцы в даты
     if (plant.bloomStartMonth) {
       plant.bloomStartDate = monthToStartDate(plant.bloomStartMonth);
       plant.bloomStartMonth = null;
@@ -134,20 +213,104 @@ function toggleBloomMode() {
       plant.bloomEndDate = monthToEndDate(plant.bloomEndMonth);
       plant.bloomEndMonth = null;
     }
-    saveCustomPlants();
-    
-    const sm = document.getElementById('popupBloomStartMonth2');
-    const sd = document.getElementById('popupBloomStartDay');
-    const em = document.getElementById('popupBloomEndMonth2');
-    const ed = document.getElementById('popupBloomEndDay');
     
     if (plant.bloomStartDate) {
-      sm.value = getMonthFromStr(plant.bloomStartDate);
-      sd.value = getDayFromStr(plant.bloomStartDate);
+      document.getElementById('settingsBloomStartMonth2').value = getMonthFromStr(plant.bloomStartDate);
+      document.getElementById('settingsBloomStartDay').value = getDayFromStr(plant.bloomStartDate);
     }
     if (plant.bloomEndDate) {
-      em.value = getMonthFromStr(plant.bloomEndDate);
-      ed.value = getDayFromStr(plant.bloomEndDate);
+      document.getElementById('settingsBloomEndMonth2').value = getMonthFromStr(plant.bloomEndDate);
+      document.getElementById('settingsBloomEndDay').value = getDayFromStr(plant.bloomEndDate);
+    }
+  }
+}
+
+function savePlantSettings() {
+  const plant = plants.find(p => p.id === currentSettingsPlantId);
+  if (!plant) return;
+  
+  const name = document.getElementById('settingsPlantName').value.trim();
+  const color = document.getElementById('settingsPlantColor').value;
+  const mode = document.querySelector('input[name="settingsBloomMode"]:checked').value;
+  
+  if (!name) { alert('Введите название'); return; }
+  
+  plant.name = name;
+  plant.color = color;
+  
+  if (mode === 'months') {
+    plant.bloomStartMonth = document.getElementById('settingsBloomStartMonth').value ? parseInt(document.getElementById('settingsBloomStartMonth').value) : null;
+    plant.bloomEndMonth = document.getElementById('settingsBloomEndMonth').value ? parseInt(document.getElementById('settingsBloomEndMonth').value) : null;
+    plant.bloomStartDate = null;
+    plant.bloomEndDate = null;
+  } else {
+    const sm = document.getElementById('settingsBloomStartMonth2').value ? parseInt(document.getElementById('settingsBloomStartMonth2').value) : null;
+    const sd = document.getElementById('settingsBloomStartDay').value ? parseInt(document.getElementById('settingsBloomStartDay').value) : 1;
+    const em = document.getElementById('settingsBloomEndMonth2').value ? parseInt(document.getElementById('settingsBloomEndMonth2').value) : null;
+    const ed = document.getElementById('settingsBloomEndDay').value ? parseInt(document.getElementById('settingsBloomEndDay').value) : null;
+    
+    plant.bloomStartDate = sm ? makeDateStr(sm, sd) : null;
+    plant.bloomEndDate = em ? makeDateStr(em, ed || (DAYS_IN_MONTH[em] || 31)) : null;
+    plant.bloomStartMonth = null;
+    plant.bloomEndMonth = null;
+  }
+  
+  saveCustomPlants();
+  renderPlantList();
+  closePlantSettings();
+  render();
+}
+
+function deletePlantFromSettings() {
+  if (!currentSettingsPlantId) return;
+  deletePlant(currentSettingsPlantId);
+  closePlantSettings();
+}
+
+// ===== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ В POPUP ПОСАДКИ =====
+
+function toggleBloomMode() {
+  const mode = document.querySelector('input[name="bloomMode"]:checked').value;
+  document.getElementById('bloomMonthsSection').style.display = mode === 'months' ? 'flex' : 'none';
+  document.getElementById('bloomDatesSection').style.display = mode === 'dates' ? 'flex' : 'none';
+  
+  const obj = state.objects.find(o => o.id === state.selectedId);
+  const planting = obj?.plants?.find(p => p.id === state.selectedPlantingId);
+  if (!planting) return;
+  
+  const bloomStartMonthSelect = document.getElementById('popupBloomStartMonth');
+  const bloomEndMonthSelect = document.getElementById('popupBloomEndMonth');
+  
+  if (mode === 'months') {
+    if (planting.bloomStartDate) {
+      planting.bloomStartMonth = getMonthFromStr(planting.bloomStartDate);
+      planting.bloomStartDate = null;
+    }
+    if (planting.bloomEndDate) {
+      planting.bloomEndMonth = getMonthFromStr(planting.bloomEndDate);
+      planting.bloomEndDate = null;
+    }
+    
+    bloomStartMonthSelect.value = planting.bloomStartMonth || '';
+    updateEndMonthSelect(bloomStartMonthSelect, bloomEndMonthSelect, true);
+    bloomEndMonthSelect.value = planting.bloomEndMonth || '';
+  } else {
+    if (planting.bloomStartMonth) {
+      planting.bloomStartDate = monthToStartDate(planting.bloomStartMonth);
+      planting.bloomStartMonth = null;
+    }
+    if (planting.bloomEndMonth) {
+      planting.bloomEndDate = monthToEndDate(planting.bloomEndMonth);
+      planting.bloomEndMonth = null;
+    }
+    
+    if (planting.bloomStartDate) {
+      document.getElementById('popupBloomStartMonth2').value = getMonthFromStr(planting.bloomStartDate);
+      document.getElementById('popupBloomStartDay').value = getDayFromStr(planting.bloomStartDate);
+    }
+    if (planting.bloomEndDate) {
+      document.getElementById('popupBloomEndMonth2').value = getMonthFromStr(planting.bloomEndDate);
+      document.getElementById('popupBloomEndDay').value = getDayFromStr(planting.bloomEndDate);
     }
   }
 }
@@ -163,7 +326,6 @@ function toggleFilterBloomMode() {
   document.getElementById('filterBloomMonthsSection').style.display = mode === 'months' ? 'block' : 'none';
   document.getElementById('filterBloomDatesSection').style.display = mode === 'dates' ? 'block' : 'none';
   
-  // Конвертация при переключении
   const startMonthSelect = document.getElementById('bloomFilterStartMonth');
   const endMonthSelect = document.getElementById('bloomFilterEndMonth');
   const startMonthSelect2 = document.getElementById('bloomFilterStartMonth2');
@@ -172,17 +334,20 @@ function toggleFilterBloomMode() {
   const endDayInput = document.getElementById('bloomFilterEndDay');
   
   if (mode === 'months') {
-    // Из дат в месяцы
-    const startDate = startMonthSelect2.value ? makeDateStr(parseInt(startMonthSelect2.value), parseInt(startDayInput.value) || 1) : null;
-    const endDate = endMonthSelect2.value ? makeDateStr(parseInt(endMonthSelect2.value), parseInt(endDayInput.value) || 1) : null;
+    const sm = startMonthSelect2.value ? parseInt(startMonthSelect2.value) : null;
+    const em = endMonthSelect2.value ? parseInt(endMonthSelect2.value) : null;
     
-    if (startDate) startMonthSelect.value = getMonthFromStr(startDate);
-    if (endDate) endMonthSelect.value = getMonthFromStr(endDate);
+    if (sm) startMonthSelect.value = sm;
+    if (em) endMonthSelect.value = em;
+    
+    // Ограничение правого селекта
+    startMonthSelect.onchange = () => {
+      updateEndMonthSelect(startMonthSelect, endMonthSelect, true);
+    };
     
     startDayInput.value = '';
     endDayInput.value = '';
   } else {
-    // Из месяцев в даты
     const sm = startMonthSelect.value ? parseInt(startMonthSelect.value) : null;
     const em = endMonthSelect.value ? parseInt(endMonthSelect.value) : null;
     
@@ -207,8 +372,17 @@ function openPlantModal() {
   document.getElementById('newPlantName').focus();
   renderColorPresets();
   
-  fillMonthSelect(document.getElementById('newPlantBloomStartMonth'), true, 5);
-  fillMonthSelect(document.getElementById('newPlantBloomEndMonth'), true, 9);
+  const startSelect = document.getElementById('newPlantBloomStartMonth');
+  const endSelect = document.getElementById('newPlantBloomEndMonth');
+  
+  fillMonthSelect(startSelect, true, 5);
+  fillMonthSelect(endSelect, true, 9);
+  
+  // Обработчик ограничения правого селекта
+  startSelect.onchange = () => {
+    updateEndMonthSelect(startSelect, endSelect, true);
+  };
+  
   fillMonthSelect(document.getElementById('newPlantBloomStartMonth2'), false, 5);
   fillMonthSelect(document.getElementById('newPlantBloomEndMonth2'), false, 9);
   
@@ -239,6 +413,9 @@ function renderColorPresets() {
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('newPlantColor').addEventListener('input', (e) => {
     document.getElementById('colorPreview').style.background = e.target.value;
+  });
+  document.getElementById('settingsPlantColor').addEventListener('input', (e) => {
+    document.getElementById('settingsColorPreview').style.background = e.target.value;
   });
 });
 
@@ -280,7 +457,6 @@ function saveNewPlant() {
 
 function showPlantPopup(planting, obj) {
   const popup = document.getElementById('plantPopup');
-  const plant = plants.find(p => p.id === planting.plantId);
 
   const plantSelect = document.getElementById('popupPlant');
   plantSelect.innerHTML = plants.map(p =>
@@ -303,45 +479,34 @@ function showPlantPopup(planting, obj) {
   const bloomEndMonthSelect2 = document.getElementById('popupBloomEndMonth2');
   const bloomEndDayInput = document.getElementById('popupBloomEndDay');
   
-  // Заполняем селекты месяцев
   fillMonthSelect(bloomStartMonthSelect, true);
   fillMonthSelect(bloomEndMonthSelect, true);
   fillMonthSelect(bloomStartMonthSelect2, false);
   fillMonthSelect(bloomEndMonthSelect2, false);
   
-  if (plant) {
-    bloomStartMonthSelect.value = plant.bloomStartMonth || '';
-    bloomEndMonthSelect.value = plant.bloomEndMonth || '';
-    
-    if (plant.bloomStartDate) {
-      bloomStartMonthSelect2.value = getMonthFromStr(plant.bloomStartDate);
-      bloomStartDayInput.value = getDayFromStr(plant.bloomStartDate);
-    } else {
-      bloomStartMonthSelect2.value = '';
-      bloomStartDayInput.value = '';
-    }
-    if (plant.bloomEndDate) {
-      bloomEndMonthSelect2.value = getMonthFromStr(plant.bloomEndDate);
-      bloomEndDayInput.value = getDayFromStr(plant.bloomEndDate);
-    } else {
-      bloomEndMonthSelect2.value = '';
-      bloomEndDayInput.value = '';
-    }
-    
-    if (plant.bloomStartMonth || plant.bloomEndMonth) {
-      document.querySelector('input[name="bloomMode"][value="months"]').checked = true;
-    } else if (plant.bloomStartDate || plant.bloomEndDate) {
-      document.querySelector('input[name="bloomMode"][value="dates"]').checked = true;
-    } else {
-      document.querySelector('input[name="bloomMode"][value="months"]').checked = true;
-    }
+  bloomStartMonthSelect.value = planting.bloomStartMonth || '';
+  bloomEndMonthSelect.value = planting.bloomEndMonth || '';
+  
+  if (planting.bloomStartDate) {
+    bloomStartMonthSelect2.value = getMonthFromStr(planting.bloomStartDate);
+    bloomStartDayInput.value = getDayFromStr(planting.bloomStartDate);
   } else {
-    bloomStartMonthSelect.value = '';
-    bloomEndMonthSelect.value = '';
     bloomStartMonthSelect2.value = '';
     bloomStartDayInput.value = '';
+  }
+  if (planting.bloomEndDate) {
+    bloomEndMonthSelect2.value = getMonthFromStr(planting.bloomEndDate);
+    bloomEndDayInput.value = getDayFromStr(planting.bloomEndDate);
+  } else {
     bloomEndMonthSelect2.value = '';
     bloomEndDayInput.value = '';
+  }
+  
+  if (planting.bloomStartMonth || planting.bloomEndMonth) {
+    document.querySelector('input[name="bloomMode"][value="months"]').checked = true;
+  } else if (planting.bloomStartDate || planting.bloomEndDate) {
+    document.querySelector('input[name="bloomMode"][value="dates"]').checked = true;
+  } else {
     document.querySelector('input[name="bloomMode"][value="months"]').checked = true;
   }
   
@@ -357,7 +522,11 @@ function showPlantPopup(planting, obj) {
   popup.classList.add('show');
 
   plantSelect.onchange = () => {
+    const newPlant = plants.find(p => p.id === plantSelect.value);
     planting.plantId = plantSelect.value;
+    if (newPlant) {
+      copyBloomDataFromPlant(newPlant, planting);
+    }
     render();
   };
   shapeSelect.onchange = () => {
@@ -371,54 +540,32 @@ function showPlantPopup(planting, obj) {
   };
   
   bloomStartMonthSelect.onchange = () => {
-    const p = plants.find(x => x.id === planting.plantId);
-    if (p) {
-      p.bloomStartMonth = bloomStartMonthSelect.value ? parseInt(bloomStartMonthSelect.value) : null;
-      saveCustomPlants();
-    }
+    planting.bloomStartMonth = bloomStartMonthSelect.value ? parseInt(bloomStartMonthSelect.value) : null;
+    updateEndMonthSelect(bloomStartMonthSelect, bloomEndMonthSelect, true);
+    planting.bloomEndMonth = bloomEndMonthSelect.value ? parseInt(bloomEndMonthSelect.value) : null;
   };
   bloomEndMonthSelect.onchange = () => {
-    const p = plants.find(x => x.id === planting.plantId);
-    if (p) {
-      p.bloomEndMonth = bloomEndMonthSelect.value ? parseInt(bloomEndMonthSelect.value) : null;
-      saveCustomPlants();
-    }
+    planting.bloomEndMonth = bloomEndMonthSelect.value ? parseInt(bloomEndMonthSelect.value) : null;
   };
   bloomStartMonthSelect2.onchange = () => {
-    const p = plants.find(x => x.id === planting.plantId);
-    if (p) {
-      const m = bloomStartMonthSelect2.value ? parseInt(bloomStartMonthSelect2.value) : null;
-      const d = bloomStartDayInput.value ? parseInt(bloomStartDayInput.value) : 1;
-      p.bloomStartDate = m ? makeDateStr(m, d) : null;
-      saveCustomPlants();
-    }
+    const m = bloomStartMonthSelect2.value ? parseInt(bloomStartMonthSelect2.value) : null;
+    const d = bloomStartDayInput.value ? parseInt(bloomStartDayInput.value) : 1;
+    planting.bloomStartDate = m ? makeDateStr(m, d) : null;
   };
   bloomStartDayInput.onchange = () => {
-    const p = plants.find(x => x.id === planting.plantId);
-    if (p) {
-      const m = bloomStartMonthSelect2.value ? parseInt(bloomStartMonthSelect2.value) : null;
-      const d = bloomStartDayInput.value ? parseInt(bloomStartDayInput.value) : 1;
-      p.bloomStartDate = m ? makeDateStr(m, d) : null;
-      saveCustomPlants();
-    }
+    const m = bloomStartMonthSelect2.value ? parseInt(bloomStartMonthSelect2.value) : null;
+    const d = bloomStartDayInput.value ? parseInt(bloomStartDayInput.value) : 1;
+    planting.bloomStartDate = m ? makeDateStr(m, d) : null;
   };
   bloomEndMonthSelect2.onchange = () => {
-    const p = plants.find(x => x.id === planting.plantId);
-    if (p) {
-      const m = bloomEndMonthSelect2.value ? parseInt(bloomEndMonthSelect2.value) : null;
-      const d = bloomEndDayInput.value ? parseInt(bloomEndDayInput.value) : (m ? (DAYS_IN_MONTH[m] || 31) : null);
-      p.bloomEndDate = m ? makeDateStr(m, d) : null;
-      saveCustomPlants();
-    }
+    const m = bloomEndMonthSelect2.value ? parseInt(bloomEndMonthSelect2.value) : null;
+    const d = bloomEndDayInput.value ? parseInt(bloomEndDayInput.value) : (m ? (DAYS_IN_MONTH[m] || 31) : null);
+    planting.bloomEndDate = m ? makeDateStr(m, d) : null;
   };
   bloomEndDayInput.onchange = () => {
-    const p = plants.find(x => x.id === planting.plantId);
-    if (p) {
-      const m = bloomEndMonthSelect2.value ? parseInt(bloomEndMonthSelect2.value) : null;
-      const d = bloomEndDayInput.value ? parseInt(bloomEndDayInput.value) : (m ? (DAYS_IN_MONTH[m] || 31) : null);
-      p.bloomEndDate = m ? makeDateStr(m, d) : null;
-      saveCustomPlants();
-    }
+    const m = bloomEndMonthSelect2.value ? parseInt(bloomEndMonthSelect2.value) : null;
+    const d = bloomEndDayInput.value ? parseInt(bloomEndDayInput.value) : (m ? (DAYS_IN_MONTH[m] || 31) : null);
+    planting.bloomEndDate = m ? makeDateStr(m, d) : null;
   };
 
   state.selectedPlantingId = planting.id;

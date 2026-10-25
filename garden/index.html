@@ -26,7 +26,7 @@
         <span class="icon">👆</span>Выбрать
       </div>
       <div class="tool-btn" data-tool="move" onclick="setTool('move')">
-        <span class="icon">✋</span>Переместить
+        <span class="icon"></span>Переместить
       </div>
     </div>
 
@@ -48,7 +48,7 @@
             <span class="icon">◯</span>Круглая
           </div>
           <div class="submenu-item" data-bed="poly" onclick="setBedShape('poly')">
-            <span class="icon"></span>Фигура
+            <span class="icon">⬠</span>Фигура
           </div>
         </div>
       </div>
@@ -64,7 +64,7 @@
     <h3>🌸 Растения</h3>
     <div class="plant-list" id="plantList"></div>
 
-    <h3>🎨 Цвет секции</h3>
+    <h3> Цвет секции</h3>
     <div class="prop-row">
       <span>Заливка:</span>
       <input type="color" id="fillColor" value="#8bc34a">
@@ -106,7 +106,7 @@
         <span id="popupSizeVal" style="width:25px;text-align:right">16</span>
       </div>
       <div class="popup-row" style="flex-direction:column;align-items:stretch;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:8px;">
-        <span style="font-size:11px;color:#555;"><b>🌸 Время цветения:</b></span>
+        <span style="font-size:11px;color:#555;"><b> Время цветения этой посадки:</b></span>
         <div style="display:flex;gap:8px;margin-bottom:8px;">
           <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="months" checked onchange="toggleBloomMode()"> Месяцы</label>
           <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="dates" onchange="toggleBloomMode()"> Точные даты</label>
@@ -147,7 +147,7 @@
       <div class="empty-hint">Выберите секцию, чтобы добавить растения</div>
     </div>
 
-    <h3>📊 Статистика</h3>
+    <h3> Статистика</h3>
     <div class="stats" id="stats">
       <div><span>Секций:</span><b id="statSections">0</b></div>
       <div><span>Площадь:</span><b id="statArea">0 м²</b></div>
@@ -161,8 +161,9 @@
   </aside>
 </div>
 
-<div class="hint-bar" id="hintBar"> Выберите инструмент или объект из панели слева.</div>
+<div class="hint-bar" id="hintBar">💡 Выберите инструмент или объект из панели слева.</div>
 
+<!-- Модалка создания нового растения -->
 <div class="modal-bg" id="plantModal">
   <div class="modal">
     <h2>🌺 Новое растение</h2>
@@ -174,7 +175,7 @@
       <div class="color-preview" id="colorPreview" style="background:#ff69b4"></div>
       <span style="font-size:12px;color:#777">Выберите любой цвет</span>
     </div>
-    <label style="margin-top:12px;display:block;">Время цветения:</label>
+    <label style="margin-top:12px;display:block;">Время цветения по умолчанию:</label>
     <div style="display:flex;gap:8px;margin-bottom:12px;">
       <label style="font-size:12px;cursor:pointer;"><input type="radio" name="newBloomMode" value="months" checked onchange="toggleNewBloomMode()"> Месяцы</label>
       <label style="font-size:12px;cursor:pointer;"><input type="radio" name="newBloomMode" value="dates" onchange="toggleNewBloomMode()"> Точные даты</label>
@@ -205,9 +206,53 @@
   </div>
 </div>
 
+<!-- Модалка настроек вида растения -->
+<div class="modal-bg" id="plantSettingsModal">
+  <div class="modal">
+    <h2>️ Настройки вида растения</h2>
+    <label>Название</label>
+    <input type="text" id="settingsPlantName" maxlength="20">
+    <label>Цвет иконки</label>
+    <div class="color-picker-wrap">
+      <input type="color" id="settingsPlantColor">
+      <div class="color-preview" id="settingsColorPreview"></div>
+    </div>
+    <label style="margin-top:12px;display:block;">Время цветения по умолчанию:</label>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="settingsBloomMode" value="months" checked onchange="toggleSettingsBloomMode()"> Месяцы</label>
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="settingsBloomMode" value="dates" onchange="toggleSettingsBloomMode()"> Точные даты</label>
+    </div>
+    <div id="settingsBloomMonthsSection" style="display:flex;gap:8px;margin-bottom:12px;">
+      <select id="settingsBloomStartMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+      <span style="line-height:36px;">—</span>
+      <select id="settingsBloomEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+    </div>
+    <div id="settingsBloomDatesSection" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;width:30px;">С:</span>
+        <select id="settingsBloomStartMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <input type="number" id="settingsBloomStartDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;width:30px;">По:</span>
+        <select id="settingsBloomEndMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <input type="number" id="settingsBloomEndDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
+      </div>
+    </div>
+    <div class="buttons" style="justify-content:space-between;">
+      <button class="delete-btn" id="settingsDeleteBtn" onclick="deletePlantFromSettings()" style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;">🗑️ Удалить вид</button>
+      <div style="display:flex;gap:8px;">
+        <button class="secondary" onclick="closePlantSettings()">Отмена</button>
+        <button class="primary" onclick="savePlantSettings()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка карты цветения -->
 <div class="modal-bg" id="bloomMapModal">
   <div class="modal" style="width:420px;">
-    <h2> Карта цветения</h2>
+    <h2>🌸 Карта цветения</h2>
     <p style="font-size:13px;color:#666;margin-bottom:16px;">Выберите период, чтобы увидеть цветущие растения</p>
     
     <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;"><b>Режим выбора:</b></label>

@@ -14,6 +14,38 @@ const DEFAULT_PLANTS = [
   { id: 'water', name: 'Водоём', color: '#29b6f6', custom: false, defaultShape: 'oval', folderId: null },
 ];
 
+const DEFAULT_TREES = [
+  { id: 'oak', name: 'Дуб', color: '#2e7d32', custom: false, defaultShape: 'oak', folderId: null, bloomStartMonth: 5, bloomEndMonth: 6 },
+  { id: 'pine', name: 'Сосна', color: '#1b5e20', custom: false, defaultShape: 'pine', folderId: null },
+  { id: 'birch', name: 'Берёза', color: '#4caf50', custom: false, defaultShape: 'birch', folderId: null, bloomStartMonth: 4, bloomEndMonth: 5 },
+  { id: 'maple', name: 'Клён', color: '#ff9800', custom: false, defaultShape: 'maple', folderId: null, bloomStartMonth: 9, bloomEndMonth: 10 },
+  { id: 'willow', name: 'Ива', color: '#689f38', custom: false, defaultShape: 'willow', folderId: null, bloomStartMonth: 3, bloomEndMonth: 5 },
+  { id: 'spruce', name: 'Ель', color: '#004d40', custom: false, defaultShape: 'spruce', folderId: null },
+  { id: 'palm', name: 'Пальма', color: '#558b2f', custom: false, defaultShape: 'palm', folderId: null },
+  { id: 'cherry', name: 'Сакура', color: '#f48fb1', custom: false, defaultShape: 'cherry', folderId: null, bloomStartMonth: 3, bloomEndMonth: 5 },
+];
+
+// Скопировать данные из вида дерева в посаженное дерево
+function copyBloomDataFromTree(tree, treeObj) {
+  if (!tree || !treeObj) return;
+  treeObj.bloomStartMonth = tree.bloomStartMonth || null;
+  treeObj.bloomEndMonth = tree.bloomEndMonth || null;
+  treeObj.bloomStartDate = tree.bloomStartDate || null;
+  treeObj.bloomEndDate = tree.bloomEndDate || null;
+  treeObj.shape = tree.defaultShape || 'oak';
+}
+
+const TREE_SHAPES = [
+  { id: 'oak', name: 'Дуб' },
+  { id: 'pine', name: 'Сосна' },
+  { id: 'birch', name: 'Берёза' },
+  { id: 'maple', name: 'Клён' },
+  { id: 'willow', name: 'Ива' },
+  { id: 'spruce', name: 'Ель' },
+  { id: 'palm', name: 'Пальма' },
+  { id: 'cherry', name: 'Сакура' },
+];
+
 const COLOR_PRESETS = [
   '#e91e63','#f06292','#ff5722','#ff9800','#ffc107','#ffeb3b',
   '#8bc34a','#4caf50','#2e7d32','#009688','#00bcd4','#29b6f6',
@@ -46,15 +78,20 @@ const DAYS_IN_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const CANVAS_PAD_M = 1;
 
 let plants = [...DEFAULT_PLANTS];
+let trees = [...DEFAULT_TREES];
 let folders = [];
+let treeFolders = [];
 let customPlantCounter = 1;
+let customTreeCounter = 1;
 let nextFolderId = 1;
+let nextTreeFolderId = 1;
 
 const state = {
   tool: 'select',
   bedShape: 'rect',
   bedSubmenuOpen: false,
   selectedPlant: null,
+  selectedTree: null,
   plantingMode: false,
   selectedId: null,
   selectedPlantingId: null,
@@ -69,6 +106,7 @@ const state = {
   viewBox: null,
   bloomFilter: null,
   expandedFolders: new Set(),
+  expandedTreeFolders: new Set(),
 };
 
 let svg, objectsLayer, handlesLayer, previewLayer, canvasWrap, plotLayer;
@@ -219,7 +257,7 @@ function copyBloomDataFromPlant(plant, planting) {
   planting.shape = plant.defaultShape || 'circle';
 }
 
-// ===== ФУНКЦИИ ДЛЯ РАБОТЫ С ПАПКАМИ =====
+// ===== ФУНКЦИИ ДЛЯ РАБОТЫ С ПАПКАМИ РАСТЕНИЙ =====
 
 function createFolder(name) {
   const folder = {
@@ -262,15 +300,6 @@ function toggleFolder(folderId) {
   renderPlantList();
 }
 
-function movePlantToFolder(plantId, folderId) {
-  const plant = plants.find(p => p.id === plantId);
-  if (plant) {
-    plant.folderId = folderId;
-    saveCustomPlants();
-    renderPlantList();
-  }
-}
-
 function saveFolders() {
   localStorage.setItem('plantFolders', JSON.stringify(folders));
   localStorage.setItem('nextFolderId', nextFolderId.toString());
@@ -284,6 +313,66 @@ function loadFolders() {
       nextFolderId = parseInt(localStorage.getItem('nextFolderId') || '1');
     } catch (e) {
       folders = [];
+    }
+  }
+}
+
+// ===== ФУНКЦИИ ДЛЯ РАБОТЫ С ПАПКАМИ ДЕРЕВЬЕВ =====
+
+function createTreeFolder(name) {
+  const folder = {
+    id: nextTreeFolderId++,
+    name: name,
+    color: '#2e7d32'
+  };
+  treeFolders.push(folder);
+  state.expandedTreeFolders.add(folder.id);
+  saveTreeFolders();
+  renderTreeList();
+}
+
+function deleteTreeFolder(folderId) {
+  if (!confirm('Удалить папку? Деревья останутся без папки.')) return;
+  treeFolders = treeFolders.filter(f => f.id !== folderId);
+  trees.forEach(t => {
+    if (t.folderId === folderId) t.folderId = null;
+  });
+  state.expandedTreeFolders.delete(folderId);
+  saveTreeFolders();
+  renderTreeList();
+}
+
+function renameTreeFolder(folderId, newName) {
+  const folder = treeFolders.find(f => f.id === folderId);
+  if (folder) {
+    folder.name = newName;
+    saveTreeFolders();
+    renderTreeList();
+  }
+}
+
+function toggleTreeFolder(folderId) {
+  if (state.expandedTreeFolders.has(folderId)) {
+    state.expandedTreeFolders.delete(folderId);
+  } else {
+    state.expandedTreeFolders.add(folderId);
+  }
+  renderTreeList();
+}
+
+function saveTreeFolders() {
+  localStorage.setItem('treeFolders', JSON.stringify(treeFolders));
+  localStorage.setItem('nextTreeFolderId', nextTreeFolderId.toString());
+}
+
+function loadTreeFolders() {
+  const saved = localStorage.getItem('treeFolders');
+  if (saved) {
+    try {
+      treeFolders = JSON.parse(saved);
+      nextTreeFolderId = parseInt(localStorage.getItem('nextTreeFolderId') || '1');
+    } catch (e) {
+      treeFolders = [];
     }
   }
 }

@@ -93,6 +93,18 @@ function setCanvasSizeMeters(wM, hM) {
   state.canvasWidthM = wM;
   state.canvasHeightM = hM;
 
+  const plot = state.objects.find(o => o.type === 'plot');
+  if (plot) {
+    const pad = getCanvasPadding();
+    const w = wM * state.scale;
+    const h = hM * state.scale;
+    const newPoints = generateRectPoints(pad, pad, w, h);
+    plot.points = newPoints;
+    plot.basePoints = newPoints.map(p => p.slice());
+    plot.morphModified = false;
+    plot.originalPointCount = undefined;
+  }
+
   resetViewBox();
   updateSvgViewBox();
   updateCanvasInfo();
@@ -239,15 +251,15 @@ function updateHint() {
     select: '💡 Выберите объект. Кликните по цветку для настройки. Кликните по клумбе, выберите растение и кликайте внутри для посадки. Колёсико — зум, двойной клик по пустому — сброс.',
     move: '✋ Перетаскивайте объекты. Участок физически ограничен границами окна. Колёсико — зум.',
     bed: `💡 Рисование клумбы (${state.bedShape === 'rect' ? 'прямоугольная' : state.bedShape === 'circle' ? 'круглая' : 'фигура'}). ${state.bedShape === 'poly' ? 'Кликайте для точек. Нажмите "✓ Завершить" или Enter для подтверждения.' : 'Зажмите мышь и тяните.'}`,
-    path: '💡 Рисуйте дорожки. Кликайте для точек. Нажмите "✓ Завершить" или Enter.',
-    tree: '💡 Кликните, чтобы посадить дерево.',
+    path: ' Рисуйте дорожки. Кликайте для точек. Нажмите "✓ Завершить" или Enter.',
+    tree: '🌳 Выберите дерево в левой панели и кликните на холст, чтобы посадить.',
   };
   let hint = hints[state.tool] || '';
   if (state.plantingMode && state.selectedPlant) {
     const p = plants.find(x => x.id === state.selectedPlant);
     hint = `🌱 Режим посадки: кликайте внутри клумбы, чтобы разместить "${p ? p.name : ''}"`;
   } else if (state.plantingMode) {
-    hint = '🌱 Выберите растение в левой панели';
+    hint = ' Выберите растение в левой панели';
   }
   if (state.selectedId) {
     const obj = state.objects.find(o => o.id === state.selectedId);
@@ -357,8 +369,27 @@ function onMouseDown(e) {
       return;
     }
   }
-  
+
+  // Посадка дерева
+  if (state.tool === 'tree' && state.selectedTree) {
+    const tree = trees.find(t => t.id === state.selectedTree);
+    if (tree) {
+      addObject({
+        type: 'tree',
+        treeId: tree.id,
+        x: snapToGrid(pos.x),
+        y: snapToGrid(pos.y),
+        r: state.scale * 1.2,
+        fill: tree.color,
+        shape: tree.defaultShape || 'oak',
+        name: tree.name
+      });
+      return;
+    }
+  }
+
   if (state.tool === 'select') {
+    // Сначала проверяем посадки растений
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (obj.plants) {
@@ -373,6 +404,19 @@ function onMouseDown(e) {
       }
     }
 
+    // Проверяем деревья
+    for (let i = state.objects.length - 1; i >= 0; i--) {
+      const obj = state.objects[i];
+      if (obj.type === 'tree') {
+        const dx = pos.x - obj.x, dy = pos.y - obj.y;
+        if (dx * dx + dy * dy <= obj.r * obj.r) {
+          showTreePopup(obj);
+          return;
+        }
+      }
+    }
+
+    // Проверяем другие объекты
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (pointInObject(obj, pos.x, pos.y)) {
@@ -392,6 +436,7 @@ function onMouseDown(e) {
     state.plantingMode = false;
     state.selectedPlantingId = null;
     closePlantPopup();
+    closeTreePopup();
     document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
     render();
     return;
@@ -424,14 +469,6 @@ function onMouseDown(e) {
     renderPreview();
     updateFinishButton();
     return;
-  }
-
-  if (state.tool === 'tree') {
-    addObject({
-      type: 'tree', x: snapToGrid(pos.x), y: snapToGrid(pos.y),
-      r: state.scale * 1.2, fill: '#2e7d32', name: 'Дерево'
-    });
-    setTool('select');
   }
 }
 
@@ -522,15 +559,12 @@ function onMouseMove(e) {
       if (obj) {
         let newBBox = computeNewBBox(d.startBBox, d.handle, pos.x - d.startX, pos.y - d.startY);
 
-        // ЖЕСТКОЕ ОГРАНИЧЕНИЕ: не даем участку стать больше окна при ресайзе
         if (obj.type === 'plot') {
           const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
 
-          // Ограничиваем ширину и высоту размером окна
           newBBox.w = Math.min(newBBox.w, vb.w);
           newBBox.h = Math.min(newBBox.h, vb.h);
 
-          // Ограничиваем координаты, чтобы bbox не вылезал за пределы viewBox
           if (newBBox.x < vb.x) newBBox.x = vb.x;
           if (newBBox.y < vb.y) newBBox.y = vb.y;
           if (newBBox.x + newBBox.w > vb.x + vb.w) newBBox.x = vb.x + vb.w - newBBox.w;
@@ -543,7 +577,6 @@ function onMouseMove(e) {
     } else if (d.type === 'morph') {
       const obj = state.objects.find(o => o.id === state.selectedId);
       if (obj && obj.points) {
-        // ЖЕСТКОЕ ОГРАНИЧЕНИЕ: не даем точке морфологии участка вылезти за окно
         let targetX = pos.x;
         let targetY = pos.y;
 

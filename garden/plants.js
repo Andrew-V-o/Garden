@@ -1,7 +1,12 @@
-// ===== РАСТЕНИЯ: СПИСОК, МОДАЛКА, POPUP =====
+// ===== РАСТЕНИЯ И ДЕРЕВЬЯ =====
 
 let currentSettingsPlantId = null;
+let currentTreeSettingsId = null;
 let currentContextMenu = null;
+let currentTreeContextMenu = null;
+
+// Состояние сворачивания разделов
+state.collapsedSections = { plants: false, trees: false };
 
 function loadCustomPlants() {
   const saved = localStorage.getItem('customPlants');
@@ -18,6 +23,40 @@ function loadCustomPlants() {
 function saveCustomPlants() {
   localStorage.setItem('customPlants', JSON.stringify(plants.filter(p => p.custom)));
 }
+
+function loadCustomTrees() {
+  const saved = localStorage.getItem('customTrees');
+  if (saved) {
+    try {
+      const customs = JSON.parse(saved);
+      trees = [...DEFAULT_TREES, ...customs];
+      customTreeCounter = customs.length + 1;
+    } catch (e) { }
+  }
+  loadTreeFolders();
+}
+
+function saveCustomTrees() {
+  localStorage.setItem('customTrees', JSON.stringify(trees.filter(t => t.custom)));
+}
+
+// ===== СВОРАЧИВАНИЕ РАЗДЕЛОВ =====
+
+function toggleSection(section) {
+  state.collapsedSections[section] = !state.collapsedSections[section];
+  const content = document.getElementById(section === 'plants' ? 'plantsSection' : 'treesSection');
+  const arrow = document.getElementById(section === 'plants' ? 'plantsArrow' : 'treesArrow');
+  
+  if (state.collapsedSections[section]) {
+    content.style.display = 'none';
+    arrow.textContent = '▶';
+  } else {
+    content.style.display = 'block';
+    arrow.textContent = '▼';
+  }
+}
+
+// ===== ОБЩИЕ ФУНКЦИИ =====
 
 function fillMonthSelect(selectEl, includeNoneOption = false, selectedMonth = null) {
   let html = '';
@@ -67,6 +106,18 @@ function updateShapePreview(context) {
   }
 }
 
+function updateTreeShapePreview(context) {
+  const shape = document.getElementById(`${context}TreeShape`).value;
+  const color = document.getElementById(`${context}TreeColor`).value;
+  const previewEl = document.getElementById(`${context}TreePreview`);
+  
+  if (previewEl) {
+    previewEl.innerHTML = `<svg viewBox="0 0 16 16" style="width:40px;height:40px;">${getShapeSVGMini(shape, color)}</svg>`;
+  }
+}
+
+// ===== РАСТЕНИЯ =====
+
 function createPlantItem(p) {
   const el = document.createElement('div');
   el.className = 'plant-item' + (state.selectedPlant === p.id ? ' selected' : '');
@@ -102,7 +153,6 @@ function renderPlantList() {
   const list = document.getElementById('plantList');
   list.innerHTML = '';
   
-  // Кнопка создания папки
   const addFolderBtn = document.createElement('div');
   addFolderBtn.className = 'add-folder-btn';
   addFolderBtn.textContent = '📁 Новая папка';
@@ -114,7 +164,6 @@ function renderPlantList() {
   };
   list.appendChild(addFolderBtn);
   
-  // === СЕКЦИЯ ПАПОК ===
   if (folders.length > 0) {
     const foldersSectionHeader = document.createElement('div');
     foldersSectionHeader.className = 'section-header';
@@ -170,7 +219,6 @@ function renderPlantList() {
           });
         }
         
-        // Кнопка добавления нового цветка в папку
         const addPlantBtn = document.createElement('div');
         addPlantBtn.className = 'add-plant-btn folder-add-btn';
         addPlantBtn.textContent = '➕ Добавить цветок';
@@ -187,7 +235,6 @@ function renderPlantList() {
     });
   }
   
-  // === СЕКЦИЯ ОТДЕЛЬНЫХ РАСТЕНИЙ ===
   const noFolderPlants = plants.filter(p => !p.folderId);
   if (noFolderPlants.length > 0) {
     const plantsSectionHeader = document.createElement('div');
@@ -200,7 +247,6 @@ function renderPlantList() {
     });
   }
   
-  // Кнопка добавления нового растения (без папки)
   const addBtn = document.createElement('div');
   addBtn.className = 'add-plant-btn';
   addBtn.textContent = '➕ Свой цветок';
@@ -210,18 +256,6 @@ function renderPlantList() {
   document.addEventListener('click', () => {
     hideContextMenu();
   });
-}
-
-// Открыть модалку создания нового растения с уже выбранной папкой
-function openPlantModalInFolder(folderId) {
-  openPlantModal();
-  // После открытия модалки устанавливаем выбранную папку
-  setTimeout(() => {
-    const folderSelect = document.getElementById('newPlantFolder');
-    if (folderSelect) {
-      folderSelect.value = folderId.toString();
-    }
-  }, 0);
 }
 
 function showFolderContextMenu(e, folderId) {
@@ -236,7 +270,7 @@ function showFolderContextMenu(e, folderId) {
   menu.style.top = e.pageY + 'px';
   
   menu.innerHTML = `
-    <div class="context-menu-item" data-action="rename">✏️ Переименовать</div>
+    <div class="context-menu-item" data-action="rename">️ Переименовать</div>
     <div class="context-menu-item" data-action="delete">🗑️ Удалить папку</div>
   `;
   
@@ -271,9 +305,12 @@ function selectPlant(id) {
     return;
   }
   state.selectedPlant = id;
+  state.selectedTree = null;
   document.querySelectorAll('.plant-item').forEach(el => {
     el.classList.toggle('selected', el.dataset.id === id);
   });
+  document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('selected'));
+  
   if (state.selectedId) {
     const obj = state.objects.find(o => o.id === state.selectedId);
     if (obj && obj.type === 'bed') {
@@ -601,6 +638,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('settingsPlantColor').addEventListener('input', (e) => {
     updateShapePreview('settings');
   });
+  document.getElementById('settingsTreeColor').addEventListener('input', (e) => {
+    updateTreeShapePreview('settings');
+  });
 });
 
 function saveNewPlant() {
@@ -641,6 +681,16 @@ function saveNewPlant() {
   renderPlantList();
   closePlantModal();
   selectPlant(plant.id);
+}
+
+function openPlantModalInFolder(folderId) {
+  openPlantModal();
+  setTimeout(() => {
+    const folderSelect = document.getElementById('newPlantFolder');
+    if (folderSelect) {
+      folderSelect.value = folderId.toString();
+    }
+  }, 0);
 }
 
 function showPlantPopup(planting, obj) {
@@ -786,6 +836,348 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// ===== ДЕРЕВЬЯ =====
+
+function createTreeItem(t) {
+  const el = document.createElement('div');
+  el.className = 'tree-item' + (state.selectedTree === t.id ? ' selected' : '');
+  el.dataset.id = t.id;
+  
+  const shape = t.defaultShape || 'oak';
+  
+  el.innerHTML = `
+    <button class="tree-settings-btn" title="Настройки вида" data-settings="${t.id}">⚙</button>
+    <svg class="tree-shape-icon" viewBox="0 0 16 16" style="width:24px;height:24px;margin:0 auto 4px;display:block;">
+      ${getShapeSVGMini(shape, t.color)}
+    </svg>
+    ${t.name}
+    <button class="tree-del" title="Удалить">×</button>
+  `;
+  el.onclick = (e) => {
+    if (e.target.classList.contains('tree-del')) {
+      e.stopPropagation();
+      deleteTree(t.id);
+      return;
+    }
+    if (e.target.classList.contains('tree-settings-btn')) {
+      e.stopPropagation();
+      openTreeSettings(t.id);
+      return;
+    }
+    selectTree(t.id);
+  };
+  return el;
+}
+
+function renderTreeList() {
+  const list = document.getElementById('treeList');
+  list.innerHTML = '';
+  
+  const addFolderBtn = document.createElement('div');
+  addFolderBtn.className = 'add-folder-btn';
+  addFolderBtn.textContent = '📁 Новая папка';
+  addFolderBtn.onclick = () => {
+    const name = prompt('Название папки:');
+    if (name && name.trim()) {
+      createTreeFolder(name.trim());
+    }
+  };
+  list.appendChild(addFolderBtn);
+  
+  if (treeFolders.length > 0) {
+    const foldersSectionHeader = document.createElement('div');
+    foldersSectionHeader.className = 'section-header';
+    foldersSectionHeader.textContent = '📁 Папки';
+    list.appendChild(foldersSectionHeader);
+    
+    treeFolders.forEach(folder => {
+      const folderTrees = trees.filter(t => t.folderId === folder.id);
+      const isExpanded = state.expandedTreeFolders.has(folder.id);
+      
+      const folderEl = document.createElement('div');
+      folderEl.className = 'folder-container';
+      
+      const folderHeader = document.createElement('div');
+      folderHeader.className = 'folder-header';
+      folderHeader.innerHTML = `
+        <span class="folder-arrow">${isExpanded ? '▼' : '▶'}</span>
+        <span class="folder-icon">📁</span>
+        <span class="folder-name">${folder.name}</span>
+        <span class="folder-count">(${folderTrees.length})</span>
+        <button class="folder-delete-btn" title="Удалить папку">×</button>
+      `;
+      
+      folderHeader.onclick = (e) => {
+        if (e.target.classList.contains('folder-delete-btn')) {
+          e.stopPropagation();
+          deleteTreeFolder(folder.id);
+        } else {
+          toggleTreeFolder(folder.id);
+        }
+      };
+      
+      folderHeader.oncontextmenu = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showTreeFolderContextMenu(e, folder.id);
+      };
+      
+      folderEl.appendChild(folderHeader);
+      
+      if (isExpanded) {
+        const folderContent = document.createElement('div');
+        folderContent.className = 'folder-content';
+        
+        if (folderTrees.length === 0) {
+          const emptyMsg = document.createElement('div');
+          emptyMsg.style.cssText = 'font-size:11px;color:#999;padding:8px;text-align:center;grid-column:span 2;';
+          emptyMsg.textContent = 'Папка пуста';
+          folderContent.appendChild(emptyMsg);
+        } else {
+          folderTrees.forEach(t => {
+            folderContent.appendChild(createTreeItem(t));
+          });
+        }
+        
+        const addTreeBtn = document.createElement('div');
+        addTreeBtn.className = 'add-tree-btn folder-add-btn';
+        addTreeBtn.textContent = '➕ Добавить дерево';
+        addTreeBtn.onclick = (e) => {
+          e.stopPropagation();
+          openTreeModalInFolder(folder.id);
+        };
+        folderContent.appendChild(addTreeBtn);
+        
+        folderEl.appendChild(folderContent);
+      }
+      
+      list.appendChild(folderEl);
+    });
+  }
+  
+  const noFolderTrees = trees.filter(t => !t.folderId);
+  if (noFolderTrees.length > 0) {
+    const treesSectionHeader = document.createElement('div');
+    treesSectionHeader.className = 'section-header';
+    treesSectionHeader.textContent = '🌳 Отдельные деревья';
+    list.appendChild(treesSectionHeader);
+    
+    noFolderTrees.forEach(t => {
+      list.appendChild(createTreeItem(t));
+    });
+  }
+  
+  const addBtn = document.createElement('div');
+  addBtn.className = 'add-tree-btn';
+  addBtn.textContent = '➕ Свое дерево';
+  addBtn.onclick = openTreeModal;
+  list.appendChild(addBtn);
+  
+  document.addEventListener('click', () => {
+    hideTreeContextMenu();
+  });
+}
+
+function showTreeFolderContextMenu(e, folderId) {
+  hideTreeContextMenu();
+  
+  const folder = treeFolders.find(f => f.id === folderId);
+  if (!folder) return;
+  
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.style.left = e.pageX + 'px';
+  menu.style.top = e.pageY + 'px';
+  
+  menu.innerHTML = `
+    <div class="context-menu-item" data-action="rename">✏️ Переименовать</div>
+    <div class="context-menu-item" data-action="delete">🗑️ Удалить папку</div>
+  `;
+  
+  menu.onclick = (ev) => {
+    const action = ev.target.dataset.action;
+    if (action === 'rename') {
+      const newName = prompt('Новое название папки:', folder.name);
+      if (newName && newName.trim()) {
+        renameTreeFolder(folderId, newName.trim());
+      }
+    } else if (action === 'delete') {
+      deleteTreeFolder(folderId);
+    }
+    hideTreeContextMenu();
+  };
+  
+  document.body.appendChild(menu);
+  currentTreeContextMenu = menu;
+}
+
+function hideTreeContextMenu() {
+  if (currentTreeContextMenu) {
+    currentTreeContextMenu.remove();
+    currentTreeContextMenu = null;
+  }
+}
+
+function selectTree(id) {
+  if (state.selectedTree === id) {
+    state.selectedTree = null;
+    document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('selected'));
+    return;
+  }
+  state.selectedTree = id;
+  state.selectedPlant = null;
+  document.querySelectorAll('.tree-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.id === id);
+  });
+  document.querySelectorAll('.plant-item').forEach(el => el.classList.remove('selected'));
+  
+  // Автоматически переключаем инструмент на "Дерево" для посадки
+  state.tool = 'tree';
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  updateHint();
+}
+
+function deleteTree(id) {
+  const tree = trees.find(t => t.id === id);
+  if (!tree) return;
+  if (!confirm(`Удалить "${tree.name}"? Все посаженные деревья этого типа будут удалены.`)) return;
+
+  trees = trees.filter(t => t.id !== id);
+  state.objects = state.objects.filter(o => !(o.type === 'tree' && o.treeId === id));
+  if (state.selectedTree === id) state.selectedTree = null;
+  saveCustomTrees();
+  renderTreeList();
+  render();
+}
+
+function openTreeModal() {
+  document.getElementById('treeModal').classList.add('show');
+  document.getElementById('newTreeName').value = '';
+  document.getElementById('newTreeColor').value = '#2e7d32';
+  document.getElementById('newTreeShape').value = 'oak';
+  document.getElementById('newTreeName').focus();
+  renderTreeColorPresets();
+  
+  const folderSelect = document.getElementById('newTreeFolder');
+  folderSelect.innerHTML = '<option value="">Без папки</option>';
+  treeFolders.forEach(f => {
+    folderSelect.innerHTML += `<option value="${f.id}">${f.name}</option>`;
+  });
+  
+  updateTreeShapePreview('new');
+}
+
+function closeTreeModal() {
+  document.getElementById('treeModal').classList.remove('show');
+}
+
+function renderTreeColorPresets() {
+  const wrap = document.getElementById('treeColorPresets');
+  wrap.innerHTML = '';
+  COLOR_PRESETS.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'preset';
+    el.style.background = c;
+    if (c === '#ffffff') el.style.border = '2px solid #ccc';
+    el.onclick = () => {
+      document.getElementById('newTreeColor').value = c;
+      updateTreeShapePreview('new');
+    };
+    wrap.appendChild(el);
+  });
+}
+
+function saveNewTree() {
+  const name = document.getElementById('newTreeName').value.trim();
+  const color = document.getElementById('newTreeColor').value;
+  const shape = document.getElementById('newTreeShape').value;
+  const folderId = document.getElementById('newTreeFolder').value ? parseInt(document.getElementById('newTreeFolder').value) : null;
+  
+  if (!name) { alert('Введите название'); return; }
+  
+  const tree = { 
+    id: 'custom_tree_' + (customTreeCounter++),
+    name, color, custom: true,
+    defaultShape: shape,
+    folderId: folderId
+  };
+  
+  trees.push(tree);
+  saveCustomTrees();
+  renderTreeList();
+  closeTreeModal();
+  selectTree(tree.id);
+}
+
+function openTreeModalInFolder(folderId) {
+  openTreeModal();
+  setTimeout(() => {
+    const folderSelect = document.getElementById('newTreeFolder');
+    if (folderSelect) {
+      folderSelect.value = folderId.toString();
+    }
+  }, 0);
+}
+
+function openTreeSettings(treeId) {
+  const tree = trees.find(t => t.id === treeId);
+  if (!tree) return;
+  
+  currentTreeSettingsId = treeId;
+  
+  document.getElementById('settingsTreeName').value = tree.name;
+  document.getElementById('settingsTreeColor').value = tree.color;
+  document.getElementById('settingsTreeShape').value = tree.defaultShape || 'oak';
+  
+  const folderSelect = document.getElementById('settingsTreeFolder');
+  folderSelect.innerHTML = '<option value="">Без папки</option>';
+  treeFolders.forEach(f => {
+    folderSelect.innerHTML += `<option value="${f.id}" ${tree.folderId === f.id ? 'selected' : ''}>${f.name}</option>`;
+  });
+  
+  const deleteBtn = document.getElementById('settingsTreeDeleteBtn');
+  deleteBtn.style.display = tree.custom ? 'block' : 'none';
+  
+  document.getElementById('treeSettingsModal').classList.add('show');
+  
+  updateTreeShapePreview('settings');
+}
+
+function closeTreeSettings() {
+  document.getElementById('treeSettingsModal').classList.remove('show');
+  currentTreeSettingsId = null;
+}
+
+function saveTreeSettings() {
+  const tree = trees.find(t => t.id === currentTreeSettingsId);
+  if (!tree) return;
+  
+  const name = document.getElementById('settingsTreeName').value.trim();
+  const color = document.getElementById('settingsTreeColor').value;
+  const shape = document.getElementById('settingsTreeShape').value;
+  const folderId = document.getElementById('settingsTreeFolder').value ? parseInt(document.getElementById('settingsTreeFolder').value) : null;
+  
+  if (!name) { alert('Введите название'); return; }
+  
+  tree.name = name;
+  tree.color = color;
+  tree.defaultShape = shape;
+  tree.folderId = folderId;
+  
+  saveCustomTrees();
+  renderTreeList();
+  closeTreeSettings();
+  render();
+}
+
+function deleteTreeFromSettings() {
+  if (!currentTreeSettingsId) return;
+  deleteTree(currentTreeSettingsId);
+  closeTreeSettings();
+}
+
+// ===== КАРТА ЦВЕТЕНИЯ =====
+
 function openBloomMap() {
   document.getElementById('bloomMapModal').classList.add('show');
   
@@ -879,3 +1271,60 @@ function applyBloomFilter() {
   closeBloomMap();
   render();
 }
+
+// ===== POPUP ДЛЯ ДЕРЕВА =====
+
+function showTreePopup(treeObj) {
+  const popup = document.getElementById('treePopup');
+  const tree = trees.find(t => t.id === treeObj.treeId);
+  
+  document.getElementById('treePopupType').textContent = tree ? tree.name : 'Неизвестно';
+  
+  const sizeInput = document.getElementById('treePopupSize');
+  sizeInput.value = treeObj.r || 24;
+  document.getElementById('treePopupSizeVal').textContent = Math.round(treeObj.r || 24);
+  
+  const svgRect = svg.getBoundingClientRect();
+  const wrapRect = canvasWrap.getBoundingClientRect();
+  const x = treeObj.x + svgRect.left - wrapRect.left + canvasWrap.scrollLeft;
+  const y = treeObj.y + svgRect.top - wrapRect.top + canvasWrap.scrollTop;
+  
+  popup.style.left = (x + 20) + 'px';
+  popup.style.top = (y - 50) + 'px';
+  popup.classList.add('show');
+  
+  sizeInput.oninput = () => {
+    treeObj.r = +sizeInput.value;
+    document.getElementById('treePopupSizeVal').textContent = Math.round(treeObj.r);
+    render();
+  };
+  
+  state.selectedId = treeObj.id;
+  render();
+}
+
+function closeTreePopup() {
+  document.getElementById('treePopup').classList.remove('show');
+}
+
+function deleteTreeFromPopup() {
+  if (state.selectedId) {
+    const obj = state.objects.find(o => o.id === state.selectedId);
+    if (obj && obj.type === 'tree') {
+      deleteObject(state.selectedId);
+      state.selectedId = null;
+      closeTreePopup();
+      render();
+    }
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const treePopup = document.getElementById('treePopup');
+  if (treePopup.classList.contains('show') && !treePopup.contains(e.target)) {
+    const target = e.target.closest('[data-id]');
+    if (!target || target.dataset.id !== state.selectedId?.toString()) {
+      closeTreePopup();
+    }
+  }
+});

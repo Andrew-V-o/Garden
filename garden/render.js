@@ -83,25 +83,33 @@ function render() {
 
     if (obj.type === 'tree') {
       const isSelected = obj.id === state.selectedId;
-      const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      shadow.setAttribute('cx', obj.x + 5); shadow.setAttribute('cy', obj.y + 5);
-      shadow.setAttribute('r', obj.r);
-      shadow.setAttribute('fill', 'rgba(0,0,0,0.15)');
-      objectsLayer.appendChild(shadow);
-      const crown = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      crown.setAttribute('cx', obj.x); crown.setAttribute('cy', obj.y);
-      crown.setAttribute('r', obj.r);
-      crown.setAttribute('fill', obj.fill);
-      crown.setAttribute('stroke', isSelected ? '#ff6b00' : '#1b5e20');
-      crown.setAttribute('stroke-width', isSelected ? 3 : 2);
-      crown.setAttribute('data-id', obj.id);
-      crown.style.cursor = 'pointer';
-      objectsLayer.appendChild(crown);
-      const trunk = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      trunk.setAttribute('cx', obj.x); trunk.setAttribute('cy', obj.y);
-      trunk.setAttribute('r', obj.r * 0.2);
-      trunk.setAttribute('fill', '#5d4037');
-      objectsLayer.appendChild(trunk);
+      const shape = obj.shape || 'oak';
+      const color = obj.fill || '#2e7d32';
+      
+      // Рисуем дерево через createShapeElement с формой дерева
+      const treeEl = createShapeElement(shape, obj.x, obj.y, obj.r, color);
+      if (treeEl.tagName === 'g') {
+        treeEl.setAttribute('data-id', obj.id);
+        treeEl.style.cursor = 'pointer';
+        objectsLayer.appendChild(treeEl);
+      } else {
+        treeEl.setAttribute('data-id', obj.id);
+        treeEl.style.cursor = 'pointer';
+        objectsLayer.appendChild(treeEl);
+      }
+      
+      // Обводка для выделенного дерева
+      if (isSelected) {
+        const outline = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        outline.setAttribute('cx', obj.x);
+        outline.setAttribute('cy', obj.y);
+        outline.setAttribute('r', obj.r + 3);
+        outline.setAttribute('fill', 'none');
+        outline.setAttribute('stroke', '#ff6b00');
+        outline.setAttribute('stroke-width', '2');
+        outline.setAttribute('pointer-events', 'none');
+        objectsLayer.appendChild(outline);
+      }
       return;
     }
 
@@ -140,8 +148,7 @@ function render() {
           const shape = pl.shape || 'circle';
           const r = pl.r || state.scale * 0.4;
           const isSelectedPlanting = pl.id === state.selectedPlantingId;
-
-          // Проверяем цветение по ДАННЫМ ПОСАДКИ, а не вида
+          
           const isBlooming = isPlantBlooming(pl, state.bloomFilter);
 
           const shapeEl = createShapeElement(shape, pl.x, pl.y, r, color);
@@ -207,13 +214,13 @@ function drawResizeHandles(obj) {
   const offset = 8;
   const handles = [
     { id: 'nw', cx: x - offset, cy: y - offset },
-    { id: 'n', cx: x + w / 2, cy: y - offset },
+    { id: 'n',  cx: x + w / 2, cy: y - offset },
     { id: 'ne', cx: x + w + offset, cy: y - offset },
-    { id: 'e', cx: x + w + offset, cy: y + h / 2 },
+    { id: 'e',  cx: x + w + offset, cy: y + h / 2 },
     { id: 'se', cx: x + w + offset, cy: y + h + offset },
-    { id: 's', cx: x + w / 2, cy: y + h + offset },
+    { id: 's',  cx: x + w / 2, cy: y + h + offset },
     { id: 'sw', cx: x - offset, cy: y + h + offset },
-    { id: 'w', cx: x - offset, cy: y + h / 2 },
+    { id: 'w',  cx: x - offset, cy: y + h / 2 },
   ];
   handles.forEach(h => {
     const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -424,7 +431,7 @@ function renderProps() {
     const bbox = getObjBBox(obj);
     const plotWM = bbox ? Math.round(bbox.w / state.scale) : 0;
     const plotHM = bbox ? Math.round(bbox.h / state.scale) : 0;
-
+    
     html += `
       <div class="prop-row">
         <span>Название:</span>
@@ -455,12 +462,11 @@ function renderProps() {
         ${obj.morphModified ? '<span style="color:#d4a017;">⚠ Форма изменена</span>' : ''}
       </div>
     `;
-
+    
     if (isFigureMode) {
       const baseCount = obj.originalPointCount;
       const currentCount = obj.points.length;
-      const maxMultiplier = Math.floor(FIGURE_POINTS_LIMIT / baseCount);
-
+      
       const decimateButtons = [2, 3, 4, 5].map(div => {
         const targetPoints = currentCount / div;
         const canDecimate = Number.isInteger(targetPoints) && targetPoints >= baseCount;
@@ -476,7 +482,7 @@ function renderProps() {
           </button>
         `;
       }).join('');
-
+      
       const atBase = currentCount === baseCount;
       const resetBtn = `
         <button onclick="setMorphPoints(${obj.id}, ${baseCount})" 
@@ -489,7 +495,7 @@ function renderProps() {
           ×1
         </button>
       `;
-
+      
       const increaseButtons = [2, 3, 4, 5].map(mult => {
         const targetPoints = currentCount * mult;
         const canIncrease = targetPoints <= FIGURE_POINTS_LIMIT;
@@ -505,7 +511,7 @@ function renderProps() {
           </button>
         `;
       }).join('');
-
+      
       html += `
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
           <span style="font-size:12px;color:#555;">Уменьшить количество точек:</span>
@@ -554,7 +560,7 @@ function renderProps() {
         </div>
       `;
     }
-
+    
     html += `
       <button onclick="fitPlotToCanvas()" style="
         width: 100%;
@@ -583,18 +589,17 @@ function renderProps() {
         <input type="color" value="${obj.fill}" onchange="updateProp(${obj.id}, 'fill', this.value)">
       </div>
       <div class="prop-row" style="font-size:11px;color:#777;flex-direction:column;align-items:flex-start;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:4px;">
-        <span><b>🌱 Клумба:</b></span>
+        <span><b> Клумба:</b></span>
         <span>Точек морфологии: ${obj.points.length}${isFigureMode ? ` (база: ${obj.originalPointCount})` : ''}</span>
         ${isFigureMode ? '<span style="color:#4a7c59;">✓ Форма зафиксирована</span>' : '<span>Двойной клик по границе — добавить точку</span>'}
         ${obj.morphModified && !obj.originalPointCount ? '<span style="color:#d4a017;">⚠ Форма изменена</span>' : ''}
       </div>
     `;
-
+    
     if (isFigureMode) {
       const baseCount = obj.originalPointCount;
       const currentCount = obj.points.length;
-      const maxMultiplier = Math.floor(FIGURE_POINTS_LIMIT / baseCount);
-
+      
       const decimateButtons = [2, 3, 4, 5].map(div => {
         const targetPoints = currentCount / div;
         const canDecimate = Number.isInteger(targetPoints) && targetPoints >= baseCount;
@@ -610,7 +615,7 @@ function renderProps() {
           </button>
         `;
       }).join('');
-
+      
       const atBase = currentCount === baseCount;
       const resetBtn = `
         <button onclick="setMorphPoints(${obj.id}, ${baseCount})" 
@@ -623,7 +628,7 @@ function renderProps() {
           ×1
         </button>
       `;
-
+      
       const increaseButtons = [2, 3, 4, 5].map(mult => {
         const targetPoints = currentCount * mult;
         const canIncrease = targetPoints <= FIGURE_POINTS_LIMIT;
@@ -639,7 +644,7 @@ function renderProps() {
           </button>
         `;
       }).join('');
-
+      
       html += `
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
           <span style="font-size:12px;color:#555;">Уменьшить количество точек:</span>
@@ -688,6 +693,18 @@ function renderProps() {
         </div>
       `;
     }
+  } else if (obj.type === 'tree') {
+    const tree = trees.find(t => t.id === obj.treeId);
+    html += `
+      <div class="prop-row">
+        <span>Тип дерева:</span>
+        <span style="font-weight:600;">${tree ? tree.name : 'Неизвестно'}</span>
+      </div>
+      <div class="prop-row">
+        <span>Размер:</span>
+        <input type="number" value="${Math.round(obj.r)}" min="10" max="200" onchange="updateProp(${obj.id}, 'r', +this.value)">
+      </div>
+    `;
   } else {
     html += `
       <div class="prop-row">
@@ -699,15 +716,6 @@ function renderProps() {
         <input type="color" value="${obj.fill}" onchange="updateProp(${obj.id}, 'fill', this.value)">
       </div>
     `;
-
-    if (obj.type === 'tree') {
-      html += `
-        <div class="prop-row">
-          <span>Размер:</span>
-          <input type="number" value="${Math.round(obj.r)}" min="10" max="200" onchange="updateProp(${obj.id}, 'r', +this.value)">
-        </div>
-      `;
-    }
   }
 
   panel.innerHTML = html;

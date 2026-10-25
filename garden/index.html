@@ -1,380 +1,463 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
-  <meta charset="UTF-8">
-  <title>🌿 Планировщик сада v5</title>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<title> Планировщик сада v5</title>
+<link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
 
-  <header>
-    <h1> Планировщик сада v5</h1>
-    <div class="actions">
-      <button onclick="openBloomMap()">🌸 Карта цветения</button>
-      <button onclick="clearAll()">️ Очистить</button>
-      <button onclick="saveProject()">💾 Сохранить</button>
-      <button onclick="loadProject()">📂 Загрузить</button>
-      <button onclick="exportPNG()">🖼️ PNG</button>
-    </div>
-  </header>
+<header>
+  <h1>🌿 Планировщик сада v5</h1>
+  <div class="actions">
+    <button onclick="openBloomMap()">🌸 Карта цветения</button>
+    <button onclick="clearAll()">🗑️ Очистить</button>
+    <button onclick="saveProject()">💾 Сохранить</button>
+    <button onclick="loadProject()">📂 Загрузить</button>
+    <button onclick="exportPNG()">🖼️ PNG</button>
+  </div>
+</header>
 
-  <div class="main">
-    <aside class="sidebar">
-      <h3>🛠️ Инструменты</h3>
-      <div class="tool-grid">
-        <div class="tool-btn active" data-tool="select" onclick="setTool('select')">
-          <span class="icon">👆</span>Выбрать
-        </div>
-        <div class="tool-btn" data-tool="move" onclick="setTool('move')">
-          <span class="icon">✋</span>Переместить
-        </div>
+<div class="main">
+  <aside class="sidebar">
+    <h3>️ Инструменты</h3>
+    <div class="tool-grid">
+      <div class="tool-btn active" data-tool="select" onclick="setTool('select')">
+        <span class="icon">👆</span>Выбрать
       </div>
-
-      <h3>📦 Объекты</h3>
-      <div class="objects-panel">
-        <div class="obj-btn" data-obj="plot" onclick="selectPlot()">
-          <span class="icon">🏡</span>Участок
-        </div>
-
-        <div class="obj-group">
-          <div class="obj-btn has-submenu" data-obj="bed" onclick="toggleBedSubmenu(event)">
-            <span class="icon">▭</span>Клумба <span class="arrow">▼</span>
-          </div>
-          <div class="submenu" id="bedSubmenu">
-            <div class="submenu-item active" data-bed="rect" onclick="setBedShape('rect')">
-              <span class="icon">▭</span>Прямоугольная
-            </div>
-            <div class="submenu-item" data-bed="circle" onclick="setBedShape('circle')">
-              <span class="icon">◯</span>Круглая
-            </div>
-            <div class="submenu-item" data-bed="poly" onclick="setBedShape('poly')">
-              <span class="icon">⬠</span>Фигура
-            </div>
-          </div>
-        </div>
-
-        <div class="obj-btn" data-obj="path" onclick="setTool('path')">
-          <span class="icon">〰️</span>Дорожка
-        </div>
-        <div class="obj-btn" data-obj="tree" onclick="setTool('tree')">
-          <span class="icon">🌳</span>Дерево
-        </div>
-      </div>
-
-      <h3>🌸 Растения</h3>
-      <div class="plant-list" id="plantList"></div>
-
-      <h3>🎨 Цвет секции</h3>
-      <div class="prop-row">
-        <span>Заливка:</span>
-        <input type="color" id="fillColor" value="#8bc34a">
-      </div>
-    </aside>
-
-    <div class="canvas-wrap" id="canvasWrap">
-      <svg id="canvas" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#d4cfc0" stroke-width="0.5" />
-          </pattern>
-        </defs>
-        <rect id="svgBg" x="0" y="0" fill="#d4cfc0" />
-        <g id="plotLayer"></g>
-        <g id="objects"></g>
-        <g id="handles"></g>
-        <g id="preview"></g>
-      </svg>
-      <div class="zoom-info" id="zoomInfo">Окно: 50×50 м</div>
-
-      <button class="finish-btn" id="finishBtn" onclick="finishPolyOrPath()" style="display:none;">
-        ✓ Завершить
-      </button>
-
-      <div class="plant-popup" id="plantPopup">
-        <h4>🌺 Настройка цветка</h4>
-        <div class="popup-row">
-          <span>Растение:</span>
-          <select id="popupPlant"></select>
-        </div>
-        <div class="popup-row">
-          <span>Форма:</span>
-          <select id="popupShape"></select>
-        </div>
-        <div class="popup-row">
-          <span>Размер:</span>
-          <input type="range" id="popupSize" min="5" max="60" value="16">
-          <span id="popupSizeVal" style="width:25px;text-align:right">16</span>
-        </div>
-        <div class="popup-row"
-          style="flex-direction:column;align-items:stretch;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:8px;">
-          <span style="font-size:11px;color:#555;"><b>🌸 Время цветения этой посадки:</b></span>
-          <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="months" checked
-                onchange="toggleBloomMode()"> Месяцы</label>
-            <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="dates"
-                onchange="toggleBloomMode()"> Точные даты</label>
-          </div>
-          <div id="bloomMonthsSection" style="display:flex;gap:4px;">
-            <select id="popupBloomStartMonth" style="flex:1;"></select>
-            <span style="line-height:28px;">—</span>
-            <select id="popupBloomEndMonth" style="flex:1;"></select>
-          </div>
-          <div id="bloomDatesSection" style="display:none;flex-direction:column;gap:6px;">
-            <div style="display:flex;gap:4px;align-items:center;">
-              <span style="font-size:11px;">С:</span>
-              <select id="popupBloomStartMonth2" style="flex:1;"></select>
-              <input type="number" id="popupBloomStartDay" min="1" max="31" placeholder="День"
-                style="width:60px;padding:4px;border:1px solid #ccc;border-radius:4px;">
-            </div>
-            <div style="display:flex;gap:4px;align-items:center;">
-              <span style="font-size:11px;">По:</span>
-              <select id="popupBloomEndMonth2" style="flex:1;"></select>
-              <input type="number" id="popupBloomEndDay" min="1" max="31" placeholder="День"
-                style="width:60px;padding:4px;border:1px solid #ccc;border-radius:4px;">
-            </div>
-          </div>
-        </div>
-        <div class="popup-buttons">
-          <button class="delete-btn" onclick="deletePlantingFromPopup()">🗑️ Удалить</button>
-          <button class="close-btn" onclick="closePlantPopup()">✖ Закрыть</button>
-        </div>
+      <div class="tool-btn" data-tool="move" onclick="setTool('move')">
+        <span class="icon">✋</span>Переместить
       </div>
     </div>
 
-    <aside class="sidebar right">
-      <h3>📋 Секции посадки</h3>
-      <div id="sectionsList">
-        <div class="empty-hint">Нарисуйте клумбу через панель объектов</div>
+    <h3>📦 Объекты</h3>
+    <div class="objects-panel">
+      <div class="obj-btn" data-obj="plot" onclick="selectPlot()">
+        <span class="icon">🏡</span>Участок
       </div>
+      
+      <div class="obj-group">
+        <div class="obj-btn has-submenu" data-obj="bed" onclick="toggleBedSubmenu(event)">
+          <span class="icon">▭</span>Клумба <span class="arrow">▼</span>
+        </div>
+        <div class="submenu" id="bedSubmenu">
+          <div class="submenu-item active" data-bed="rect" onclick="setBedShape('rect')">
+            <span class="icon"></span>Прямоугольная
+          </div>
+          <div class="submenu-item" data-bed="circle" onclick="setBedShape('circle')">
+            <span class="icon">◯</span>Круглая
+          </div>
+          <div class="submenu-item" data-bed="poly" onclick="setBedShape('poly')">
+            <span class="icon">⬠</span>Фигура
+          </div>
+        </div>
+      </div>
+      
+      <div class="obj-btn" data-obj="path" onclick="setTool('path')">
+        <span class="icon">〰️</span>Дорожка
+      </div>
+    </div>
 
-      <h3> Посадки в выбранной секции</h3>
-      <div id="plantingsPanel">
-        <div class="empty-hint">Выберите секцию, чтобы добавить растения</div>
+    <!-- Сворачиваемый раздел растений -->
+    <div class="collapsible-section">
+      <div class="collapsible-header" onclick="toggleSection('plants')">
+        <span class="collapsible-arrow" id="plantsArrow">▼</span>
+        <span> Растения</span>
       </div>
+      <div class="collapsible-content" id="plantsSection">
+        <div class="plant-list" id="plantList"></div>
+      </div>
+    </div>
 
-      <h3>📊 Статистика</h3>
-      <div class="stats" id="stats">
-        <div><span>Секций:</span><b id="statSections">0</b></div>
-        <div><span>Площадь:</span><b id="statArea">0 м²</b></div>
-        <div><span>Посадок:</span><b id="statPlants">0</b></div>
+    <!-- Сворачиваемый раздел деревьев -->
+    <div class="collapsible-section">
+      <div class="collapsible-header" onclick="toggleSection('trees')">
+        <span class="collapsible-arrow" id="treesArrow">▼</span>
+        <span> Деревья</span>
       </div>
+      <div class="collapsible-content" id="treesSection">
+        <div class="tree-list" id="treeList"></div>
+      </div>
+    </div>
 
-      <h3>⚙️ Свойства</h3>
-      <div id="propsPanel">
-        <div class="empty-hint">Выберите объект для редактирования</div>
+    <h3> Цвет секции</h3>
+    <div class="prop-row">
+      <span>Заливка:</span>
+      <input type="color" id="fillColor" value="#8bc34a">
+    </div>
+  </aside>
+
+  <div class="canvas-wrap" id="canvasWrap">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#d4cfc0" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect id="svgBg" x="0" y="0" fill="#d4cfc0"/>
+      <g id="plotLayer"></g>
+      <g id="objects"></g>
+      <g id="handles"></g>
+      <g id="preview"></g>
+    </svg>
+    <div class="zoom-info" id="zoomInfo">Окно: 50×50 м</div>
+    
+    <button class="finish-btn" id="finishBtn" onclick="finishPolyOrPath()" style="display:none;">
+      ✓ Завершить
+    </button>
+    
+    <div class="plant-popup" id="plantPopup">
+      <h4>🌺 Настройка цветка</h4>
+      <div class="popup-row">
+        <span>Растение:</span>
+        <select id="popupPlant"></select>
       </div>
-    </aside>
+      <div class="popup-row">
+        <span>Форма:</span>
+        <select id="popupShape"></select>
+      </div>
+      <div class="popup-row">
+        <span>Размер:</span>
+        <input type="range" id="popupSize" min="5" max="60" value="16">
+        <span id="popupSizeVal" style="width:25px;text-align:right">16</span>
+      </div>
+      <div class="popup-row" style="flex-direction:column;align-items:stretch;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:8px;">
+        <span style="font-size:11px;color:#555;"><b>🌸 Время цветения этой посадки:</b></span>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="months" checked onchange="toggleBloomMode()"> Месяцы</label>
+          <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="dates" onchange="toggleBloomMode()"> Точные даты</label>
+        </div>
+        <div id="bloomMonthsSection" style="display:flex;gap:4px;">
+          <select id="popupBloomStartMonth" style="flex:1;"></select>
+          <span style="line-height:28px;">—</span>
+          <select id="popupBloomEndMonth" style="flex:1;"></select>
+        </div>
+        <div id="bloomDatesSection" style="display:none;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span style="font-size:11px;">С:</span>
+            <select id="popupBloomStartMonth2" style="flex:1;"></select>
+            <input type="number" id="popupBloomStartDay" min="1" max="31" placeholder="День" style="width:60px;padding:4px;border:1px solid #ccc;border-radius:4px;">
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span style="font-size:11px;">По:</span>
+            <select id="popupBloomEndMonth2" style="flex:1;"></select>
+            <input type="number" id="popupBloomEndDay" min="1" max="31" placeholder="День" style="width:60px;padding:4px;border:1px solid #ccc;border-radius:4px;">
+          </div>
+        </div>
+      </div>
+      <div class="popup-buttons">
+        <button class="delete-btn" onclick="deletePlantingFromPopup()">🗑️ Удалить</button>
+        <button class="close-btn" onclick="closePlantPopup()">✖ Закрыть</button>
+      </div>
+    </div>
+    <div class="plant-popup" id="treePopup">
+      <h4>🌳 Настройка дерева</h4>
+      <div class="popup-row">
+        <span>Тип:</span>
+        <span id="treePopupType" style="font-weight:600;"></span>
+      </div>
+      <div class="popup-row">
+        <span>Размер:</span>
+        <input type="range" id="treePopupSize" min="10" max="100" value="24">
+        <span id="treePopupSizeVal" style="width:25px;text-align:right">24</span>
+      </div>
+      <div class="popup-buttons">
+        <button class="delete-btn" onclick="deleteTreeFromPopup()">🗑️ Удалить</button>
+        <button class="close-btn" onclick="closeTreePopup()">✖ Закрыть</button>
+      </div>
+    </div>
   </div>
 
-  <div class="hint-bar" id="hintBar">💡 Выберите инструмент или объект из панели слева.</div>
+  <aside class="sidebar right">
+    <h3>📋 Секции посадки</h3>
+    <div id="sectionsList">
+      <div class="empty-hint">Нарисуйте клумбу через панель объектов</div>
+    </div>
 
-  <!-- Модалка создания нового растения -->
-  <div class="modal-bg" id="plantModal">
-    <div class="modal">
-      <h2>🌺 Новое растение</h2>
-      <label>Название</label>
-      <input type="text" id="newPlantName" placeholder="Например: Хризантемы" maxlength="20">
-      <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
-      <select id="newPlantShape"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;"
-        onchange="updateShapePreview('new')">
-        <option value="circle">Круг</option>
-        <option value="square">Квадрат</option>
-        <option value="diamond">Ромб</option>
-        <option value="triangle">Треугольник</option>
-        <option value="oval">Овал</option>
-        <option value="star">Звезда</option>
-        <option value="heart">Сердце</option>
-        <option value="flower">Цветок</option>
-        <option value="cross">Крест</option>
-        <option value="moon">Полумесяц</option>
-        <option value="drop">Капля</option>
-        <option value="leaf">Лист</option>
-      </select>
-      <label style="margin-top:8px;display:block;">Папка:</label>
-      <select id="newPlantFolder"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-        <option value="">Без папки</option>
-      </select>
-      <label>Цвет иконки</label>
-      <div class="color-picker-wrap" style="align-items:center;">
-        <input type="color" id="newPlantColor" value="#ff69b4" oninput="updateShapePreview('new')">
-        <div id="newShapePreview" style="width:40px;height:40px;margin-left:12px;"></div>
+    <h3>🌱 Посадки в выбранной секции</h3>
+    <div id="plantingsPanel">
+      <div class="empty-hint">Выберите секцию, чтобы добавить растения</div>
+    </div>
+
+    <h3>📊 Статистика</h3>
+    <div class="stats" id="stats">
+      <div><span>Секций:</span><b id="statSections">0</b></div>
+      <div><span>Площадь:</span><b id="statArea">0 м²</b></div>
+      <div><span>Посадок:</span><b id="statPlants">0</b></div>
+    </div>
+
+    <h3>⚙️ Свойства</h3>
+    <div id="propsPanel">
+      <div class="empty-hint">Выберите объект для редактирования</div>
+    </div>
+  </aside>
+</div>
+
+<div class="hint-bar" id="hintBar"> Выберите инструмент или объект из панели слева.</div>
+
+<!-- Модалка создания нового растения -->
+<div class="modal-bg" id="plantModal">
+  <div class="modal">
+    <h2> Новое растение</h2>
+    <label>Название</label>
+    <input type="text" id="newPlantName" placeholder="Например: Хризантемы" maxlength="20">
+    <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
+    <select id="newPlantShape" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;" onchange="updateShapePreview('new')">
+      <option value="circle">Круг</option>
+      <option value="square">Квадрат</option>
+      <option value="diamond">Ромб</option>
+      <option value="triangle">Треугольник</option>
+      <option value="oval">Овал</option>
+      <option value="star">Звезда</option>
+      <option value="heart">Сердце</option>
+      <option value="flower">Цветок</option>
+      <option value="cross">Крест</option>
+      <option value="moon">Полумесяц</option>
+      <option value="drop">Капля</option>
+      <option value="leaf">Лист</option>
+    </select>
+    <label>Цвет иконки</label>
+    <div class="color-picker-wrap" style="align-items:center;">
+      <input type="color" id="newPlantColor" value="#ff69b4" oninput="updateShapePreview('new')">
+      <div id="newShapePreview" style="width:40px;height:40px;margin-left:12px;"></div>
+    </div>
+    <label style="margin-top:12px;display:block;">Время цветения по умолчанию:</label>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="newBloomMode" value="months" checked onchange="toggleNewBloomMode()"> Месяцы</label>
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="newBloomMode" value="dates" onchange="toggleNewBloomMode()"> Точные даты</label>
+    </div>
+    <div id="newBloomMonthsSection" style="display:flex;gap:8px;margin-bottom:12px;">
+      <select id="newPlantBloomStartMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+      <span style="line-height:36px;">—</span>
+      <select id="newPlantBloomEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+    </div>
+    <div id="newBloomDatesSection" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;width:30px;">С:</span>
+        <select id="newPlantBloomStartMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <input type="number" id="newPlantBloomStartDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
       </div>
-      <label style="margin-top:12px;display:block;">Время цветения по умолчанию:</label>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="newBloomMode" value="months" checked
-            onchange="toggleNewBloomMode()"> Месяцы</label>
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="newBloomMode" value="dates"
-            onchange="toggleNewBloomMode()"> Точные даты</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;width:30px;">По:</span>
+        <select id="newPlantBloomEndMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <input type="number" id="newPlantBloomEndDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
       </div>
-      <div id="newBloomMonthsSection" style="display:flex;gap:8px;margin-bottom:12px;">
-        <select id="newPlantBloomStartMonth"
-          style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+    </div>
+    <label>Папка:</label>
+    <select id="newPlantFolder" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="">Без папки</option>
+    </select>
+    <label>Быстрый выбор цвета:</label>
+    <div class="presets" id="colorPresets"></div>
+    <div class="buttons">
+      <button class="secondary" onclick="closePlantModal()">Отмена</button>
+      <button class="primary" onclick="saveNewPlant()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка настроек вида растения -->
+<div class="modal-bg" id="plantSettingsModal">
+  <div class="modal">
+    <h2>️ Настройки вида растения</h2>
+    <label>Название</label>
+    <input type="text" id="settingsPlantName" maxlength="20">
+    <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
+    <select id="settingsPlantShape" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;" onchange="updateShapePreview('settings')">
+      <option value="circle">Круг</option>
+      <option value="square">Квадрат</option>
+      <option value="diamond">Ромб</option>
+      <option value="triangle">Треугольник</option>
+      <option value="oval">Овал</option>
+      <option value="star">Звезда</option>
+      <option value="heart">Сердце</option>
+      <option value="flower">Цветок</option>
+      <option value="cross">Крест</option>
+      <option value="moon">Полумесяц</option>
+      <option value="drop">Капля</option>
+      <option value="leaf">Лист</option>
+    </select>
+    <label>Цвет иконки</label>
+    <div class="color-picker-wrap" style="align-items:center;">
+      <input type="color" id="settingsPlantColor" oninput="updateShapePreview('settings')">
+      <div id="settingsShapePreview" style="width:40px;height:40px;margin-left:12px;"></div>
+    </div>
+    <label style="margin-top:12px;display:block;">Время цветения по умолчанию:</label>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="settingsBloomMode" value="months" checked onchange="toggleSettingsBloomMode()"> Месяцы</label>
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="settingsBloomMode" value="dates" onchange="toggleSettingsBloomMode()"> Точные даты</label>
+    </div>
+    <div id="settingsBloomMonthsSection" style="display:flex;gap:8px;margin-bottom:12px;">
+      <select id="settingsBloomStartMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+      <span style="line-height:36px;">—</span>
+      <select id="settingsBloomEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+    </div>
+    <div id="settingsBloomDatesSection" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;width:30px;">С:</span>
+        <select id="settingsBloomStartMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <input type="number" id="settingsBloomStartDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;width:30px;">По:</span>
+        <select id="settingsBloomEndMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <input type="number" id="settingsBloomEndDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
+      </div>
+    </div>
+    <label>Папка:</label>
+    <select id="settingsPlantFolder" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="">Без папки</option>
+    </select>
+    <div class="buttons" style="justify-content:space-between;">
+      <button class="delete-btn" id="settingsDeleteBtn" onclick="deletePlantFromSettings()" style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;display:none;">️ Удалить вид</button>
+      <div style="display:flex;gap:8px;">
+        <button class="secondary" onclick="closePlantSettings()">Отмена</button>
+        <button class="primary" onclick="savePlantSettings()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка создания нового дерева -->
+<div class="modal-bg" id="treeModal">
+  <div class="modal">
+    <h2>🌳 Новое дерево</h2>
+    <label>Название</label>
+    <input type="text" id="newTreeName" placeholder="Например: Дуб" maxlength="20">
+    <label style="margin-top:8px;display:block;">Форма дерева:</label>
+    <select id="newTreeShape" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;" onchange="updateTreeShapePreview('new')">
+      <option value="oak">Дуб</option>
+      <option value="pine">Сосна</option>
+      <option value="birch">Берёза</option>
+      <option value="maple">Клён</option>
+      <option value="willow">Ива</option>
+      <option value="spruce">Ель</option>
+      <option value="palm">Пальма</option>
+      <option value="cherry">Сакура</option>
+    </select>
+    <label>Цвет кроны</label>
+    <div class="color-picker-wrap" style="align-items:center;">
+      <input type="color" id="newTreeColor" value="#2e7d32" oninput="updateTreeShapePreview('new')">
+      <div id="newTreePreview" style="width:40px;height:40px;margin-left:12px;"></div>
+    </div>
+    <label>Папка:</label>
+    <select id="newTreeFolder" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="">Без папки</option>
+    </select>
+    <label>Быстрый выбор цвета:</label>
+    <div class="presets" id="treeColorPresets"></div>
+    <div class="buttons">
+      <button class="secondary" onclick="closeTreeModal()">Отмена</button>
+      <button class="primary" onclick="saveNewTree()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка настроек вида дерева -->
+<div class="modal-bg" id="treeSettingsModal">
+  <div class="modal">
+    <h2>⚙️ Настройки вида дерева</h2>
+    <label>Название</label>
+    <input type="text" id="settingsTreeName" maxlength="20">
+    <label style="margin-top:8px;display:block;">Форма дерева:</label>
+    <select id="settingsTreeShape" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;" onchange="updateTreeShapePreview('settings')">
+      <option value="oak">Дуб</option>
+      <option value="pine">Сосна</option>
+      <option value="birch">Берёза</option>
+      <option value="maple">Клён</option>
+      <option value="willow">Ива</option>
+      <option value="spruce">Ель</option>
+      <option value="palm">Пальма</option>
+      <option value="cherry">Сакура</option>
+    </select>
+    <label>Цвет кроны</label>
+    <div class="color-picker-wrap" style="align-items:center;">
+      <input type="color" id="settingsTreeColor" oninput="updateTreeShapePreview('settings')">
+      <div id="settingsTreePreview" style="width:40px;height:40px;margin-left:12px;"></div>
+    </div>
+    <label>Папка:</label>
+    <select id="settingsTreeFolder" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="">Без папки</option>
+    </select>
+    <div class="buttons" style="justify-content:space-between;">
+      <button class="delete-btn" id="settingsTreeDeleteBtn" onclick="deleteTreeFromSettings()" style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;display:none;">🗑️ Удалить вид</button>
+      <div style="display:flex;gap:8px;">
+        <button class="secondary" onclick="closeTreeSettings()">Отмена</button>
+        <button class="primary" onclick="saveTreeSettings()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка карты цветения -->
+<div class="modal-bg" id="bloomMapModal">
+  <div class="modal" style="width:420px;">
+    <h2>🌸 Карта цветения</h2>
+    <p style="font-size:13px;color:#666;margin-bottom:16px;">Выберите период, чтобы увидеть цветущие растения</p>
+    
+    <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;"><b>Режим выбора:</b></label>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="filterBloomMode" value="months" checked onchange="toggleFilterBloomMode()"> Месяцы</label>
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="filterBloomMode" value="dates" onchange="toggleFilterBloomMode()"> Точные даты</label>
+    </div>
+    
+    <div id="filterBloomMonthsSection" style="margin-bottom:16px;">
+      <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;">Период по месяцам:</label>
+      <div style="display:flex;gap:8px;">
+        <select id="bloomFilterStartMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
         <span style="line-height:36px;">—</span>
-        <select id="newPlantBloomEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <select id="bloomFilterEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
       </div>
-      <div id="newBloomDatesSection" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px;">
+    </div>
+    
+    <div id="filterBloomDatesSection" style="display:none;margin-bottom:16px;">
+      <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;">Период по датам:</label>
+      <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;gap:8px;align-items:center;">
           <span style="font-size:12px;width:30px;">С:</span>
-          <select id="newPlantBloomStartMonth2"
-            style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-          <input type="number" id="newPlantBloomStartDay" min="1" max="31" placeholder="День"
-            style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
+          <select id="bloomFilterStartMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+          <input type="number" id="bloomFilterStartDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <span style="font-size:12px;width:30px;">По:</span>
-          <select id="newPlantBloomEndMonth2"
-            style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-          <input type="number" id="newPlantBloomEndDay" min="1" max="31" placeholder="День"
-            style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
-        </div>
-      </div>
-      <label>Быстрый выбор цвета:</label>
-      <div class="presets" id="colorPresets"></div>
-      <div class="buttons">
-        <button class="secondary" onclick="closePlantModal()">Отмена</button>
-        <button class="primary" onclick="saveNewPlant()">Добавить</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Модалка настроек вида растения -->
-  <div class="modal-bg" id="plantSettingsModal">
-    <div class="modal">
-      <h2>️ Настройки вида растения</h2>
-      <label>Название</label>
-      <input type="text" id="settingsPlantName" maxlength="20">
-      <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
-      <select id="settingsPlantShape"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;"
-        onchange="updateShapePreview('settings')">
-        <option value="circle">Круг</option>
-        <option value="square">Квадрат</option>
-        <option value="diamond">Ромб</option>
-        <option value="triangle">Треугольник</option>
-        <option value="oval">Овал</option>
-        <option value="star">Звезда</option>
-        <option value="heart">Сердце</option>
-        <option value="flower">Цветок</option>
-        <option value="cross">Крест</option>
-        <option value="moon">Полумесяц</option>
-        <option value="drop">Капля</option>
-        <option value="leaf">Лист</option>
-      </select>
-      <label style="margin-top:8px;display:block;">Папка:</label>
-<select id="settingsPlantFolder" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-  <option value="">Без папки</option>
-</select>
-      <label>Цвет иконки</label>
-      <div class="color-picker-wrap" style="align-items:center;">
-        <input type="color" id="settingsPlantColor" oninput="updateShapePreview('settings')">
-        <div id="settingsShapePreview" style="width:40px;height:40px;margin-left:12px;"></div>
-      </div>
-      <label style="margin-top:12px;display:block;">Время цветения по умолчанию:</label>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="settingsBloomMode" value="months"
-            checked onchange="toggleSettingsBloomMode()"> Месяцы</label>
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="settingsBloomMode" value="dates"
-            onchange="toggleSettingsBloomMode()"> Точные даты</label>
-      </div>
-      <div id="settingsBloomMonthsSection" style="display:flex;gap:8px;margin-bottom:12px;">
-        <select id="settingsBloomStartMonth"
-          style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-        <span style="line-height:36px;">—</span>
-        <select id="settingsBloomEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-      </div>
-      <div id="settingsBloomDatesSection" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px;">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span style="font-size:12px;width:30px;">С:</span>
-          <select id="settingsBloomStartMonth2"
-            style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-          <input type="number" id="settingsBloomStartDay" min="1" max="31" placeholder="День"
-            style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span style="font-size:12px;width:30px;">По:</span>
-          <select id="settingsBloomEndMonth2"
-            style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-          <input type="number" id="settingsBloomEndDay" min="1" max="31" placeholder="День"
-            style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
-        </div>
-      </div>
-      <div class="buttons" style="justify-content:space-between;">
-        <button class="delete-btn" id="settingsDeleteBtn" onclick="deletePlantFromSettings()"
-          style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;">🗑️
-          Удалить вид</button>
-        <div style="display:flex;gap:8px;">
-          <button class="secondary" onclick="closePlantSettings()">Отмена</button>
-          <button class="primary" onclick="savePlantSettings()">Сохранить</button>
+          <select id="bloomFilterEndMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+          <input type="number" id="bloomFilterEndDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Модалка карты цветения -->
-  <div class="modal-bg" id="bloomMapModal">
-    <div class="modal" style="width:420px;">
-      <h2>🌸 Карта цветения</h2>
-      <p style="font-size:13px;color:#666;margin-bottom:16px;">Выберите период, чтобы увидеть цветущие растения</p>
-
-      <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;"><b>Режим выбора:</b></label>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="filterBloomMode" value="months" checked
-            onchange="toggleFilterBloomMode()"> Месяцы</label>
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="filterBloomMode" value="dates"
-            onchange="toggleFilterBloomMode()"> Точные даты</label>
-      </div>
-
-      <div id="filterBloomMonthsSection" style="margin-bottom:16px;">
-        <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;">Период по месяцам:</label>
-        <div style="display:flex;gap:8px;">
-          <select id="bloomFilterStartMonth"
-            style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-          <span style="line-height:36px;">—</span>
-          <select id="bloomFilterEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-        </div>
-      </div>
-
-      <div id="filterBloomDatesSection" style="display:none;margin-bottom:16px;">
-        <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;">Период по датам:</label>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <div style="display:flex;gap:8px;align-items:center;">
-            <span style="font-size:12px;width:30px;">С:</span>
-            <select id="bloomFilterStartMonth2"
-              style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-            <input type="number" id="bloomFilterStartDay" min="1" max="31" placeholder="День"
-              style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <span style="font-size:12px;width:30px;">По:</span>
-            <select id="bloomFilterEndMonth2"
-              style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-            <input type="number" id="bloomFilterEndDay" min="1" max="31" placeholder="День"
-              style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
-          </div>
-        </div>
-      </div>
-
-      <div class="buttons" style="justify-content:space-between;">
-        <button class="secondary" onclick="clearBloomFilter()">Сбросить фильтр</button>
-        <div style="display:flex;gap:8px;">
-          <button class="secondary" onclick="closeBloomMap()">Отмена</button>
-          <button class="primary" onclick="applyBloomFilter()">Применить</button>
-        </div>
+    
+    <div class="buttons" style="justify-content:space-between;">
+      <button class="secondary" onclick="clearBloomFilter()">Сбросить фильтр</button>
+      <div style="display:flex;gap:8px;">
+        <button class="secondary" onclick="closeBloomMap()">Отмена</button>
+        <button class="primary" onclick="applyBloomFilter()">Применить</button>
       </div>
     </div>
   </div>
+</div>
 
-  <script src="data.js"></script>
-  <script src="geometry.js"></script>
-  <script src="shapes.js"></script>
-  <script src="plants.js"></script>
-  <script src="interaction.js"></script>
-  <script src="render.js"></script>
-  <script src="storage.js"></script>
+<script src="data.js"></script>
+<script src="geometry.js"></script>
+<script src="shapes.js"></script>
+<script src="plants.js"></script>
+<script src="interaction.js"></script>
+<script src="render.js"></script>
+<script src="storage.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    initDomRefs();
+    fitCanvasToScreen();
+    resetViewBox();
+    updateSvgViewBox();
+    updateCanvasInfo();
+    
+    loadCustomPlants();
+    loadCustomTrees();
+    
+    renderPlantList();
+    renderTreeList();
+    render();
+  });
+</script>
 </body>
-
 </html>

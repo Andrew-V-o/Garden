@@ -167,7 +167,7 @@ function renderPlantList() {
   if (folders.length > 0) {
     const foldersSectionHeader = document.createElement('div');
     foldersSectionHeader.className = 'section-header';
-    foldersSectionHeader.textContent = ' Папки';
+    foldersSectionHeader.textContent = '📁 Папки';
     list.appendChild(foldersSectionHeader);
     
     folders.forEach(folder => {
@@ -270,7 +270,7 @@ function showFolderContextMenu(e, folderId) {
   menu.style.top = e.pageY + 'px';
   
   menu.innerHTML = `
-    <div class="context-menu-item" data-action="rename">️ Переименовать</div>
+    <div class="context-menu-item" data-action="rename">✏️ Переименовать</div>
     <div class="context-menu-item" data-action="delete">🗑️ Удалить папку</div>
   `;
   
@@ -1020,10 +1020,17 @@ function hideTreeContextMenu() {
 
 function selectTree(id) {
   if (state.selectedTree === id) {
+    // Отмена выбора: сбрасываем выделение и возвращаем инструмент "Выбрать"
     state.selectedTree = null;
     document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('selected'));
+    state.tool = 'select';
+    document.querySelectorAll('.tool-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tool === 'select');
+    });
+    updateHint();
     return;
   }
+  
   state.selectedTree = id;
   state.selectedPlant = null;
   document.querySelectorAll('.tree-item').forEach(el => {
@@ -1031,7 +1038,7 @@ function selectTree(id) {
   });
   document.querySelectorAll('.plant-item').forEach(el => el.classList.remove('selected'));
   
-  // Автоматически переключаем инструмент на "Дерево" для посадки
+  // Активируем режим посадки дерева
   state.tool = 'tree';
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
   updateHint();
@@ -1176,6 +1183,63 @@ function deleteTreeFromSettings() {
   closeTreeSettings();
 }
 
+// ===== POPUP ДЛЯ ДЕРЕВА =====
+
+function showTreePopup(treeObj) {
+  const popup = document.getElementById('treePopup');
+  const tree = trees.find(t => t.id === treeObj.treeId);
+  
+  document.getElementById('treePopupType').textContent = tree ? tree.name : 'Неизвестно';
+  
+  const sizeInput = document.getElementById('treePopupSize');
+  sizeInput.value = treeObj.r || 24;
+  document.getElementById('treePopupSizeVal').textContent = Math.round(treeObj.r || 24);
+  
+  const svgRect = svg.getBoundingClientRect();
+  const wrapRect = canvasWrap.getBoundingClientRect();
+  const x = treeObj.x + svgRect.left - wrapRect.left + canvasWrap.scrollLeft;
+  const y = treeObj.y + svgRect.top - wrapRect.top + canvasWrap.scrollTop;
+  
+  popup.style.left = (x + 20) + 'px';
+  popup.style.top = (y - 50) + 'px';
+  popup.classList.add('show');
+  
+  sizeInput.oninput = () => {
+    treeObj.r = +sizeInput.value;
+    document.getElementById('treePopupSizeVal').textContent = Math.round(treeObj.r);
+    render();
+  };
+  
+  state.selectedId = treeObj.id;
+  render();
+}
+
+function closeTreePopup() {
+  document.getElementById('treePopup').classList.remove('show');
+}
+
+function deleteTreeFromPopup() {
+  if (state.selectedId) {
+    const obj = state.objects.find(o => o.id === state.selectedId);
+    if (obj && obj.type === 'tree') {
+      deleteObject(state.selectedId);
+      state.selectedId = null;
+      closeTreePopup();
+      render();
+    }
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const treePopup = document.getElementById('treePopup');
+  if (treePopup.classList.contains('show') && !treePopup.contains(e.target)) {
+    const target = e.target.closest('[data-id]');
+    if (!target || target.dataset.id !== state.selectedId?.toString()) {
+      closeTreePopup();
+    }
+  }
+});
+
 // ===== КАРТА ЦВЕТЕНИЯ =====
 
 function openBloomMap() {
@@ -1271,60 +1335,3 @@ function applyBloomFilter() {
   closeBloomMap();
   render();
 }
-
-// ===== POPUP ДЛЯ ДЕРЕВА =====
-
-function showTreePopup(treeObj) {
-  const popup = document.getElementById('treePopup');
-  const tree = trees.find(t => t.id === treeObj.treeId);
-  
-  document.getElementById('treePopupType').textContent = tree ? tree.name : 'Неизвестно';
-  
-  const sizeInput = document.getElementById('treePopupSize');
-  sizeInput.value = treeObj.r || 24;
-  document.getElementById('treePopupSizeVal').textContent = Math.round(treeObj.r || 24);
-  
-  const svgRect = svg.getBoundingClientRect();
-  const wrapRect = canvasWrap.getBoundingClientRect();
-  const x = treeObj.x + svgRect.left - wrapRect.left + canvasWrap.scrollLeft;
-  const y = treeObj.y + svgRect.top - wrapRect.top + canvasWrap.scrollTop;
-  
-  popup.style.left = (x + 20) + 'px';
-  popup.style.top = (y - 50) + 'px';
-  popup.classList.add('show');
-  
-  sizeInput.oninput = () => {
-    treeObj.r = +sizeInput.value;
-    document.getElementById('treePopupSizeVal').textContent = Math.round(treeObj.r);
-    render();
-  };
-  
-  state.selectedId = treeObj.id;
-  render();
-}
-
-function closeTreePopup() {
-  document.getElementById('treePopup').classList.remove('show');
-}
-
-function deleteTreeFromPopup() {
-  if (state.selectedId) {
-    const obj = state.objects.find(o => o.id === state.selectedId);
-    if (obj && obj.type === 'tree') {
-      deleteObject(state.selectedId);
-      state.selectedId = null;
-      closeTreePopup();
-      render();
-    }
-  }
-}
-
-document.addEventListener('click', (e) => {
-  const treePopup = document.getElementById('treePopup');
-  if (treePopup.classList.contains('show') && !treePopup.contains(e.target)) {
-    const target = e.target.closest('[data-id]');
-    if (!target || target.dataset.id !== state.selectedId?.toString()) {
-      closeTreePopup();
-    }
-  }
-});

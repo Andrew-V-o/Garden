@@ -29,7 +29,6 @@ function fillMonthSelect(selectEl, includeNoneOption = false, selectedMonth = nu
   selectEl.innerHTML = html;
 }
 
-// Обновить правый селект месяцев на основе выбранного в левом
 function updateEndMonthSelect(startSelect, endSelect, includeNoneOption = false) {
   const startMonth = startSelect.value ? parseInt(startSelect.value) : null;
   const currentEndMonth = endSelect.value ? parseInt(endSelect.value) : null;
@@ -63,9 +62,15 @@ function renderPlantList() {
     const el = document.createElement('div');
     el.className = 'plant-item' + (state.selectedPlant === p.id ? ' selected' : '');
     el.dataset.id = p.id;
+    
+    // Получаем форму по умолчанию
+    const shape = p.defaultShape || 'circle';
+    
     el.innerHTML = `
       <button class="plant-settings-btn" title="Настройки вида" data-settings="${p.id}">⚙</button>
-      <div class="plant-dot" style="background:${p.color}${p.color === '#ffffff' ? ';border:1px solid #ccc' : ''}"></div>
+      <svg class="plant-shape-icon" viewBox="0 0 16 16" style="width:24px;height:24px;margin:0 auto 4px;display:block;">
+        ${getShapeSVGMini(shape, p.color)}
+      </svg>
       ${p.name}
       <button class="plant-del" title="Удалить">×</button>
     `;
@@ -128,8 +133,6 @@ function deletePlant(id) {
   render();
 }
 
-// ===== НАСТРОЙКИ ВИДА РАСТЕНИЯ =====
-
 function openPlantSettings(plantId) {
   const plant = plants.find(p => p.id === plantId);
   if (!plant) return;
@@ -139,6 +142,7 @@ function openPlantSettings(plantId) {
   document.getElementById('settingsPlantName').value = plant.name;
   document.getElementById('settingsPlantColor').value = plant.color;
   document.getElementById('settingsColorPreview').style.background = plant.color;
+  document.getElementById('settingsPlantShape').value = plant.defaultShape || 'circle';
   
   const startSelect = document.getElementById('settingsBloomStartMonth');
   const endSelect = document.getElementById('settingsBloomEndMonth');
@@ -232,11 +236,13 @@ function savePlantSettings() {
   const name = document.getElementById('settingsPlantName').value.trim();
   const color = document.getElementById('settingsPlantColor').value;
   const mode = document.querySelector('input[name="settingsBloomMode"]:checked').value;
+  const shape = document.getElementById('settingsPlantShape').value;
   
   if (!name) { alert('Введите название'); return; }
   
   plant.name = name;
   plant.color = color;
+  plant.defaultShape = shape;
   
   if (mode === 'months') {
     plant.bloomStartMonth = document.getElementById('settingsBloomStartMonth').value ? parseInt(document.getElementById('settingsBloomStartMonth').value) : null;
@@ -266,8 +272,6 @@ function deletePlantFromSettings() {
   deletePlant(currentSettingsPlantId);
   closePlantSettings();
 }
-
-// ===== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ В POPUP ПОСАДКИ =====
 
 function toggleBloomMode() {
   const mode = document.querySelector('input[name="bloomMode"]:checked').value;
@@ -340,7 +344,6 @@ function toggleFilterBloomMode() {
     if (sm) startMonthSelect.value = sm;
     if (em) endMonthSelect.value = em;
     
-    // Ограничение правого селекта
     startMonthSelect.onchange = () => {
       updateEndMonthSelect(startMonthSelect, endMonthSelect, true);
     };
@@ -369,6 +372,7 @@ function openPlantModal() {
   document.getElementById('colorPreview').style.background = '#ff69b4';
   document.getElementById('newPlantBloomStartDay').value = '';
   document.getElementById('newPlantBloomEndDay').value = '';
+  document.getElementById('newPlantShape').value = 'circle';
   document.getElementById('newPlantName').focus();
   renderColorPresets();
   
@@ -378,7 +382,6 @@ function openPlantModal() {
   fillMonthSelect(startSelect, true, 5);
   fillMonthSelect(endSelect, true, 9);
   
-  // Обработчик ограничения правого селекта
   startSelect.onchange = () => {
     updateEndMonthSelect(startSelect, endSelect, true);
   };
@@ -423,12 +426,14 @@ function saveNewPlant() {
   const name = document.getElementById('newPlantName').value.trim();
   const color = document.getElementById('newPlantColor').value;
   const mode = document.querySelector('input[name="newBloomMode"]:checked').value;
+  const shape = document.getElementById('newPlantShape').value;
   
   if (!name) { alert('Введите название'); return; }
   
   const plant = { 
     id: 'custom_' + (customPlantCounter++),
-    name, color, custom: true
+    name, color, custom: true,
+    defaultShape: shape
   };
   
   if (mode === 'months') {
@@ -597,8 +602,6 @@ document.addEventListener('click', (e) => {
     }
   }
 });
-
-// ===== КАРТА ЦВЕТЕНИЯ =====
 
 function openBloomMap() {
   document.getElementById('bloomMapModal').classList.add('show');

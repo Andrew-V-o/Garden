@@ -345,8 +345,7 @@ function onMouseDown(e) {
         plantId: state.selectedPlant,
         x: pos.x, y: pos.y,
         r: state.scale * 0.4,
-        shape: 'circle',
-        // Копируем даты из вида растения — дальше каждая посадка живёт своей жизнью
+        shape: plant?.defaultShape || 'circle',
         bloomStartMonth: plant?.bloomStartMonth || null,
         bloomEndMonth: plant?.bloomEndMonth || null,
         bloomStartDate: plant?.bloomStartDate || null,
@@ -358,7 +357,7 @@ function onMouseDown(e) {
       return;
     }
   }
-
+  
   if (state.tool === 'select') {
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];

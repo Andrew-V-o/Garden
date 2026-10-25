@@ -8,10 +8,10 @@
 <body>
 
 <header>
-  <h1>🌿 Планировщик сада v5</h1>
+  <h1> Планировщик сада v5</h1>
   <div class="actions">
     <button onclick="openBloomMap()">🌸 Карта цветения</button>
-    <button onclick="clearAll()">🗑️ Очистить</button>
+    <button onclick="clearAll()">️ Очистить</button>
     <button onclick="saveProject()">💾 Сохранить</button>
     <button onclick="loadProject()">📂 Загрузить</button>
     <button onclick="exportPNG()">🖼️ PNG</button>
@@ -26,14 +26,14 @@
         <span class="icon">👆</span>Выбрать
       </div>
       <div class="tool-btn" data-tool="move" onclick="setTool('move')">
-        <span class="icon"></span>Переместить
+        <span class="icon">✋</span>Переместить
       </div>
     </div>
 
     <h3>📦 Объекты</h3>
     <div class="objects-panel">
       <div class="obj-btn" data-obj="plot" onclick="selectPlot()">
-        <span class="icon"></span>Участок
+        <span class="icon">🏡</span>Участок
       </div>
       
       <div class="obj-group">
@@ -64,7 +64,7 @@
     <h3>🌸 Растения</h3>
     <div class="plant-list" id="plantList"></div>
 
-    <h3> Цвет секции</h3>
+    <h3>🎨 Цвет секции</h3>
     <div class="prop-row">
       <span>Заливка:</span>
       <input type="color" id="fillColor" value="#8bc34a">
@@ -106,7 +106,7 @@
         <span id="popupSizeVal" style="width:25px;text-align:right">16</span>
       </div>
       <div class="popup-row" style="flex-direction:column;align-items:stretch;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:8px;">
-        <span style="font-size:11px;color:#555;"><b> Время цветения этой посадки:</b></span>
+        <span style="font-size:11px;color:#555;"><b>🌸 Время цветения этой посадки:</b></span>
         <div style="display:flex;gap:8px;margin-bottom:8px;">
           <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="months" checked onchange="toggleBloomMode()"> Месяцы</label>
           <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="dates" onchange="toggleBloomMode()"> Точные даты</label>
@@ -137,17 +137,17 @@
   </div>
 
   <aside class="sidebar right">
-    <h3>📋 Секции посадки</h3>
+    <h3> Секции посадки</h3>
     <div id="sectionsList">
       <div class="empty-hint">Нарисуйте клумбу через панель объектов</div>
     </div>
 
-    <h3> Посадки в выбранной секции</h3>
+    <h3>🌱 Посадки в выбранной секции</h3>
     <div id="plantingsPanel">
       <div class="empty-hint">Выберите секцию, чтобы добавить растения</div>
     </div>
 
-    <h3> Статистика</h3>
+    <h3>📊 Статистика</h3>
     <div class="stats" id="stats">
       <div><span>Секций:</span><b id="statSections">0</b></div>
       <div><span>Площадь:</span><b id="statArea">0 м²</b></div>
@@ -169,6 +169,15 @@
     <h2>🌺 Новое растение</h2>
     <label>Название</label>
     <input type="text" id="newPlantName" placeholder="Например: Хризантемы" maxlength="20">
+    <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
+    <select id="newPlantShape" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="circle">Круг</option>
+      <option value="square">Квадрат</option>
+      <option value="diamond">Ромб</option>
+      <option value="star">Звезда</option>
+      <option value="heart">Сердце</option>
+      <option value="flower">Цветок</option>
+    </select>
     <label>Цвет иконки</label>
     <div class="color-picker-wrap">
       <input type="color" id="newPlantColor" value="#ff69b4">
@@ -209,9 +218,18 @@
 <!-- Модалка настроек вида растения -->
 <div class="modal-bg" id="plantSettingsModal">
   <div class="modal">
-    <h2>️ Настройки вида растения</h2>
+    <h2>⚙️ Настройки вида растения</h2>
     <label>Название</label>
     <input type="text" id="settingsPlantName" maxlength="20">
+    <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
+    <select id="settingsPlantShape" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="circle">Круг</option>
+      <option value="square">Квадрат</option>
+      <option value="diamond">Ромб</option>
+      <option value="star">Звезда</option>
+      <option value="heart">Сердце</option>
+      <option value="flower">Цветок</option>
+    </select>
     <label>Цвет иконки</label>
     <div class="color-picker-wrap">
       <input type="color" id="settingsPlantColor">
@@ -240,7 +258,7 @@
       </div>
     </div>
     <div class="buttons" style="justify-content:space-between;">
-      <button class="delete-btn" id="settingsDeleteBtn" onclick="deletePlantFromSettings()" style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;">🗑️ Удалить вид</button>
+      <button class="delete-btn" id="settingsDeleteBtn" onclick="deletePlantFromSettings()" style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;">️ Удалить вид</button>
       <div style="display:flex;gap:8px;">
         <button class="secondary" onclick="closePlantSettings()">Отмена</button>
         <button class="primary" onclick="savePlantSettings()">Сохранить</button>

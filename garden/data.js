@@ -1,17 +1,17 @@
 // ===== КОНСТАНТЫ =====
 const DEFAULT_PLANTS = [
-  { id: 'rose', name: 'Розы', color: '#e91e63', custom: false, bloomStartMonth: 6, bloomEndMonth: 9 },
-  { id: 'tulip', name: 'Тюльпаны', color: '#ff5722', custom: false, bloomStartMonth: 4, bloomEndMonth: 5 },
-  { id: 'lavender', name: 'Лаванда', color: '#9c27b0', custom: false, bloomStartMonth: 6, bloomEndMonth: 8 },
-  { id: 'sunflower', name: 'Подсолнухи', color: '#ffc107', custom: false, bloomStartMonth: 7, bloomEndMonth: 9 },
-  { id: 'daisy', name: 'Ромашки', color: '#ffffff', custom: false, bloomStartMonth: 5, bloomEndMonth: 9 },
-  { id: 'peony', name: 'Пионы', color: '#f06292', custom: false, bloomStartMonth: 5, bloomEndMonth: 6 },
-  { id: 'hosta', name: 'Хосты', color: '#4caf50', custom: false, bloomStartMonth: 7, bloomEndMonth: 8 },
-  { id: 'fern', name: 'Папоротник', color: '#2e7d32', custom: false, bloomStartMonth: 5, bloomEndMonth: 9 },
-  { id: 'grass', name: 'Газон', color: '#8bc34a', custom: false, bloomStartMonth: 4, bloomEndMonth: 10 },
-  { id: 'mulch', name: 'Мульча', color: '#795548', custom: false },
-  { id: 'stone', name: 'Камни', color: '#9e9e9e', custom: false },
-  { id: 'water', name: 'Водоём', color: '#29b6f6', custom: false },
+  { id: 'rose', name: 'Розы', color: '#e91e63', custom: false, bloomStartMonth: 6, bloomEndMonth: 9, defaultShape: 'circle' },
+  { id: 'tulip', name: 'Тюльпаны', color: '#ff5722', custom: false, bloomStartMonth: 4, bloomEndMonth: 5, defaultShape: 'circle' },
+  { id: 'lavender', name: 'Лаванда', color: '#9c27b0', custom: false, bloomStartMonth: 6, bloomEndMonth: 8, defaultShape: 'circle' },
+  { id: 'sunflower', name: 'Подсолнухи', color: '#ffc107', custom: false, bloomStartMonth: 7, bloomEndMonth: 9, defaultShape: 'flower' },
+  { id: 'daisy', name: 'Ромашки', color: '#ffffff', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'flower' },
+  { id: 'peony', name: 'Пионы', color: '#f06292', custom: false, bloomStartMonth: 5, bloomEndMonth: 6, defaultShape: 'circle' },
+  { id: 'hosta', name: 'Хосты', color: '#4caf50', custom: false, bloomStartMonth: 7, bloomEndMonth: 8, defaultShape: 'circle' },
+  { id: 'fern', name: 'Папоротник', color: '#2e7d32', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'circle' },
+  { id: 'grass', name: 'Газон', color: '#8bc34a', custom: false, bloomStartMonth: 4, bloomEndMonth: 10, defaultShape: 'circle' },
+  { id: 'mulch', name: 'Мульча', color: '#795548', custom: false, defaultShape: 'circle' },
+  { id: 'stone', name: 'Камни', color: '#9e9e9e', custom: false, defaultShape: 'square' },
+  { id: 'water', name: 'Водоём', color: '#29b6f6', custom: false, defaultShape: 'circle' },
 ];
 
 const COLOR_PRESETS = [
@@ -102,8 +102,6 @@ function fitCanvasToScreen() {
   state.canvasHeightM = sizeM;
 }
 
-// ===== РАБОТА С ДАТАМИ БЕЗ ГОДА =====
-
 function makeDateStr(month, day) {
   if (!month) return null;
   const d = Math.max(1, Math.min(day || 1, DAYS_IN_MONTH[month] || 31));
@@ -136,9 +134,6 @@ function monthToStartDate(month) {
 function monthToEndDate(month) {
   return makeDateStr(month, DAYS_IN_MONTH[month] || 31);
 }
-
-// ===== ЛОГИКА ПРОВЕРКИ ЦВЕТЕНИЯ =====
-// Принимает любой объект с полями цветения (вид растения ИЛИ посадка)
 
 function isPlantBlooming(bloomObj, filter) {
   if (!filter) return true;
@@ -206,11 +201,11 @@ function isPlantBlooming(bloomObj, filter) {
   return false;
 }
 
-// Скопировать даты цветения из вида растения в посадку
 function copyBloomDataFromPlant(plant, planting) {
   if (!plant || !planting) return;
   planting.bloomStartMonth = plant.bloomStartMonth || null;
   planting.bloomEndMonth = plant.bloomEndMonth || null;
   planting.bloomStartDate = plant.bloomStartDate || null;
   planting.bloomEndDate = plant.bloomEndDate || null;
+  planting.shape = plant.defaultShape || 'circle';
 }

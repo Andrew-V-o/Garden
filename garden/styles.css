@@ -854,3 +854,8 @@ input[type="number"]::-webkit-inner-spin-button {
   margin-bottom: 10px;
   color: #2d3a2e;
 }
+
+/* Декоративные объекты в панели */
+.obj-btn[data-obj="water"] .icon { color: #29b6f6; }
+.obj-btn[data-obj="stone"] .icon { color: #757575; }
+.obj-btn[data-obj="mulch"] .icon { color: #795548; }

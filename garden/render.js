@@ -27,7 +27,6 @@ function renderPlot() {
 
   for (let x = startX; x <= bbox.x + bbox.w + 0.1; x += state.scale) {
     const m = Math.round((x - bbox.x) / state.scale);
-
     const textTop = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     textTop.setAttribute('x', x);
     textTop.setAttribute('y', bbox.y - 4);
@@ -49,7 +48,6 @@ function renderPlot() {
 
   for (let y = startY; y <= bbox.y + bbox.h + 0.1; y += state.scale) {
     const m = Math.round((y - bbox.y) / state.scale);
-
     const textLeft = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     textLeft.setAttribute('x', bbox.x - 4);
     textLeft.setAttribute('y', y + 4);
@@ -72,127 +70,291 @@ function renderPlot() {
   plotLayer.appendChild(outerGroup);
 }
 
+function renderBedPolygon(obj) {
+  const isSelected = obj.id === state.selectedId;
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  el.setAttribute('points', obj.points.map(p => p.join(',')).join(' '));
+  el.setAttribute('fill', obj.fill);
+  el.setAttribute('stroke', isSelected ? '#ff6b00' : '#333');
+  el.setAttribute('stroke-width', isSelected ? 3 : 1.5);
+  el.setAttribute('data-id', obj.id);
+  el.style.cursor = 'pointer';
+  objectsLayer.appendChild(el);
+}
+
+function renderMulch(mulch) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const bed = state.objects.find(o => o.id === mulch.bedId);
+  if (!bed) return;
+  
+  const bbox = getObjBBox(bed);
+  const isSelected = state.selectedId === mulch.id;
+  const clipId = `clip-mulch-${mulch.id}`;
+  
+  // Создаём clipPath по форме клумбы
+  const defs = document.createElementNS(ns, 'defs');
+  const clipPath = document.createElementNS(ns, 'clipPath');
+  clipPath.setAttribute('id', clipId);
+  const clipPoly = document.createElementNS(ns, 'polygon');
+  clipPoly.setAttribute('points', bed.points.map(p => p.join(',')).join(' '));
+  clipPath.appendChild(clipPoly);
+  defs.appendChild(clipPath);
+  objectsLayer.appendChild(defs);
+  
+  // Группа с clip-path
+  const g = document.createElementNS(ns, 'g');
+  g.setAttribute('clip-path', `url(#${clipId})`);
+  g.setAttribute('data-id', mulch.id);
+  g.style.cursor = 'pointer';
+  
+  if (mulch.shape === 'rect') {
+    const rect = document.createElementNS(ns, 'rect');
+    rect.setAttribute('x', bbox.x);
+    rect.setAttribute('y', bbox.y);
+    rect.setAttribute('width', bbox.w);
+    rect.setAttribute('height', bbox.h);
+    rect.setAttribute('fill', mulch.fill);
+    g.appendChild(rect);
+  } else {
+    const ellipse = document.createElementNS(ns, 'ellipse');
+    ellipse.setAttribute('cx', bbox.x + bbox.w / 2);
+    ellipse.setAttribute('cy', bbox.y + bbox.h / 2);
+    ellipse.setAttribute('rx', bbox.w / 2);
+    ellipse.setAttribute('ry', bbox.h / 2);
+    ellipse.setAttribute('fill', mulch.fill);
+    g.appendChild(ellipse);
+  }
+  
+  // Текстура мульчи (мелкие точки)
+  const dotCount = Math.floor((bbox.w * bbox.h) / 300);
+  for (let i = 0; i < dotCount; i++) {
+    const dot = document.createElementNS(ns, 'circle');
+    dot.setAttribute('cx', bbox.x + Math.random() * bbox.w);
+    dot.setAttribute('cy', bbox.y + Math.random() * bbox.h);
+    dot.setAttribute('r', 1 + Math.random() * 1.5);
+    dot.setAttribute('fill', 'rgba(0,0,0,0.2)');
+    dot.setAttribute('pointer-events', 'none');
+    g.appendChild(dot);
+  }
+  
+  // Обводка для выделенной мульчи
+  if (isSelected) {
+    const outline = document.createElementNS(ns, 'rect');
+    outline.setAttribute('x', bbox.x);
+    outline.setAttribute('y', bbox.y);
+    outline.setAttribute('width', bbox.w);
+    outline.setAttribute('height', bbox.h);
+    outline.setAttribute('fill', 'none');
+    outline.setAttribute('stroke', '#ff6b00');
+    outline.setAttribute('stroke-width', '2');
+    outline.setAttribute('stroke-dasharray', '5,5');
+    outline.setAttribute('pointer-events', 'none');
+    g.appendChild(outline);
+  }
+  
+  objectsLayer.appendChild(g);
+}
+
+function renderBedPlants(obj) {
+  if (!obj.plants || obj.plants.length === 0) return;
+  
+  obj.plants.forEach(pl => {
+    const plant = plants.find(p => p.id === pl.plantId);
+    const color = plant ? plant.color : '#999';
+    const shape = pl.shape || 'circle';
+    const r = pl.r || state.scale * 0.4;
+    const isSelectedPlanting = pl.id === state.selectedPlantingId;
+    
+    const isBlooming = isPlantBlooming(pl, state.bloomFilter);
+
+    const shapeEl = createShapeElement(shape, pl.x, pl.y, r, color);
+    if (shapeEl.tagName === 'g') {
+      shapeEl.setAttribute('stroke', isSelectedPlanting ? '#ff6b00' : 'white');
+      shapeEl.setAttribute('stroke-width', isSelectedPlanting ? 2 : 1.5);
+      shapeEl.style.cursor = state.tool === 'move' ? 'grab' : 'pointer';
+      shapeEl.setAttribute('data-planting-id', pl.id);
+      if (state.bloomFilter) {
+        shapeEl.classList.add(isBlooming ? 'planting-blooming' : 'planting-not-blooming');
+      }
+      objectsLayer.appendChild(shapeEl);
+    } else {
+      shapeEl.setAttribute('stroke', isSelectedPlanting ? '#ff6b00' : 'white');
+      shapeEl.setAttribute('stroke-width', isSelectedPlanting ? 2 : 1.5);
+      shapeEl.style.cursor = state.tool === 'move' ? 'grab' : 'pointer';
+      shapeEl.setAttribute('data-planting-id', pl.id);
+      if (state.bloomFilter) {
+        shapeEl.classList.add(isBlooming ? 'planting-blooming' : 'planting-not-blooming');
+      }
+      objectsLayer.appendChild(shapeEl);
+    }
+
+    if (plant) {
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', pl.x);
+      text.setAttribute('y', pl.y + r + 12);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', '10');
+      text.setAttribute('font-weight', '600');
+      text.setAttribute('fill', '#2d3a2e');
+      text.setAttribute('pointer-events', 'none');
+      text.textContent = plant.name;
+      objectsLayer.appendChild(text);
+    }
+  });
+}
+
+function renderTree(obj) {
+  const isSelected = obj.id === state.selectedId;
+  const shape = obj.shape || 'oak';
+  const color = obj.fill || '#2e7d32';
+  
+  const treeEl = createShapeElement(shape, obj.x, obj.y, obj.r, color);
+  treeEl.setAttribute('data-id', obj.id);
+  treeEl.style.cursor = 'pointer';
+  objectsLayer.appendChild(treeEl);
+  
+  if (isSelected) {
+    const outline = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    outline.setAttribute('cx', obj.x);
+    outline.setAttribute('cy', obj.y);
+    outline.setAttribute('r', obj.r + 3);
+    outline.setAttribute('fill', 'none');
+    outline.setAttribute('stroke', '#ff6b00');
+    outline.setAttribute('stroke-width', '2');
+    outline.setAttribute('pointer-events', 'none');
+    objectsLayer.appendChild(outline);
+  }
+}
+
+function renderPath(obj) {
+  const isSelected = obj.id === state.selectedId;
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  let d = `M ${obj.points[0][0]} ${obj.points[0][1]}`;
+  for (let i = 1; i < obj.points.length; i++) d += ` L ${obj.points[i][0]} ${obj.points[i][1]}`;
+  el.setAttribute('d', d);
+  el.setAttribute('fill', 'none');
+  el.setAttribute('stroke', isSelected ? '#ff6b00' : obj.fill);
+  el.setAttribute('stroke-width', '30');
+  el.setAttribute('stroke-linecap', 'round');
+  el.setAttribute('stroke-linejoin', 'round');
+  el.setAttribute('data-id', obj.id);
+  el.style.cursor = 'pointer';
+  objectsLayer.appendChild(el);
+}
+
+function renderDecorObject(obj) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const isSelected = obj.id === state.selectedId;
+  const g = document.createElementNS(ns, 'g');
+  g.setAttribute('data-id', obj.id);
+  g.style.cursor = 'pointer';
+  
+  const x = obj.x - obj.w / 2;
+  const y = obj.y - obj.h / 2;
+  const w = obj.w;
+  const h = obj.h;
+  
+  if (obj.decorType === 'water') {
+    const ellipse = document.createElementNS(ns, 'ellipse');
+    ellipse.setAttribute('cx', obj.x);
+    ellipse.setAttribute('cy', obj.y);
+    ellipse.setAttribute('rx', w / 2);
+    ellipse.setAttribute('ry', h / 2);
+    ellipse.setAttribute('fill', obj.fill);
+    ellipse.setAttribute('stroke', isSelected ? '#ff6b00' : '#0277bd');
+    ellipse.setAttribute('stroke-width', isSelected ? 3 : 1.5);
+    g.appendChild(ellipse);
+    
+    const waveCount = Math.max(2, Math.floor(h / 15));
+    for (let i = 1; i < waveCount; i++) {
+      const waveY = y + (h / waveCount) * i;
+      const wave = document.createElementNS(ns, 'path');
+      const amplitude = h / 10;
+      let d = `M ${x + 5} ${waveY}`;
+      for (let wx = x + 5; wx < x + w - 5; wx += 10) {
+        d += ` Q ${wx + 2.5} ${waveY - amplitude} ${wx + 5} ${waveY} Q ${wx + 7.5} ${waveY + amplitude} ${wx + 10} ${waveY}`;
+      }
+      wave.setAttribute('d', d);
+      wave.setAttribute('fill', 'none');
+      wave.setAttribute('stroke', 'rgba(255,255,255,0.5)');
+      wave.setAttribute('stroke-width', '1.5');
+      wave.setAttribute('pointer-events', 'none');
+      g.appendChild(wave);
+    }
+  } else if (obj.decorType === 'stone') {
+    const stones = [
+      { cx: -0.25, cy: -0.15, rx: 0.35, ry: 0.3 },
+      { cx: 0.2, cy: -0.2, rx: 0.3, ry: 0.25 },
+      { cx: 0, cy: 0.2, rx: 0.4, ry: 0.3 }
+    ];
+    stones.forEach(s => {
+      const stone = document.createElementNS(ns, 'ellipse');
+      stone.setAttribute('cx', obj.x + s.cx * w);
+      stone.setAttribute('cy', obj.y + s.cy * h);
+      stone.setAttribute('rx', s.rx * w / 2);
+      stone.setAttribute('ry', s.ry * h / 2);
+      stone.setAttribute('fill', obj.fill);
+      stone.setAttribute('stroke', isSelected ? '#ff6b00' : '#424242');
+      stone.setAttribute('stroke-width', isSelected ? 2 : 1);
+      g.appendChild(stone);
+    });
+  }
+  
+  const text = document.createElementNS(ns, 'text');
+  text.setAttribute('x', obj.x);
+  text.setAttribute('y', obj.y + h / 2 + 14);
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('font-size', '11');
+  text.setAttribute('font-weight', '600');
+  text.setAttribute('fill', '#2d3a2e');
+  text.setAttribute('pointer-events', 'none');
+  text.textContent = obj.name;
+  g.appendChild(text);
+  
+  objectsLayer.appendChild(g);
+}
+
 function render() {
   objectsLayer.innerHTML = '';
   handlesLayer.innerHTML = '';
 
   renderPlot();
-
-  state.objects.forEach(obj => {
-    if (obj.type === 'plot') return;
-
-    if (obj.type === 'tree') {
-      const isSelected = obj.id === state.selectedId;
-      const shape = obj.shape || 'oak';
-      const color = obj.fill || '#2e7d32';
-      
-      // Рисуем дерево через createShapeElement с формой дерева
-      const treeEl = createShapeElement(shape, obj.x, obj.y, obj.r, color);
-      if (treeEl.tagName === 'g') {
-        treeEl.setAttribute('data-id', obj.id);
-        treeEl.style.cursor = 'pointer';
-        objectsLayer.appendChild(treeEl);
-      } else {
-        treeEl.setAttribute('data-id', obj.id);
-        treeEl.style.cursor = 'pointer';
-        objectsLayer.appendChild(treeEl);
-      }
-      
-      // Обводка для выделенного дерева
-      if (isSelected) {
-        const outline = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        outline.setAttribute('cx', obj.x);
-        outline.setAttribute('cy', obj.y);
-        outline.setAttribute('r', obj.r + 3);
-        outline.setAttribute('fill', 'none');
-        outline.setAttribute('stroke', '#ff6b00');
-        outline.setAttribute('stroke-width', '2');
-        outline.setAttribute('pointer-events', 'none');
-        objectsLayer.appendChild(outline);
-      }
-      return;
-    }
-
-    if (obj.type === 'path') {
-      const isSelected = obj.id === state.selectedId;
-      const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      let d = `M ${obj.points[0][0]} ${obj.points[0][1]}`;
-      for (let i = 1; i < obj.points.length; i++) d += ` L ${obj.points[i][0]} ${obj.points[i][1]}`;
-      el.setAttribute('d', d);
-      el.setAttribute('fill', 'none');
-      el.setAttribute('stroke', isSelected ? '#ff6b00' : obj.fill);
-      el.setAttribute('stroke-width', '30');
-      el.setAttribute('stroke-linecap', 'round');
-      el.setAttribute('stroke-linejoin', 'round');
-      el.setAttribute('data-id', obj.id);
-      el.style.cursor = 'pointer';
-      objectsLayer.appendChild(el);
-      return;
-    }
-
-    if (obj.type === 'bed') {
-      const isSelected = obj.id === state.selectedId;
-      const el = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-      el.setAttribute('points', obj.points.map(p => p.join(',')).join(' '));
-      el.setAttribute('fill', obj.fill);
-      el.setAttribute('stroke', isSelected ? '#ff6b00' : '#333');
-      el.setAttribute('stroke-width', isSelected ? 3 : 1.5);
-      el.setAttribute('data-id', obj.id);
-      el.style.cursor = 'pointer';
-      objectsLayer.appendChild(el);
-
-      if (obj.plants && obj.plants.length > 0) {
-        obj.plants.forEach(pl => {
-          const plant = plants.find(p => p.id === pl.plantId);
-          const color = plant ? plant.color : '#999';
-          const shape = pl.shape || 'circle';
-          const r = pl.r || state.scale * 0.4;
-          const isSelectedPlanting = pl.id === state.selectedPlantingId;
-          
-          const isBlooming = isPlantBlooming(pl, state.bloomFilter);
-
-          const shapeEl = createShapeElement(shape, pl.x, pl.y, r, color);
-          if (shapeEl.tagName === 'g') {
-            shapeEl.setAttribute('stroke', isSelectedPlanting ? '#ff6b00' : 'white');
-            shapeEl.setAttribute('stroke-width', isSelectedPlanting ? 2 : 1.5);
-            shapeEl.style.cursor = state.tool === 'move' ? 'grab' : 'pointer';
-            shapeEl.setAttribute('data-planting-id', pl.id);
-            if (state.bloomFilter) {
-              shapeEl.classList.add(isBlooming ? 'planting-blooming' : 'planting-not-blooming');
-            }
-            objectsLayer.appendChild(shapeEl);
-          } else {
-            shapeEl.setAttribute('stroke', isSelectedPlanting ? '#ff6b00' : 'white');
-            shapeEl.setAttribute('stroke-width', isSelectedPlanting ? 2 : 1.5);
-            shapeEl.style.cursor = state.tool === 'move' ? 'grab' : 'pointer';
-            shapeEl.setAttribute('data-planting-id', pl.id);
-            if (state.bloomFilter) {
-              shapeEl.classList.add(isBlooming ? 'planting-blooming' : 'planting-not-blooming');
-            }
-            objectsLayer.appendChild(shapeEl);
-          }
-
-          if (plant) {
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', pl.x);
-            text.setAttribute('y', pl.y + r + 12);
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('font-size', '10');
-            text.setAttribute('font-weight', '600');
-            text.setAttribute('fill', '#2d3a2e');
-            text.setAttribute('pointer-events', 'none');
-            text.textContent = plant.name;
-            objectsLayer.appendChild(text);
-          }
-        });
-      }
-    }
+  
+  // Слой 1: Клумбы (полигоны)
+  state.objects.filter(o => o.type === 'bed').forEach(obj => {
+    renderBedPolygon(obj);
   });
-
+  
+  // Слой 2: Мульча (с clipPath по форме клумбы)
+  state.objects.filter(o => o.type === 'mulch').forEach(obj => {
+    renderMulch(obj);
+  });
+  
+  // Слой 3: Растения на клумбах (поверх мульчи)
+  state.objects.filter(o => o.type === 'bed').forEach(obj => {
+    renderBedPlants(obj);
+  });
+  
+  // Слой 4: Деревья
+  state.objects.filter(o => o.type === 'tree').forEach(obj => {
+    renderTree(obj);
+  });
+  
+  // Слой 5: Дорожки
+  state.objects.filter(o => o.type === 'path').forEach(obj => {
+    renderPath(obj);
+  });
+  
+  // Слой 6: Декор (водоёмы, камни)
+  state.objects.filter(o => o.type === 'decor').forEach(obj => {
+    renderDecorObject(obj);
+  });
+  
+  // Handles
   if (state.selectedId && state.tool === 'select') {
     const obj = state.objects.find(o => o.id === state.selectedId);
     if (obj) {
-      if (obj.type !== 'path') {
+      if (obj.type !== 'path' && obj.type !== 'mulch') {
         drawResizeHandles(obj);
       }
       if (obj.points && obj.type !== 'path') {
@@ -424,7 +586,6 @@ function renderProps() {
   }
 
   let html = '';
-
   const isFigureMode = obj.originalPointCount !== undefined;
 
   if (obj.type === 'plot') {
@@ -589,7 +750,7 @@ function renderProps() {
         <input type="color" value="${obj.fill}" onchange="updateProp(${obj.id}, 'fill', this.value)">
       </div>
       <div class="prop-row" style="font-size:11px;color:#777;flex-direction:column;align-items:flex-start;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:4px;">
-        <span><b> Клумба:</b></span>
+        <span><b>🌱 Клумба:</b></span>
         <span>Точек морфологии: ${obj.points.length}${isFigureMode ? ` (база: ${obj.originalPointCount})` : ''}</span>
         ${isFigureMode ? '<span style="color:#4a7c59;">✓ Форма зафиксирована</span>' : '<span>Двойной клик по границе — добавить точку</span>'}
         ${obj.morphModified && !obj.originalPointCount ? '<span style="color:#d4a017;">⚠ Форма изменена</span>' : ''}
@@ -693,6 +854,29 @@ function renderProps() {
         </div>
       `;
     }
+  } else if (obj.type === 'mulch') {
+    const bed = state.objects.find(o => o.id === obj.bedId);
+    html += `
+      <div class="prop-row">
+        <span>Тип:</span>
+        <span style="font-weight:600;">🟫 Мульча</span>
+      </div>
+      <div class="prop-row">
+        <span>Клумба:</span>
+        <span style="font-weight:600;">${bed ? bed.name : 'Не найдена'}</span>
+      </div>
+      <div class="prop-row">
+        <span>Форма:</span>
+        <select onchange="updateProp(${obj.id}, 'shape', this.value)">
+          <option value="rect" ${obj.shape === 'rect' ? 'selected' : ''}>Прямоугольник</option>
+          <option value="circle" ${obj.shape === 'circle' ? 'selected' : ''}>Круг</option>
+        </select>
+      </div>
+      <div class="prop-row">
+        <span>Цвет:</span>
+        <input type="color" value="${obj.fill}" onchange="updateProp(${obj.id}, 'fill', this.value)">
+      </div>
+    `;
   } else if (obj.type === 'tree') {
     const tree = trees.find(t => t.id === obj.treeId);
     html += `
@@ -703,6 +887,33 @@ function renderProps() {
       <div class="prop-row">
         <span>Размер:</span>
         <input type="number" value="${Math.round(obj.r)}" min="10" max="200" onchange="updateProp(${obj.id}, 'r', +this.value)">
+      </div>
+    `;
+  } else if (obj.type === 'decor') {
+    const decorNames = {
+      water: '💧 Водоём',
+      stone: '🪨 Камни'
+    };
+    html += `
+      <div class="prop-row">
+        <span>Тип:</span>
+        <span style="font-weight:600;">${decorNames[obj.decorType] || 'Объект'}</span>
+      </div>
+      <div class="prop-row">
+        <span>Название:</span>
+        <input type="text" value="${obj.name}" onchange="updateProp(${obj.id}, 'name', this.value)">
+      </div>
+      <div class="prop-row">
+        <span>Цвет:</span>
+        <input type="color" value="${obj.fill}" onchange="updateProp(${obj.id}, 'fill', this.value)">
+      </div>
+      <div class="prop-row">
+        <span>Ширина (м):</span>
+        <input type="number" value="${Math.round(obj.w / state.scale)}" min="1" max="100" onchange="updateDecorSize(${obj.id}, 'w', +this.value)">
+      </div>
+      <div class="prop-row">
+        <span>Высота (м):</span>
+        <input type="number" value="${Math.round(obj.h / state.scale)}" min="1" max="100" onchange="updateDecorSize(${obj.id}, 'h', +this.value)">
       </div>
     `;
   } else {
@@ -725,6 +936,14 @@ function updateProp(id, key, value) {
   const obj = state.objects.find(o => o.id === id);
   if (!obj) return;
   obj[key] = value;
+  render();
+}
+
+function updateDecorSize(id, dim, valueM) {
+  const obj = state.objects.find(o => o.id === id);
+  if (!obj || obj.type !== 'decor') return;
+  const value = Math.max(1, Math.min(100, valueM)) * state.scale;
+  obj[dim] = value;
   render();
 }
 

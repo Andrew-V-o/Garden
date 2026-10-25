@@ -15,10 +15,15 @@ function setTool(tool) {
   });
   document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
 
+  // Подсветка активной кнопки объекта
+  const objBtn = document.querySelector(`.obj-btn[data-obj="${tool}"]`);
+  if (objBtn) objBtn.classList.add('active');
+
   state.drawing = null;
   previewLayer.innerHTML = '';
   closePlantPopup();
-  closeTreePopup(); // Добавлено закрытие popup дерева
+  closeTreePopup();
+  closeDecorPopup();
   updateHint();
   renderPlantingsPanel();
 
@@ -249,11 +254,14 @@ function updateFinishButton() {
 
 function updateHint() {
   const hints = {
-    select: '💡 Выберите объект. Кликните по цветку или дереву для настройки. Кликните по клумбе, выберите растение и кликайте внутри для посадки. Колёсико — зум, двойной клик по пустому — сброс.',
+    select: '💡 Выберите объект. Кликните по цветку, дереву или декоративному объекту для настройки.',
     move: '✋ Перетаскивайте объекты. Участок физически ограничен границами окна. Колёсико — зум.',
     bed: `💡 Рисование клумбы (${state.bedShape === 'rect' ? 'прямоугольная' : state.bedShape === 'circle' ? 'круглая' : 'фигура'}). ${state.bedShape === 'poly' ? 'Кликайте для точек. Нажмите "✓ Завершить" или Enter для подтверждения.' : 'Зажмите мышь и тяните.'}`,
     path: '💡 Рисуйте дорожки. Кликайте для точек. Нажмите "✓ Завершить" или Enter.',
     tree: '🌳 Выберите дерево в левой панели и кликните на холст, чтобы посадить.',
+    water: '💧 Кликните на холст, чтобы разместить водоём.',
+    stone: '🪨 Кликните на холст, чтобы разместить камни.',
+    mulch: '🟫 Кликните на холст, чтобы разместить мульчу.',
   };
   let hint = hints[state.tool] || '';
   if (state.plantingMode && state.selectedPlant) {
@@ -335,7 +343,7 @@ function onMouseDown(e) {
           objId: obj.id,
           startX: pos.x,
           startY: pos.y,
-          startPos: obj.type === 'tree' ? { x: obj.x, y: obj.y } : null,
+          startPos: (obj.type === 'tree' || obj.type === 'decor') ? { x: obj.x, y: obj.y, w: obj.w, h: obj.h } : null,
           startPoints: obj.points ? JSON.parse(JSON.stringify(obj.points)) : null,
           startBasePoints: obj.basePoints ? JSON.parse(JSON.stringify(obj.basePoints)) : null,
           startPlants: obj.plants ? JSON.parse(JSON.stringify(obj.plants)) : null,
@@ -389,6 +397,29 @@ function onMouseDown(e) {
     }
   }
 
+  // Размещение декоративных объектов (водоём, камни, мульча)
+  if ((state.tool === 'water' || state.tool === 'stone' || state.tool === 'mulch')) {
+    const decorDefaults = {
+      water: { name: 'Водоём', fill: '#29b6f6', w: state.scale * 3, h: state.scale * 2 },
+      stone: { name: 'Камни', fill: '#9e9e9e', w: state.scale * 2, h: state.scale * 1.5 },
+      mulch: { name: 'Мульча', fill: '#795548', w: state.scale * 2.5, h: state.scale * 2 }
+    };
+    const d = decorDefaults[state.tool];
+    addObject({
+      type: 'decor',
+      decorType: state.tool,
+      x: snapToGrid(pos.x),
+      y: snapToGrid(pos.y),
+      w: d.w,
+      h: d.h,
+      fill: d.fill,
+      name: d.name
+    });
+    // Возвращаемся в режим выбора
+    setTool('select');
+    return;
+  }
+
   if (state.tool === 'select') {
     // Сначала проверяем посадки растений
     for (let i = state.objects.length - 1; i >= 0; i--) {
@@ -417,6 +448,18 @@ function onMouseDown(e) {
       }
     }
 
+    // Проверяем декоративные объекты
+    for (let i = state.objects.length - 1; i >= 0; i--) {
+      const obj = state.objects[i];
+      if (obj.type === 'decor') {
+        if (pos.x >= obj.x - obj.w/2 && pos.x <= obj.x + obj.w/2 &&
+            pos.y >= obj.y - obj.h/2 && pos.y <= obj.y + obj.h/2) {
+          showDecorPopup(obj);
+          return;
+        }
+      }
+    }
+
     // Проверяем другие объекты
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
@@ -438,6 +481,7 @@ function onMouseDown(e) {
     state.selectedPlantingId = null;
     closePlantPopup();
     closeTreePopup();
+    closeDecorPopup();
     document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
     render();
     return;
@@ -535,23 +579,24 @@ function onMouseMove(e) {
               y: pl.y + clampDy
             }));
           }
-        } else {
-          if (obj.type === 'tree' && d.startPos) {
-            obj.x = d.startPos.x + dx;
-            obj.y = d.startPos.y + dy;
-          } else if (obj.points && d.startPoints) {
-            obj.points = d.startPoints.map(p => [p[0] + dx, p[1] + dy]);
-            if (obj.basePoints && d.startBasePoints) {
-              obj.basePoints = d.startBasePoints.map(p => [p[0] + dx, p[1] + dy]);
-            }
+        } else if (obj.type === 'tree' && d.startPos) {
+          obj.x = d.startPos.x + dx;
+          obj.y = d.startPos.y + dy;
+        } else if (obj.type === 'decor' && d.startPos) {
+          obj.x = d.startPos.x + dx;
+          obj.y = d.startPos.y + dy;
+        } else if (obj.points && d.startPoints) {
+          obj.points = d.startPoints.map(p => [p[0] + dx, p[1] + dy]);
+          if (obj.basePoints && d.startBasePoints) {
+            obj.basePoints = d.startBasePoints.map(p => [p[0] + dx, p[1] + dy]);
           }
-          if (obj.plants && d.startPlants) {
-            obj.plants = d.startPlants.map(pl => ({
-              ...pl,
-              x: pl.x + dx,
-              y: pl.y + dy
-            }));
-          }
+        }
+        if (obj.plants && d.startPlants && obj.type !== 'plot') {
+          obj.plants = d.startPlants.map(pl => ({
+            ...pl,
+            x: pl.x + dx,
+            y: pl.y + dy
+          }));
         }
         render();
       }
@@ -723,6 +768,7 @@ function onKeyDown(e) {
     }
     closePlantPopup();
     closeTreePopup();
+    closeDecorPopup();
   }
   if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedPlantingId) {
     deletePlanting(state.selectedPlantingId);
@@ -765,7 +811,7 @@ function finishPolyOrPath() {
 
 function addObject(obj) {
   obj.id = state.nextId++;
-  if (obj.type !== 'path' && obj.type !== 'tree' && !obj.originalPointCount) {
+  if (obj.type !== 'path' && obj.type !== 'tree' && obj.type !== 'decor' && !obj.originalPointCount) {
     obj.basePoints = obj.points.map(p => p.slice());
     obj.morphModified = false;
   }

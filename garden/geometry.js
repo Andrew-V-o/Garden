@@ -19,10 +19,15 @@ function getObjBBox(obj) {
   if (obj.type === 'tree') {
     return { x: obj.x - obj.r, y: obj.y - obj.r, w: obj.r * 2, h: obj.r * 2 };
   }
-  const pts = obj.basePoints || obj.points;
-  if (pts && pts.length > 0) {
-    const xs = pts.map(p => p[0]);
-    const ys = pts.map(p => p[1]);
+  if (obj.type === 'decor') {
+    return { x: obj.x - obj.w / 2, y: obj.y - obj.h / 2, w: obj.w, h: obj.h };
+  }
+  if (obj.type === 'mulch') {
+    return { x: obj.x - obj.w / 2, y: obj.y - obj.h / 2, w: obj.w, h: obj.h };
+  }
+  if (obj.points && obj.points.length > 0) {
+    const xs = obj.points.map(p => p[0]);
+    const ys = obj.points.map(p => p[1]);
     const x = Math.min(...xs);
     const y = Math.min(...ys);
     const w = Math.max(...xs) - x;
@@ -37,6 +42,10 @@ function pointInObject(obj, x, y) {
     const dx = x - obj.x, dy = y - obj.y;
     return dx * dx + dy * dy <= obj.r * obj.r;
   }
+  if (obj.type === 'decor' || obj.type === 'mulch') {
+    return x >= obj.x - obj.w / 2 && x <= obj.x + obj.w / 2 &&
+           y >= obj.y - obj.h / 2 && y <= obj.y + obj.h / 2;
+  }
   if (obj.type === 'path') {
     for (let i = 0; i < obj.points.length - 1; i++) {
       const p = closestPointOnSegment(x, y, obj.points[i], obj.points[i + 1]);
@@ -45,9 +54,8 @@ function pointInObject(obj, x, y) {
     }
     return false;
   }
-  const pts = obj.points;
-  if (pts && pts.length >= 3) {
-    return pointInPolygon(x, y, pts);
+  if (obj.points && obj.points.length >= 3) {
+    return pointInPolygon(x, y, obj.points);
   }
   return false;
 }
@@ -64,6 +72,16 @@ function pointInPolygon(x, y, pts) {
   return inside;
 }
 
+function findBedAtPoint(x, y) {
+  for (let i = state.objects.length - 1; i >= 0; i--) {
+    const obj = state.objects[i];
+    if (obj.type === 'bed' && pointInPolygon(x, y, obj.points)) {
+      return obj;
+    }
+  }
+  return null;
+}
+
 function resizeObjToBBox(obj, newBBox) {
   const oldBBox = getObjBBox(obj);
   if (!oldBBox || oldBBox.w < 1 || oldBBox.h < 1) return;
@@ -74,18 +92,16 @@ function resizeObjToBBox(obj, newBBox) {
     obj.x = newBBox.x + newBBox.w / 2;
     obj.y = newBBox.y + newBBox.h / 2;
     obj.r = Math.min(newBBox.w, newBBox.h) / 2;
+  } else if (obj.type === 'decor' || obj.type === 'mulch') {
+    obj.x = newBBox.x + newBBox.w / 2;
+    obj.y = newBBox.y + newBBox.h / 2;
+    obj.w = newBBox.w;
+    obj.h = newBBox.h;
   } else if (obj.points) {
     obj.points = obj.points.map(p => [
       newBBox.x + (p[0] - oldBBox.x) * sx,
       newBBox.y + (p[1] - oldBBox.y) * sy
     ]);
-    // Обновляем basePoints тоже
-    if (obj.basePoints) {
-      obj.basePoints = obj.basePoints.map(p => [
-        newBBox.x + (p[0] - oldBBox.x) * sx,
-        newBBox.y + (p[1] - oldBBox.y) * sy
-      ]);
-    }
   }
 
   if (obj.plants) {
@@ -150,10 +166,8 @@ function generateCirclePoints(cx, cy, r, numPoints = 16) {
   return pts;
 }
 
-// Равномерное распределение N точек по периметру полигона
 function redistributePointsAlongPolygon(points, numPoints) {
   if (points.length < 2) return points.slice();
-  
   let totalLength = 0;
   const segments = [];
   for (let i = 0; i < points.length; i++) {
@@ -164,15 +178,12 @@ function redistributePointsAlongPolygon(points, numPoints) {
     segments.push({ start: points[i], end: points[j], length: len });
     totalLength += len;
   }
-  
   if (totalLength === 0) return points.slice();
-  
   const newPoints = [];
   for (let i = 0; i < numPoints; i++) {
     const targetDist = (i / numPoints) * totalLength;
     let accumulated = 0;
     let found = false;
-    
     for (let segIdx = 0; segIdx < segments.length; segIdx++) {
       const seg = segments[segIdx];
       if (accumulated + seg.length > targetDist) {
@@ -185,19 +196,13 @@ function redistributePointsAlongPolygon(points, numPoints) {
       }
       accumulated += seg.length;
     }
-    
-    if (!found) {
-      newPoints.push(points[points.length - 1].slice());
-    }
+    if (!found) newPoints.push(points[points.length - 1].slice());
   }
-  
   return newPoints;
 }
 
-// Прореживание точек
 function thinPoints(points, numPoints) {
   if (points.length <= numPoints) return points.slice();
-  
   const step = points.length / numPoints;
   const newPoints = [];
   for (let i = 0; i < numPoints; i++) {
@@ -207,35 +212,25 @@ function thinPoints(points, numPoints) {
   return newPoints;
 }
 
-// Интерполяция для фигуры: умножает количество точек в N раз
 function interpolateFigurePoints(points, multiplier) {
   if (points.length < 3 || multiplier < 1) return points.slice();
-  
   const newPoints = [];
   const oldCount = points.length;
-  
   for (let i = 0; i < oldCount; i++) {
     const j = (i + 1) % oldCount;
     const p1 = points[i];
     const p2 = points[j];
-    
     for (let k = 0; k < multiplier; k++) {
       const t = k / multiplier;
-      newPoints.push([
-        p1[0] + t * (p2[0] - p1[0]),
-        p1[1] + t * (p2[1] - p1[1])
-      ]);
+      newPoints.push([p1[0] + t * (p2[0] - p1[0]), p1[1] + t * (p2[1] - p1[1])]);
     }
   }
-  
   return newPoints;
 }
 
-// Деление точек для фигуры
 function decimateFigurePoints(points, divisor) {
   if (points.length < 3 || divisor < 2) return points.slice();
   if (points.length % divisor !== 0) return points.slice();
-  
   const newPoints = [];
   for (let i = 0; i < points.length; i += divisor) {
     newPoints.push(points[i].slice());
@@ -243,17 +238,11 @@ function decimateFigurePoints(points, divisor) {
   return newPoints;
 }
 
-// Интерполяция для не-фигур: добавляет точки между существующими
 function interpolateToCount(points, targetCount) {
   if (points.length < 2) return points.slice();
   if (targetCount <= points.length) return thinPoints(points, targetCount);
-  
   const oldCount = points.length;
   const multiplier = targetCount / oldCount;
-  
-  if (Number.isInteger(multiplier)) {
-    return interpolateFigurePoints(points, multiplier);
-  }
-  
+  if (Number.isInteger(multiplier)) return interpolateFigurePoints(points, multiplier);
   return redistributePointsAlongPolygon(points, targetCount);
 }

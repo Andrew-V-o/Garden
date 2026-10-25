@@ -8,7 +8,7 @@ let currentTreeContextMenu = null;
 // Состояние сворачивания разделов
 state.collapsedSections = { plants: false, trees: false };
 
-// Вспомогательная функция для точного перевода SVG-координат в CSS-пиксели относительно canvasWrap
+// Вспомогательная функция для точного перевода SVG-координат в CSS-пиксели
 function getRelativeScreenPos(svg, objX, objY, canvasWrap) {
   const pt = svg.createSVGPoint();
   pt.x = objX;
@@ -767,7 +767,6 @@ function showPlantPopup(planting, obj) {
   
   toggleBloomMode();
 
-  // НАДЕЖНЫЙ РАСЧЕТ ПОЗИЦИИ
   const pos = getRelativeScreenPos(svg, planting.x, planting.y, canvasWrap);
   const popupWidth = 260;
   const offset = 40;
@@ -783,7 +782,6 @@ function showPlantPopup(planting, obj) {
   popup.style.top = finalY + 'px';
   popup.classList.add('show');
 
-  // Одноразовый обработчик закрытия при клике вне popup
   const closeOnOutsideClick = (e) => {
     if (!popup.contains(e.target)) {
       closePlantPopup();
@@ -1233,7 +1231,6 @@ function showTreePopup(treeObj) {
   popup.style.top = finalY + 'px';
   popup.classList.add('show');
 
-  // Одноразовый обработчик закрытия при клике вне popup
   const closeOnOutsideClick = (e) => {
     if (!popup.contains(e.target)) {
       closeTreePopup();
@@ -1265,6 +1262,151 @@ function deleteTreeFromPopup() {
       deleteObject(state.selectedId);
       state.selectedId = null;
       closeTreePopup();
+      render();
+    }
+  }
+}
+
+// ===== POPUP ДЛЯ ДЕКОРАТИВНЫХ ОБЪЕКТОВ =====
+
+function showDecorPopup(decorObj) {
+  const popup = document.getElementById('decorPopup');
+  
+  const titles = {
+    water: '💧 Настройка водоёма',
+    stone: '🪨 Настройка камней',
+    mulch: '🟫 Настройка мульчи'
+  };
+  document.getElementById('decorPopupTitle').textContent = titles[decorObj.decorType] || '⚙️ Настройка объекта';
+  
+  const sizeInput = document.getElementById('decorPopupSize');
+  const avgSize = Math.round((decorObj.w + decorObj.h) / 2);
+  sizeInput.value = avgSize;
+  document.getElementById('decorPopupSizeVal').textContent = Math.round(avgSize);
+  
+  const colorInput = document.getElementById('decorPopupColor');
+  colorInput.value = decorObj.fill;
+  
+  const pos = getRelativeScreenPos(svg, decorObj.x, decorObj.y, canvasWrap);
+  const popupWidth = 260;
+  const offset = Math.max(decorObj.w, decorObj.h) / 2 + 20;
+
+  let finalX = pos.x + offset;
+  let finalY = Math.max(10, pos.y - 30);
+
+  if (finalX + popupWidth > canvasWrap.clientWidth) {
+    finalX = pos.x - offset - popupWidth;
+  }
+
+  popup.style.left = finalX + 'px';
+  popup.style.top = finalY + 'px';
+  popup.classList.add('show');
+
+  const closeOnOutsideClick = (e) => {
+    if (!popup.contains(e.target)) {
+      closeDecorPopup();
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+    }
+  };
+  setTimeout(() => {
+    document.addEventListener('mousedown', closeOnOutsideClick);
+  }, 0);
+
+  sizeInput.oninput = () => {
+    const val = +sizeInput.value;
+    document.getElementById('decorPopupSizeVal').textContent = Math.round(val);
+    const ratio = val / avgSize;
+    decorObj.w *= ratio;
+    decorObj.h *= ratio;
+    render();
+  };
+  
+  colorInput.oninput = () => {
+    decorObj.fill = colorInput.value;
+    render();
+  };
+  
+  state.selectedId = decorObj.id;
+  render();
+}
+
+function closeDecorPopup() {
+  document.getElementById('decorPopup').classList.remove('show');
+}
+
+function deleteDecorFromPopup() {
+  if (state.selectedId) {
+    const obj = state.objects.find(o => o.id === state.selectedId);
+    if (obj && obj.type === 'decor') {
+      deleteObject(state.selectedId);
+      state.selectedId = null;
+      closeDecorPopup();
+      render();
+    }
+  }
+}
+
+// ===== POPUP ДЛЯ МУЛЬЧИ =====
+
+function showMulchPopup(mulchObj) {
+  const popup = document.getElementById('mulchPopup');
+  
+  const shapeSelect = document.getElementById('mulchPopupShape');
+  shapeSelect.value = mulchObj.shape || 'rect';
+  
+  const colorInput = document.getElementById('mulchPopupColor');
+  colorInput.value = mulchObj.fill;
+  
+  const bed = state.objects.find(o => o.id === mulchObj.bedId);
+  const pos = bed ? getRelativeScreenPos(svg, bed.points[0][0], bed.points[0][1], canvasWrap) : { x: 100, y: 100 };
+  
+  const popupWidth = 260;
+  let finalX = pos.x + 40;
+  let finalY = Math.max(10, pos.y - 30);
+  
+  if (finalX + popupWidth > canvasWrap.clientWidth) {
+    finalX = pos.x - popupWidth - 40;
+  }
+  
+  popup.style.left = finalX + 'px';
+  popup.style.top = finalY + 'px';
+  popup.classList.add('show');
+  
+  const closeOnOutsideClick = (e) => {
+    if (!popup.contains(e.target)) {
+      closeMulchPopup();
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+    }
+  };
+  setTimeout(() => {
+    document.addEventListener('mousedown', closeOnOutsideClick);
+  }, 0);
+  
+  shapeSelect.onchange = () => {
+    mulchObj.shape = shapeSelect.value;
+    render();
+  };
+  
+  colorInput.oninput = () => {
+    mulchObj.fill = colorInput.value;
+    render();
+  };
+  
+  state.selectedId = mulchObj.id;
+  render();
+}
+
+function closeMulchPopup() {
+  document.getElementById('mulchPopup').classList.remove('show');
+}
+
+function deleteMulchFromPopup() {
+  if (state.selectedId) {
+    const obj = state.objects.find(o => o.id === state.selectedId);
+    if (obj && obj.type === 'mulch') {
+      deleteObject(state.selectedId);
+      state.selectedId = null;
+      closeMulchPopup();
       render();
     }
   }

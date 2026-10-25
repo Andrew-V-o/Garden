@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title> Планировщик сада v5</title>
+<title>🌿 Планировщик сада v5</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -20,7 +20,7 @@
 
 <div class="main">
   <aside class="sidebar">
-    <h3>️ Инструменты</h3>
+    <h3>🛠️ Инструменты</h3>
     <div class="tool-grid">
       <div class="tool-btn active" data-tool="select" onclick="setTool('select')">
         <span class="icon">👆</span>Выбрать
@@ -42,7 +42,7 @@
         </div>
         <div class="submenu" id="bedSubmenu">
           <div class="submenu-item active" data-bed="rect" onclick="setBedShape('rect')">
-            <span class="icon"></span>Прямоугольная
+            <span class="icon">▭</span>Прямоугольная
           </div>
           <div class="submenu-item" data-bed="circle" onclick="setBedShape('circle')">
             <span class="icon">◯</span>Круглая
@@ -56,31 +56,41 @@
       <div class="obj-btn" data-obj="path" onclick="setTool('path')">
         <span class="icon">〰️</span>Дорожка
       </div>
+      
+      <div class="obj-btn" data-obj="water" onclick="setTool('water')">
+        <span class="icon">💧</span>Водоём
+      </div>
+      
+      <div class="obj-btn" data-obj="stone" onclick="setTool('stone')">
+        <span class="icon">🪨</span>Камни
+      </div>
+      
+      <div class="obj-btn" data-obj="mulch" onclick="setTool('mulch')">
+        <span class="icon">🟫</span>Мульча
+      </div>
     </div>
 
-    <!-- Сворачиваемый раздел растений -->
     <div class="collapsible-section">
       <div class="collapsible-header" onclick="toggleSection('plants')">
         <span class="collapsible-arrow" id="plantsArrow">▼</span>
-        <span> Растения</span>
+        <span>🌸 Растения</span>
       </div>
       <div class="collapsible-content" id="plantsSection">
         <div class="plant-list" id="plantList"></div>
       </div>
     </div>
 
-    <!-- Сворачиваемый раздел деревьев -->
     <div class="collapsible-section">
       <div class="collapsible-header" onclick="toggleSection('trees')">
         <span class="collapsible-arrow" id="treesArrow">▼</span>
-        <span> Деревья</span>
+        <span>🌳 Деревья</span>
       </div>
       <div class="collapsible-content" id="treesSection">
         <div class="tree-list" id="treeList"></div>
       </div>
     </div>
 
-    <h3> Цвет секции</h3>
+    <h3>🎨 Цвет секции</h3>
     <div class="prop-row">
       <span>Заливка:</span>
       <input type="color" id="fillColor" value="#8bc34a">
@@ -150,6 +160,7 @@
         <button class="close-btn" onclick="closePlantPopup()">✖ Закрыть</button>
       </div>
     </div>
+
     <div class="plant-popup" id="treePopup">
       <h4>🌳 Настройка дерева</h4>
       <div class="popup-row">
@@ -164,6 +175,42 @@
       <div class="popup-buttons">
         <button class="delete-btn" onclick="deleteTreeFromPopup()">🗑️ Удалить</button>
         <button class="close-btn" onclick="closeTreePopup()">✖ Закрыть</button>
+      </div>
+    </div>
+
+    <div class="plant-popup" id="decorPopup">
+      <h4 id="decorPopupTitle">⚙️ Настройка объекта</h4>
+      <div class="popup-row">
+        <span>Размер:</span>
+        <input type="range" id="decorPopupSize" min="10" max="100" value="30">
+        <span id="decorPopupSizeVal" style="width:25px;text-align:right">30</span>
+      </div>
+      <div class="popup-row">
+        <span>Цвет:</span>
+        <input type="color" id="decorPopupColor" value="#29b6f6">
+      </div>
+      <div class="popup-buttons">
+        <button class="delete-btn" onclick="deleteDecorFromPopup()">🗑️ Удалить</button>
+        <button class="close-btn" onclick="closeDecorPopup()">✖ Закрыть</button>
+      </div>
+    </div>
+
+    <div class="plant-popup" id="mulchPopup">
+      <h4>🟫 Настройка мульчи</h4>
+      <div class="popup-row">
+        <span>Форма:</span>
+        <select id="mulchPopupShape">
+          <option value="rect">Прямоугольник</option>
+          <option value="circle">Круг</option>
+        </select>
+      </div>
+      <div class="popup-row">
+        <span>Цвет:</span>
+        <input type="color" id="mulchPopupColor" value="#795548">
+      </div>
+      <div class="popup-buttons">
+        <button class="delete-btn" onclick="deleteMulchFromPopup()">🗑️ Удалить</button>
+        <button class="close-btn" onclick="closeMulchPopup()">✖ Закрыть</button>
       </div>
     </div>
   </div>
@@ -193,12 +240,11 @@
   </aside>
 </div>
 
-<div class="hint-bar" id="hintBar"> Выберите инструмент или объект из панели слева.</div>
+<div class="hint-bar" id="hintBar">💡 Выберите инструмент или объект из панели слева.</div>
 
-<!-- Модалка создания нового растения -->
 <div class="modal-bg" id="plantModal">
   <div class="modal">
-    <h2> Новое растение</h2>
+    <h2>🌺 Новое растение</h2>
     <label>Название</label>
     <input type="text" id="newPlantName" placeholder="Например: Хризантемы" maxlength="20">
     <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
@@ -256,10 +302,9 @@
   </div>
 </div>
 
-<!-- Модалка настроек вида растения -->
 <div class="modal-bg" id="plantSettingsModal">
   <div class="modal">
-    <h2>️ Настройки вида растения</h2>
+    <h2>⚙️ Настройки вида растения</h2>
     <label>Название</label>
     <input type="text" id="settingsPlantName" maxlength="20">
     <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
@@ -309,7 +354,7 @@
       <option value="">Без папки</option>
     </select>
     <div class="buttons" style="justify-content:space-between;">
-      <button class="delete-btn" id="settingsDeleteBtn" onclick="deletePlantFromSettings()" style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;display:none;">️ Удалить вид</button>
+      <button class="delete-btn" id="settingsDeleteBtn" onclick="deletePlantFromSettings()" style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;display:none;">🗑️ Удалить вид</button>
       <div style="display:flex;gap:8px;">
         <button class="secondary" onclick="closePlantSettings()">Отмена</button>
         <button class="primary" onclick="savePlantSettings()">Сохранить</button>
@@ -318,7 +363,6 @@
   </div>
 </div>
 
-<!-- Модалка создания нового дерева -->
 <div class="modal-bg" id="treeModal">
   <div class="modal">
     <h2>🌳 Новое дерево</h2>
@@ -353,7 +397,6 @@
   </div>
 </div>
 
-<!-- Модалка настроек вида дерева -->
 <div class="modal-bg" id="treeSettingsModal">
   <div class="modal">
     <h2>⚙️ Настройки вида дерева</h2>
@@ -389,7 +432,6 @@
   </div>
 </div>
 
-<!-- Модалка карты цветения -->
 <div class="modal-bg" id="bloomMapModal">
   <div class="modal" style="width:420px;">
     <h2>🌸 Карта цветения</h2>

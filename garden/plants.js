@@ -8,6 +8,23 @@ let currentTreeContextMenu = null;
 // Состояние сворачивания разделов
 state.collapsedSections = { plants: false, trees: false };
 
+// Вспомогательная функция для точного перевода SVG-координат в CSS-пиксели относительно canvasWrap
+function getRelativeScreenPos(svg, objX, objY, canvasWrap) {
+  const pt = svg.createSVGPoint();
+  pt.x = objX;
+  pt.y = objY;
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return { x: 0, y: 0 };
+  
+  const screenPt = pt.matrixTransform(ctm);
+  const wrapRect = canvasWrap.getBoundingClientRect();
+  
+  return {
+    x: screenPt.x - wrapRect.left + canvasWrap.scrollLeft,
+    y: screenPt.y - wrapRect.top + canvasWrap.scrollTop
+  };
+}
+
 function loadCustomPlants() {
   const saved = localStorage.getItem('customPlants');
   if (saved) {
@@ -750,14 +767,32 @@ function showPlantPopup(planting, obj) {
   
   toggleBloomMode();
 
-  const svgRect = svg.getBoundingClientRect();
-  const wrapRect = canvasWrap.getBoundingClientRect();
-  const x = planting.x + svgRect.left - wrapRect.left + canvasWrap.scrollLeft;
-  const y = planting.y + svgRect.top - wrapRect.top + canvasWrap.scrollTop;
+  // НАДЕЖНЫЙ РАСЧЕТ ПОЗИЦИИ
+  const pos = getRelativeScreenPos(svg, planting.x, planting.y, canvasWrap);
+  const popupWidth = 260;
+  const offset = 40;
 
-  popup.style.left = (x + 20) + 'px';
-  popup.style.top = (y - 50) + 'px';
+  let finalX = pos.x + offset;
+  let finalY = Math.max(10, pos.y - 30);
+
+  if (finalX + popupWidth > canvasWrap.clientWidth) {
+    finalX = pos.x - popupWidth - offset;
+  }
+
+  popup.style.left = finalX + 'px';
+  popup.style.top = finalY + 'px';
   popup.classList.add('show');
+
+  // Одноразовый обработчик закрытия при клике вне popup
+  const closeOnOutsideClick = (e) => {
+    if (!popup.contains(e.target)) {
+      closePlantPopup();
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+    }
+  };
+  setTimeout(() => {
+    document.addEventListener('mousedown', closeOnOutsideClick);
+  }, 0);
 
   plantSelect.onchange = () => {
     const newPlant = plants.find(p => p.id === plantSelect.value);
@@ -825,16 +860,6 @@ function deletePlantingFromPopup() {
     }
   }
 }
-
-document.addEventListener('click', (e) => {
-  const popup = document.getElementById('plantPopup');
-  if (popup.classList.contains('show') && !popup.contains(e.target)) {
-    const target = e.target.closest('[data-planting-id]');
-    if (!target) {
-      closePlantPopup();
-    }
-  }
-});
 
 // ===== ДЕРЕВЬЯ =====
 
@@ -1020,7 +1045,6 @@ function hideTreeContextMenu() {
 
 function selectTree(id) {
   if (state.selectedTree === id) {
-    // Отмена выбора: сбрасываем выделение и возвращаем инструмент "Выбрать"
     state.selectedTree = null;
     document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('selected'));
     state.tool = 'select';
@@ -1038,7 +1062,6 @@ function selectTree(id) {
   });
   document.querySelectorAll('.plant-item').forEach(el => el.classList.remove('selected'));
   
-  // Активируем режим посадки дерева
   state.tool = 'tree';
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
   updateHint();
@@ -1195,14 +1218,31 @@ function showTreePopup(treeObj) {
   sizeInput.value = treeObj.r || 24;
   document.getElementById('treePopupSizeVal').textContent = Math.round(treeObj.r || 24);
   
-  const svgRect = svg.getBoundingClientRect();
-  const wrapRect = canvasWrap.getBoundingClientRect();
-  const x = treeObj.x + svgRect.left - wrapRect.left + canvasWrap.scrollLeft;
-  const y = treeObj.y + svgRect.top - wrapRect.top + canvasWrap.scrollTop;
-  
-  popup.style.left = (x + 20) + 'px';
-  popup.style.top = (y - 50) + 'px';
+  const pos = getRelativeScreenPos(svg, treeObj.x, treeObj.y, canvasWrap);
+  const popupWidth = 260;
+  const offset = 40;
+
+  let finalX = pos.x + offset;
+  let finalY = Math.max(10, pos.y - 30);
+
+  if (finalX + popupWidth > canvasWrap.clientWidth) {
+    finalX = pos.x - popupWidth - offset;
+  }
+
+  popup.style.left = finalX + 'px';
+  popup.style.top = finalY + 'px';
   popup.classList.add('show');
+
+  // Одноразовый обработчик закрытия при клике вне popup
+  const closeOnOutsideClick = (e) => {
+    if (!popup.contains(e.target)) {
+      closeTreePopup();
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+    }
+  };
+  setTimeout(() => {
+    document.addEventListener('mousedown', closeOnOutsideClick);
+  }, 0);
   
   sizeInput.oninput = () => {
     treeObj.r = +sizeInput.value;
@@ -1229,16 +1269,6 @@ function deleteTreeFromPopup() {
     }
   }
 }
-
-document.addEventListener('click', (e) => {
-  const treePopup = document.getElementById('treePopup');
-  if (treePopup.classList.contains('show') && !treePopup.contains(e.target)) {
-    const target = e.target.closest('[data-id]');
-    if (!target || target.dataset.id !== state.selectedId?.toString()) {
-      closeTreePopup();
-    }
-  }
-});
 
 // ===== КАРТА ЦВЕТЕНИЯ =====
 

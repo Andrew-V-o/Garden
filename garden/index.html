@@ -116,6 +116,7 @@
       ✓ Завершить
     </button>
     
+    <!-- Popup для растения -->
     <div class="plant-popup" id="plantPopup">
       <h4>🌺 Настройка цветка</h4>
       <div class="popup-row">
@@ -161,6 +162,7 @@
       </div>
     </div>
 
+    <!-- Popup для дерева -->
     <div class="plant-popup" id="treePopup">
       <h4>🌳 Настройка дерева</h4>
       <div class="popup-row">
@@ -178,6 +180,7 @@
       </div>
     </div>
 
+    <!-- Popup для декоративных объектов (водоём, камни) -->
     <div class="plant-popup" id="decorPopup">
       <h4 id="decorPopupTitle">⚙️ Настройка объекта</h4>
       <div class="popup-row">
@@ -195,24 +198,8 @@
       </div>
     </div>
 
-    <div class="plant-popup" id="mulchPopup">
-      <h4>🟫 Настройка мульчи</h4>
-      <div class="popup-row">
-        <span>Форма:</span>
-        <select id="mulchPopupShape">
-          <option value="rect">Прямоугольник</option>
-          <option value="circle">Круг</option>
-        </select>
-      </div>
-      <div class="popup-row">
-        <span>Цвет:</span>
-        <input type="color" id="mulchPopupColor" value="#795548">
-      </div>
-      <div class="popup-buttons">
-        <button class="delete-btn" onclick="deleteMulchFromPopup()">🗑️ Удалить</button>
-        <button class="close-btn" onclick="closeMulchPopup()">✖ Закрыть</button>
-      </div>
-    </div>
+    <!-- Popup для мульчи — пустой контейнер, содержимое генерируется динамически -->
+    <div class="plant-popup" id="mulchPopup"></div>
   </div>
 
   <aside class="sidebar right">
@@ -242,6 +229,7 @@
 
 <div class="hint-bar" id="hintBar">💡 Выберите инструмент или объект из панели слева.</div>
 
+<!-- Модалка создания нового растения -->
 <div class="modal-bg" id="plantModal">
   <div class="modal">
     <h2>🌺 Новое растение</h2>
@@ -302,6 +290,7 @@
   </div>
 </div>
 
+<!-- Модалка настроек вида растения -->
 <div class="modal-bg" id="plantSettingsModal">
   <div class="modal">
     <h2>⚙️ Настройки вида растения</h2>
@@ -363,6 +352,7 @@
   </div>
 </div>
 
+<!-- Модалка создания нового дерева -->
 <div class="modal-bg" id="treeModal">
   <div class="modal">
     <h2>🌳 Новое дерево</h2>
@@ -397,6 +387,7 @@
   </div>
 </div>
 
+<!-- Модалка настроек вида дерева -->
 <div class="modal-bg" id="treeSettingsModal">
   <div class="modal">
     <h2>⚙️ Настройки вида дерева</h2>
@@ -432,6 +423,7 @@
   </div>
 </div>
 
+<!-- Модалка карты цветения -->
 <div class="modal-bg" id="bloomMapModal">
   <div class="modal" style="width:420px;">
     <h2>🌸 Карта цветения</h2>

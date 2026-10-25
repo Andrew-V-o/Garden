@@ -87,7 +87,6 @@ function renderMulch(mulch) {
   const bed = state.objects.find(o => o.id === mulch.bedId);
   if (!bed) return;
   
-  const bbox = getObjBBox(bed);
   const isSelected = state.selectedId === mulch.id;
   const clipId = `clip-mulch-${mulch.id}`;
   
@@ -101,58 +100,65 @@ function renderMulch(mulch) {
   defs.appendChild(clipPath);
   objectsLayer.appendChild(defs);
   
-  // Группа с clip-path
+  // Группа с clip-path — мульча обрезается по форме клумбы
   const g = document.createElementNS(ns, 'g');
   g.setAttribute('clip-path', `url(#${clipId})`);
   g.setAttribute('data-id', mulch.id);
   g.style.cursor = 'pointer';
   
+  // Координаты мульчи (собственные, не клумбы)
+  const mx = mulch.x;
+  const my = mulch.y;
+  const mw = mulch.w;
+  const mh = mulch.h;
+  
   if (mulch.shape === 'rect') {
     const rect = document.createElementNS(ns, 'rect');
-    rect.setAttribute('x', bbox.x);
-    rect.setAttribute('y', bbox.y);
-    rect.setAttribute('width', bbox.w);
-    rect.setAttribute('height', bbox.h);
+    rect.setAttribute('x', mx - mw / 2);
+    rect.setAttribute('y', my - mh / 2);
+    rect.setAttribute('width', mw);
+    rect.setAttribute('height', mh);
     rect.setAttribute('fill', mulch.fill);
     g.appendChild(rect);
   } else {
+    // Круглая мульча — эллипс с собственными размерами
     const ellipse = document.createElementNS(ns, 'ellipse');
-    ellipse.setAttribute('cx', bbox.x + bbox.w / 2);
-    ellipse.setAttribute('cy', bbox.y + bbox.h / 2);
-    ellipse.setAttribute('rx', bbox.w / 2);
-    ellipse.setAttribute('ry', bbox.h / 2);
+    ellipse.setAttribute('cx', mx);
+    ellipse.setAttribute('cy', my);
+    ellipse.setAttribute('rx', mw / 2);
+    ellipse.setAttribute('ry', mh / 2);
     ellipse.setAttribute('fill', mulch.fill);
     g.appendChild(ellipse);
   }
   
-  // Текстура мульчи (мелкие точки)
-  const dotCount = Math.floor((bbox.w * bbox.h) / 300);
+  // Текстура мульчи (мелкие точки) — только в пределах мульчи
+  const dotCount = Math.floor((mw * mh) / 300);
   for (let i = 0; i < dotCount; i++) {
     const dot = document.createElementNS(ns, 'circle');
-    dot.setAttribute('cx', bbox.x + Math.random() * bbox.w);
-    dot.setAttribute('cy', bbox.y + Math.random() * bbox.h);
+    dot.setAttribute('cx', mx - mw / 2 + Math.random() * mw);
+    dot.setAttribute('cy', my - mh / 2 + Math.random() * mh);
     dot.setAttribute('r', 1 + Math.random() * 1.5);
     dot.setAttribute('fill', 'rgba(0,0,0,0.2)');
     dot.setAttribute('pointer-events', 'none');
     g.appendChild(dot);
   }
   
-  // Обводка для выделенной мульчи
+  objectsLayer.appendChild(g);
+  
+  // Обводка для выделенной мульчи (поверх clipPath, чтобы было видно)
   if (isSelected) {
     const outline = document.createElementNS(ns, 'rect');
-    outline.setAttribute('x', bbox.x);
-    outline.setAttribute('y', bbox.y);
-    outline.setAttribute('width', bbox.w);
-    outline.setAttribute('height', bbox.h);
+    outline.setAttribute('x', mx - mw / 2);
+    outline.setAttribute('y', my - mh / 2);
+    outline.setAttribute('width', mw);
+    outline.setAttribute('height', mh);
     outline.setAttribute('fill', 'none');
     outline.setAttribute('stroke', '#ff6b00');
     outline.setAttribute('stroke-width', '2');
     outline.setAttribute('stroke-dasharray', '5,5');
     outline.setAttribute('pointer-events', 'none');
-    g.appendChild(outline);
+    objectsLayer.appendChild(outline);
   }
-  
-  objectsLayer.appendChild(g);
 }
 
 function renderBedPlants(obj) {
@@ -350,14 +356,17 @@ function render() {
     renderDecorObject(obj);
   });
   
-  // Handles
+  // Handles для выделенного объекта
   if (state.selectedId && state.tool === 'select') {
     const obj = state.objects.find(o => o.id === state.selectedId);
     if (obj) {
-      if (obj.type !== 'path' && obj.type !== 'mulch') {
+      // Ресайз-handles для всех объектов кроме path и мульчи
+      // Мульча тоже может ресайзиться через белые квадраты
+      if (obj.type !== 'path') {
         drawResizeHandles(obj);
       }
-      if (obj.points && obj.type !== 'path') {
+      // Морфинг-handles только для объектов с points (клумбы, участок)
+      if (obj.points && obj.type !== 'path' && obj.type !== 'mulch') {
         drawMorphHandles(obj);
       }
     }
@@ -634,11 +643,7 @@ function renderProps() {
         return `
           <button onclick="setMorphPoints(${obj.id}, ${Math.round(targetPoints)})" 
                   ${!canDecimate ? 'disabled' : ''}
-                  style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;
-                         background:${canDecimate ? 'white' : '#f0f0f0'};
-                         color:${canDecimate ? '#333' : '#bbb'};
-                         border-radius:4px;cursor:${canDecimate ? 'pointer' : 'not-allowed'};
-                         font-size:12px;">
+                  style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;background:${canDecimate ? 'white' : '#f0f0f0'};color:${canDecimate ? '#333' : '#bbb'};border-radius:4px;cursor:${canDecimate ? 'pointer' : 'not-allowed'};font-size:12px;">
             ÷${div}
           </button>
         `;
@@ -648,11 +653,7 @@ function renderProps() {
       const resetBtn = `
         <button onclick="setMorphPoints(${obj.id}, ${baseCount})" 
                 ${atBase ? 'disabled' : ''}
-                style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #d4a017;
-                       background:${atBase ? '#f0f0f0' : 'white'};
-                       color:${atBase ? '#bbb' : '#8a6d00'};
-                       border-radius:4px;cursor:${atBase ? 'not-allowed' : 'pointer'};
-                       font-size:12px;font-weight:600;">
+                style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #d4a017;background:${atBase ? '#f0f0f0' : 'white'};color:${atBase ? '#bbb' : '#8a6d00'};border-radius:4px;cursor:${atBase ? 'not-allowed' : 'pointer'};font-size:12px;font-weight:600;">
           ×1
         </button>
       `;
@@ -663,11 +664,7 @@ function renderProps() {
         return `
           <button onclick="setMorphPoints(${obj.id}, ${targetPoints})" 
                   ${!canIncrease ? 'disabled' : ''}
-                  style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;
-                         background:${canIncrease ? 'white' : '#f0f0f0'};
-                         color:${canIncrease ? '#333' : '#bbb'};
-                         border-radius:4px;cursor:${canIncrease ? 'pointer' : 'not-allowed'};
-                         font-size:12px;">
+                  style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;background:${canIncrease ? 'white' : '#f0f0f0'};color:${canIncrease ? '#333' : '#bbb'};border-radius:4px;cursor:${canIncrease ? 'pointer' : 'not-allowed'};font-size:12px;">
             ×${mult}
           </button>
         `;
@@ -676,25 +673,15 @@ function renderProps() {
       html += `
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
           <span style="font-size:12px;color:#555;">Уменьшить количество точек:</span>
-          <div style="display:flex;flex-wrap:wrap;gap:4px;">
-            ${decimateButtons}
-          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">${decimateButtons}</div>
         </div>
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
           <span style="font-size:12px;color:#555;">Вернуться к исходному:</span>
-          <div style="display:flex;flex-wrap:wrap;gap:4px;">
-            ${resetBtn}
-          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">${resetBtn}</div>
         </div>
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
           <span style="font-size:12px;color:#555;">Увеличить количество точек (лимит ${FIGURE_POINTS_LIMIT}):</span>
-          <div style="display:flex;flex-wrap:wrap;gap:4px;">
-            ${increaseButtons}
-          </div>
-        </div>
-        <div class="prop-row" style="font-size:10px;color:#999;flex-direction:column;align-items:flex-start;gap:2px;margin-top:2px;">
-          <span>Форма сохраняется при смене количества точек</span>
-          <span>Лимит: ${FIGURE_POINTS_LIMIT} точек</span>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">${increaseButtons}</div>
         </div>
       `;
     } else {
@@ -704,40 +691,21 @@ function renderProps() {
           <div style="display:flex;flex-wrap:wrap;gap:4px;">
             ${[4, 8, 12, 16, 24, 32].map(n => `
               <button onclick="setMorphPoints(${obj.id}, ${n})" 
-                      style="flex:1;min-width:40px;padding:6px 4px;border:2px solid ${obj.points.length === n ? '#4a7c59' : '#ccc'};
-                             background:${obj.points.length === n ? '#4a7c59' : 'white'};
-                             color:${obj.points.length === n ? 'white' : '#333'};
-                             border-radius:4px;cursor:pointer;font-size:12px;font-weight:${obj.points.length === n ? '600' : '400'};">
+                      style="flex:1;min-width:40px;padding:6px 4px;border:2px solid ${obj.points.length === n ? '#4a7c59' : '#ccc'};background:${obj.points.length === n ? '#4a7c59' : 'white'};color:${obj.points.length === n ? 'white' : '#333'};border-radius:4px;cursor:pointer;font-size:12px;font-weight:${obj.points.length === n ? '600' : '400'};">
                 ${n}
               </button>
             `).join('')}
           </div>
-        </div>
-        <div class="prop-row" style="font-size:10px;color:#999;flex-direction:column;align-items:flex-start;gap:2px;margin-top:2px;">
-          <span>4 — только углы</span>
-          <span>8 — углы + середины сторон</span>
-          <span>12, 16 — для сложных форм</span>
-          <span>24, 32 — для плавных изгибов</span>
         </div>
       `;
     }
     
     html += `
       <button onclick="fitPlotToCanvas()" style="
-        width: 100%;
-        background: #4a7c59;
-        color: white;
-        border: none;
-        padding: 10px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 600;
-        margin-top: 8px;
-        transition: all 0.15s;
-      " onmouseover="this.style.background='#3a6347'" onmouseout="this.style.background='#4a7c59'">
-         Под размер окна
-      </button>
+        width: 100%; background: #4a7c59; color: white; border: none;
+        padding: 10px; border-radius: 6px; cursor: pointer;
+        font-size: 13px; font-weight: 600; margin-top: 8px;
+      ">Под размер окна</button>
     `;
   } else if (obj.type === 'bed') {
     html += `
@@ -752,8 +720,6 @@ function renderProps() {
       <div class="prop-row" style="font-size:11px;color:#777;flex-direction:column;align-items:flex-start;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:4px;">
         <span><b>🌱 Клумба:</b></span>
         <span>Точек морфологии: ${obj.points.length}${isFigureMode ? ` (база: ${obj.originalPointCount})` : ''}</span>
-        ${isFigureMode ? '<span style="color:#4a7c59;">✓ Форма зафиксирована</span>' : '<span>Двойной клик по границе — добавить точку</span>'}
-        ${obj.morphModified && !obj.originalPointCount ? '<span style="color:#d4a017;">⚠ Форма изменена</span>' : ''}
       </div>
     `;
     
@@ -764,70 +730,30 @@ function renderProps() {
       const decimateButtons = [2, 3, 4, 5].map(div => {
         const targetPoints = currentCount / div;
         const canDecimate = Number.isInteger(targetPoints) && targetPoints >= baseCount;
-        return `
-          <button onclick="setMorphPoints(${obj.id}, ${Math.round(targetPoints)})" 
-                  ${!canDecimate ? 'disabled' : ''}
-                  style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;
-                         background:${canDecimate ? 'white' : '#f0f0f0'};
-                         color:${canDecimate ? '#333' : '#bbb'};
-                         border-radius:4px;cursor:${canDecimate ? 'pointer' : 'not-allowed'};
-                         font-size:12px;">
-            ÷${div}
-          </button>
-        `;
+        return `<button onclick="setMorphPoints(${obj.id}, ${Math.round(targetPoints)})" ${!canDecimate ? 'disabled' : ''} style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;background:${canDecimate ? 'white' : '#f0f0f0'};color:${canDecimate ? '#333' : '#bbb'};border-radius:4px;cursor:${canDecimate ? 'pointer' : 'not-allowed'};font-size:12px;">÷${div}</button>`;
       }).join('');
       
       const atBase = currentCount === baseCount;
-      const resetBtn = `
-        <button onclick="setMorphPoints(${obj.id}, ${baseCount})" 
-                ${atBase ? 'disabled' : ''}
-                style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #d4a017;
-                       background:${atBase ? '#f0f0f0' : 'white'};
-                       color:${atBase ? '#bbb' : '#8a6d00'};
-                       border-radius:4px;cursor:${atBase ? 'not-allowed' : 'pointer'};
-                       font-size:12px;font-weight:600;">
-          ×1
-        </button>
-      `;
+      const resetBtn = `<button onclick="setMorphPoints(${obj.id}, ${baseCount})" ${atBase ? 'disabled' : ''} style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #d4a017;background:${atBase ? '#f0f0f0' : 'white'};color:${atBase ? '#bbb' : '#8a6d00'};border-radius:4px;cursor:${atBase ? 'not-allowed' : 'pointer'};font-size:12px;font-weight:600;">×1</button>`;
       
       const increaseButtons = [2, 3, 4, 5].map(mult => {
         const targetPoints = currentCount * mult;
         const canIncrease = targetPoints <= FIGURE_POINTS_LIMIT;
-        return `
-          <button onclick="setMorphPoints(${obj.id}, ${targetPoints})" 
-                  ${!canIncrease ? 'disabled' : ''}
-                  style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;
-                         background:${canIncrease ? 'white' : '#f0f0f0'};
-                         color:${canIncrease ? '#333' : '#bbb'};
-                         border-radius:4px;cursor:${canIncrease ? 'pointer' : 'not-allowed'};
-                         font-size:12px;">
-            ×${mult}
-          </button>
-        `;
+        return `<button onclick="setMorphPoints(${obj.id}, ${targetPoints})" ${!canIncrease ? 'disabled' : ''} style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;background:${canIncrease ? 'white' : '#f0f0f0'};color:${canIncrease ? '#333' : '#bbb'};border-radius:4px;cursor:${canIncrease ? 'pointer' : 'not-allowed'};font-size:12px;">×${mult}</button>`;
       }).join('');
       
       html += `
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
-          <span style="font-size:12px;color:#555;">Уменьшить количество точек:</span>
-          <div style="display:flex;flex-wrap:wrap;gap:4px;">
-            ${decimateButtons}
-          </div>
+          <span style="font-size:12px;color:#555;">Уменьшить:</span>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">${decimateButtons}</div>
         </div>
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
-          <span style="font-size:12px;color:#555;">Вернуться к исходному:</span>
-          <div style="display:flex;flex-wrap:wrap;gap:4px;">
-            ${resetBtn}
-          </div>
+          <span style="font-size:12px;color:#555;">Исходное:</span>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">${resetBtn}</div>
         </div>
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
-          <span style="font-size:12px;color:#555;">Увеличить количество точек (лимит ${FIGURE_POINTS_LIMIT}):</span>
-          <div style="display:flex;flex-wrap:wrap;gap:4px;">
-            ${increaseButtons}
-          </div>
-        </div>
-        <div class="prop-row" style="font-size:10px;color:#999;flex-direction:column;align-items:flex-start;gap:2px;margin-top:2px;">
-          <span>Форма клумбы не изменяется при смене количества точек</span>
-          <span>Лимит: ${FIGURE_POINTS_LIMIT} точек</span>
+          <span style="font-size:12px;color:#555;">Увеличить (лимит ${FIGURE_POINTS_LIMIT}):</span>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">${increaseButtons}</div>
         </div>
       `;
     } else {
@@ -836,21 +762,9 @@ function renderProps() {
           <span style="font-size:12px;color:#555;">Количество точек:</span>
           <div style="display:flex;flex-wrap:wrap;gap:4px;">
             ${[4, 8, 12, 16, 24, 32].map(n => `
-              <button onclick="setMorphPoints(${obj.id}, ${n})" 
-                      style="flex:1;min-width:40px;padding:6px 4px;border:2px solid ${obj.points.length === n ? '#4a7c59' : '#ccc'};
-                             background:${obj.points.length === n ? '#4a7c59' : 'white'};
-                             color:${obj.points.length === n ? 'white' : '#333'};
-                             border-radius:4px;cursor:pointer;font-size:12px;font-weight:${obj.points.length === n ? '600' : '400'};">
-                ${n}
-              </button>
+              <button onclick="setMorphPoints(${obj.id}, ${n})" style="flex:1;min-width:40px;padding:6px 4px;border:2px solid ${obj.points.length === n ? '#4a7c59' : '#ccc'};background:${obj.points.length === n ? '#4a7c59' : 'white'};color:${obj.points.length === n ? 'white' : '#333'};border-radius:4px;cursor:pointer;font-size:12px;">${n}</button>
             `).join('')}
           </div>
-        </div>
-        <div class="prop-row" style="font-size:10px;color:#999;flex-direction:column;align-items:flex-start;gap:2px;margin-top:2px;">
-          <span>4 — только углы (прямоугольник)</span>
-          <span>8 — углы + середины</span>
-          <span>12, 16 — для сложных форм</span>
-          <span>24, 32 — для плавных изгибов</span>
         </div>
       `;
     }
@@ -876,6 +790,14 @@ function renderProps() {
         <span>Цвет:</span>
         <input type="color" value="${obj.fill}" onchange="updateProp(${obj.id}, 'fill', this.value)">
       </div>
+      <div class="prop-row">
+        <span>Ширина (м):</span>
+        <input type="number" value="${Math.round(obj.w / state.scale)}" min="0.5" max="100" step="0.5" onchange="updateMulchSize(${obj.id}, 'w', +this.value)">
+      </div>
+      <div class="prop-row">
+        <span>Высота (м):</span>
+        <input type="number" value="${Math.round(obj.h / state.scale)}" min="0.5" max="100" step="0.5" onchange="updateMulchSize(${obj.id}, 'h', +this.value)">
+      </div>
     `;
   } else if (obj.type === 'tree') {
     const tree = trees.find(t => t.id === obj.treeId);
@@ -890,10 +812,7 @@ function renderProps() {
       </div>
     `;
   } else if (obj.type === 'decor') {
-    const decorNames = {
-      water: '💧 Водоём',
-      stone: '🪨 Камни'
-    };
+    const decorNames = { water: '💧 Водоём', stone: '🪨 Камни' };
     html += `
       <div class="prop-row">
         <span>Тип:</span>
@@ -943,6 +862,14 @@ function updateDecorSize(id, dim, valueM) {
   const obj = state.objects.find(o => o.id === id);
   if (!obj || obj.type !== 'decor') return;
   const value = Math.max(1, Math.min(100, valueM)) * state.scale;
+  obj[dim] = value;
+  render();
+}
+
+function updateMulchSize(id, dim, valueM) {
+  const obj = state.objects.find(o => o.id === id);
+  if (!obj || obj.type !== 'mulch') return;
+  const value = Math.max(0.5, Math.min(100, valueM)) * state.scale;
   obj[dim] = value;
   render();
 }

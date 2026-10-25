@@ -5,10 +5,8 @@ let currentTreeSettingsId = null;
 let currentContextMenu = null;
 let currentTreeContextMenu = null;
 
-// Состояние сворачивания разделов
 state.collapsedSections = { plants: false, trees: false };
 
-// Вспомогательная функция для точного перевода SVG-координат в CSS-пиксели
 function getRelativeScreenPos(svg, objX, objY, canvasWrap) {
   const pt = svg.createSVGPoint();
   pt.x = objX;
@@ -57,8 +55,6 @@ function saveCustomTrees() {
   localStorage.setItem('customTrees', JSON.stringify(trees.filter(t => t.custom)));
 }
 
-// ===== СВОРАЧИВАНИЕ РАЗДЕЛОВ =====
-
 function toggleSection(section) {
   state.collapsedSections[section] = !state.collapsedSections[section];
   const content = document.getElementById(section === 'plants' ? 'plantsSection' : 'treesSection');
@@ -72,8 +68,6 @@ function toggleSection(section) {
     arrow.textContent = '▼';
   }
 }
-
-// ===== ОБЩИЕ ФУНКЦИИ =====
 
 function fillMonthSelect(selectEl, includeNoneOption = false, selectedMonth = null) {
   let html = '';
@@ -1274,8 +1268,7 @@ function showDecorPopup(decorObj) {
   
   const titles = {
     water: '💧 Настройка водоёма',
-    stone: '🪨 Настройка камней',
-    mulch: '🟫 Настройка мульчи'
+    stone: '🪨 Настройка камней'
   };
   document.getElementById('decorPopupTitle').textContent = titles[decorObj.decorType] || '⚙️ Настройка объекта';
   
@@ -1351,27 +1344,51 @@ function deleteDecorFromPopup() {
 function showMulchPopup(mulchObj) {
   const popup = document.getElementById('mulchPopup');
   
-  const shapeSelect = document.getElementById('mulchPopupShape');
-  shapeSelect.value = mulchObj.shape || 'rect';
+  // Динамически формируем содержимое popup с полями размера
+  popup.innerHTML = `
+    <h4>🟫 Настройка мульчи</h4>
+    <div class="popup-row">
+      <span>Форма:</span>
+      <select id="mulchPopupShape">
+        <option value="rect" ${mulchObj.shape === 'rect' ? 'selected' : ''}>Прямоугольник</option>
+        <option value="circle" ${mulchObj.shape === 'circle' ? 'selected' : ''}>Круг</option>
+      </select>
+    </div>
+    <div class="popup-row">
+      <span>Цвет:</span>
+      <input type="color" id="mulchPopupColor" value="${mulchObj.fill}">
+    </div>
+    <div class="popup-row">
+      <span>Ширина (м):</span>
+      <input type="number" id="mulchPopupWidth" value="${(mulchObj.w / state.scale).toFixed(1)}" min="0.5" max="100" step="0.5" style="width:70px;padding:4px;border:1px solid #ccc;border-radius:4px;">
+    </div>
+    <div class="popup-row">
+      <span>Высота (м):</span>
+      <input type="number" id="mulchPopupHeight" value="${(mulchObj.h / state.scale).toFixed(1)}" min="0.5" max="100" step="0.5" style="width:70px;padding:4px;border:1px solid #ccc;border-radius:4px;">
+    </div>
+    <div class="popup-buttons">
+      <button class="delete-btn" onclick="deleteMulchFromPopup()">🗑️ Удалить</button>
+      <button class="close-btn" onclick="closeMulchPopup()">✖ Закрыть</button>
+    </div>
+  `;
   
-  const colorInput = document.getElementById('mulchPopupColor');
-  colorInput.value = mulchObj.fill;
-  
-  const bed = state.objects.find(o => o.id === mulchObj.bedId);
-  const pos = bed ? getRelativeScreenPos(svg, bed.points[0][0], bed.points[0][1], canvasWrap) : { x: 100, y: 100 };
-  
+  // Позиционирование popup рядом с мульчей
+  const pos = getRelativeScreenPos(svg, mulchObj.x, mulchObj.y, canvasWrap);
   const popupWidth = 260;
-  let finalX = pos.x + 40;
-  let finalY = Math.max(10, pos.y - 30);
-  
+  const offset = Math.max(mulchObj.w, mulchObj.h) / 2 + 20;
+
+  let finalX = pos.x + offset;
+  let finalY = Math.max(10, pos.y - 40);
+
   if (finalX + popupWidth > canvasWrap.clientWidth) {
-    finalX = pos.x - popupWidth - 40;
+    finalX = pos.x - offset - popupWidth;
   }
-  
+
   popup.style.left = finalX + 'px';
   popup.style.top = finalY + 'px';
   popup.classList.add('show');
-  
+
+  // Одноразовый обработчик закрытия при клике вне popup
   const closeOnOutsideClick = (e) => {
     if (!popup.contains(e.target)) {
       closeMulchPopup();
@@ -1381,14 +1398,29 @@ function showMulchPopup(mulchObj) {
   setTimeout(() => {
     document.addEventListener('mousedown', closeOnOutsideClick);
   }, 0);
-  
-  shapeSelect.onchange = () => {
-    mulchObj.shape = shapeSelect.value;
+
+  // Обработчики изменений
+  document.getElementById('mulchPopupShape').onchange = (e) => {
+    mulchObj.shape = e.target.value;
     render();
   };
   
-  colorInput.oninput = () => {
-    mulchObj.fill = colorInput.value;
+  document.getElementById('mulchPopupColor').oninput = (e) => {
+    mulchObj.fill = e.target.value;
+    render();
+  };
+  
+  document.getElementById('mulchPopupWidth').onchange = (e) => {
+    const val = Math.max(0.5, Math.min(100, parseFloat(e.target.value) || 1));
+    mulchObj.w = val * state.scale;
+    e.target.value = val;
+    render();
+  };
+  
+  document.getElementById('mulchPopupHeight').onchange = (e) => {
+    const val = Math.max(0.5, Math.min(100, parseFloat(e.target.value) || 1));
+    mulchObj.h = val * state.scale;
+    e.target.value = val;
     render();
   };
   

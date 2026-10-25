@@ -15,7 +15,6 @@ function setTool(tool) {
   });
   document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
 
-  // Подсветка активной кнопки объекта
   const objBtn = document.querySelector(`.obj-btn[data-obj="${tool}"]`);
   if (objBtn) objBtn.classList.add('active');
 
@@ -24,6 +23,7 @@ function setTool(tool) {
   closePlantPopup();
   closeTreePopup();
   closeDecorPopup();
+  closeMulchPopup();
   updateHint();
   renderPlantingsPanel();
 
@@ -254,14 +254,14 @@ function updateFinishButton() {
 
 function updateHint() {
   const hints = {
-    select: '💡 Выберите объект. Кликните по цветку, дереву или декоративному объекту для настройки.',
+    select: '💡 Выберите объект. Кликните по цветку, дереву, мульче или декоративному объекту для настройки.',
     move: '✋ Перетаскивайте объекты. Участок физически ограничен границами окна. Колёсико — зум.',
     bed: `💡 Рисование клумбы (${state.bedShape === 'rect' ? 'прямоугольная' : state.bedShape === 'circle' ? 'круглая' : 'фигура'}). ${state.bedShape === 'poly' ? 'Кликайте для точек. Нажмите "✓ Завершить" или Enter для подтверждения.' : 'Зажмите мышь и тяните.'}`,
     path: '💡 Рисуйте дорожки. Кликайте для точек. Нажмите "✓ Завершить" или Enter.',
     tree: '🌳 Выберите дерево в левой панели и кликните на холст, чтобы посадить.',
     water: '💧 Кликните на холст, чтобы разместить водоём.',
     stone: '🪨 Кликните на холст, чтобы разместить камни.',
-    mulch: '🟫 Кликните на холст, чтобы разместить мульчу.',
+    mulch: '🟫 Кликните на клумбу, чтобы добавить мульчу. Размер и положение можно изменить после размещения.',
   };
   let hint = hints[state.tool] || '';
   if (state.plantingMode && state.selectedPlant) {
@@ -313,9 +313,10 @@ function onMouseDown(e) {
   }
 
   if (state.tool === 'move') {
+    // Мульчу теперь тоже можно перетаскивать (убрал mulch из continue)
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
-      if (obj.type === 'plot') continue; 
+      if (obj.type === 'plot') continue;
       if (obj.plants) {
         for (let j = obj.plants.length - 1; j >= 0; j--) {
           const pl = obj.plants[j];
@@ -343,7 +344,7 @@ function onMouseDown(e) {
           objId: obj.id,
           startX: pos.x,
           startY: pos.y,
-          startPos: (obj.type === 'tree' || obj.type === 'decor') ? { x: obj.x, y: obj.y, w: obj.w, h: obj.h } : null,
+          startPos: (obj.type === 'tree' || obj.type === 'decor' || obj.type === 'mulch') ? { x: obj.x, y: obj.y } : null,
           startPoints: obj.points ? JSON.parse(JSON.stringify(obj.points)) : null,
           startBasePoints: obj.basePoints ? JSON.parse(JSON.stringify(obj.basePoints)) : null,
           startPlants: obj.plants ? JSON.parse(JSON.stringify(obj.plants)) : null,
@@ -397,12 +398,11 @@ function onMouseDown(e) {
     }
   }
 
-  // Размещение декоративных объектов (водоём, камни, мульча)
-  if ((state.tool === 'water' || state.tool === 'stone' || state.tool === 'mulch')) {
+  // Размещение декоративных объектов (водоём, камни)
+  if (state.tool === 'water' || state.tool === 'stone') {
     const decorDefaults = {
       water: { name: 'Водоём', fill: '#29b6f6', w: state.scale * 3, h: state.scale * 2 },
-      stone: { name: 'Камни', fill: '#9e9e9e', w: state.scale * 2, h: state.scale * 1.5 },
-      mulch: { name: 'Мульча', fill: '#795548', w: state.scale * 2.5, h: state.scale * 2 }
+      stone: { name: 'Камни', fill: '#9e9e9e', w: state.scale * 2, h: state.scale * 1.5 }
     };
     const d = decorDefaults[state.tool];
     addObject({
@@ -415,13 +415,33 @@ function onMouseDown(e) {
       fill: d.fill,
       name: d.name
     });
-    // Возвращаемся в режим выбора
     setTool('select');
     return;
   }
 
+  // Размещение мульчи — в точке клика, с начальным размером 2×2 м
+  if (state.tool === 'mulch') {
+    const bed = findBedAtPoint(pos.x, pos.y);
+    if (bed) {
+      const initialSize = state.scale * 2; // 2 метра
+      addObject({
+        type: 'mulch',
+        bedId: bed.id,
+        x: pos.x,
+        y: pos.y,
+        w: initialSize,
+        h: initialSize,
+        fill: '#795548',
+        shape: 'rect',
+        name: 'Мульча'
+      });
+      setTool('select');
+    }
+    return;
+  }
+
   if (state.tool === 'select') {
-    // Сначала проверяем посадки растений
+    // Проверяем посадки растений
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (obj.plants) {
@@ -432,6 +452,17 @@ function onMouseDown(e) {
             showPlantPopup(pl, obj);
             return;
           }
+        }
+      }
+    }
+
+    // Проверяем мульчу (по собственным координатам мульчи)
+    for (let i = state.objects.length - 1; i >= 0; i--) {
+      const obj = state.objects[i];
+      if (obj.type === 'mulch') {
+        if (pointInObject(obj, pos.x, pos.y)) {
+          showMulchPopup(obj);
+          return;
         }
       }
     }
@@ -482,6 +513,7 @@ function onMouseDown(e) {
     closePlantPopup();
     closeTreePopup();
     closeDecorPopup();
+    closeMulchPopup();
     document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
     render();
     return;
@@ -583,6 +615,10 @@ function onMouseMove(e) {
           obj.x = d.startPos.x + dx;
           obj.y = d.startPos.y + dy;
         } else if (obj.type === 'decor' && d.startPos) {
+          obj.x = d.startPos.x + dx;
+          obj.y = d.startPos.y + dy;
+        } else if (obj.type === 'mulch' && d.startPos) {
+          // Перетаскивание мульчи
           obj.x = d.startPos.x + dx;
           obj.y = d.startPos.y + dy;
         } else if (obj.points && d.startPoints) {
@@ -769,6 +805,7 @@ function onKeyDown(e) {
     closePlantPopup();
     closeTreePopup();
     closeDecorPopup();
+    closeMulchPopup();
   }
   if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedPlantingId) {
     deletePlanting(state.selectedPlantingId);
@@ -811,7 +848,7 @@ function finishPolyOrPath() {
 
 function addObject(obj) {
   obj.id = state.nextId++;
-  if (obj.type !== 'path' && obj.type !== 'tree' && obj.type !== 'decor' && !obj.originalPointCount) {
+  if (obj.type !== 'path' && obj.type !== 'tree' && obj.type !== 'decor' && obj.type !== 'mulch' && !obj.originalPointCount) {
     obj.basePoints = obj.points.map(p => p.slice());
     obj.morphModified = false;
   }
@@ -821,6 +858,10 @@ function addObject(obj) {
 }
 
 function deleteObject(id) {
+  const obj = state.objects.find(o => o.id === id);
+  if (obj && obj.type === 'bed') {
+    state.objects = state.objects.filter(o => !(o.type === 'mulch' && o.bedId === id));
+  }
   state.objects = state.objects.filter(o => o.id !== id);
   if (state.selectedId === id) state.selectedId = null;
   render();

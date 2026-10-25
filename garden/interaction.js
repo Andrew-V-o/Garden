@@ -93,18 +93,6 @@ function setCanvasSizeMeters(wM, hM) {
   state.canvasWidthM = wM;
   state.canvasHeightM = hM;
 
-  const plot = state.objects.find(o => o.type === 'plot');
-  if (plot) {
-    const pad = getCanvasPadding();
-    const w = wM * state.scale;
-    const h = hM * state.scale;
-    const newPoints = generateRectPoints(pad, pad, w, h);
-    plot.points = newPoints;
-    plot.basePoints = newPoints.map(p => p.slice());
-    plot.morphModified = false;
-    plot.originalPointCount = undefined;
-  }
-
   resetViewBox();
   updateSvgViewBox();
   updateCanvasInfo();
@@ -119,6 +107,7 @@ function fitPlotToCanvas() {
   const w = state.canvasWidthM * state.scale;
   const h = state.canvasHeightM * state.scale;
   const newPoints = generateRectPoints(pad, pad, w, h);
+  
   plot.points = newPoints;
   plot.basePoints = newPoints.map(p => p.slice());
   plot.morphModified = false;
@@ -181,14 +170,12 @@ function resetZoomOnDblClick(e) {
   }
 }
 
-// Изменение количества точек морфологии
 function setMorphPoints(objId, numPoints) {
   const obj = state.objects.find(o => o.id === objId);
   if (!obj || !obj.points) return;
   
   const currentCount = obj.points.length;
   
-  // Если есть originalPointCount (фигура или деформированная не-фигура) — используем логику фигуры
   if (obj.originalPointCount !== undefined) {
     const base = obj.originalPointCount;
     
@@ -216,7 +203,6 @@ function setMorphPoints(objId, numPoints) {
       obj.points = decimateFigurePoints(obj.points, divisor);
     }
   } else {
-    // Для недеформированных участка и клумб — старая логика
     numPoints = Math.max(3, Math.min(64, numPoints));
     if (numPoints === currentCount) return;
     
@@ -251,7 +237,7 @@ function updateFinishButton() {
 function updateHint() {
   const hints = {
     select: '💡 Выберите объект. Кликните по цветку для настройки. Кликните по клумбе, выберите растение и кликайте внутри для посадки. Колёсико — зум, двойной клик по пустому — сброс.',
-    move: '✋ Перетаскивайте цветы и объекты. Цветы внутри клумб сохраняют позицию. Колёсико — зум.',
+    move: '✋ Перетаскивайте объекты. Участок физически ограничен границами окна. Колёсико — зум.',
     bed: `💡 Рисование клумбы (${state.bedShape === 'rect' ? 'прямоугольная' : state.bedShape === 'circle' ? 'круглая' : 'фигура'}). ${state.bedShape === 'poly' ? 'Кликайте для точек. Нажмите "✓ Завершить" или Enter для подтверждения.' : 'Зажмите мышь и тяните.'}`,
     path: '💡 Рисуйте дорожки. Кликайте для точек. Нажмите "✓ Завершить" или Enter.',
     tree: '💡 Кликните, чтобы посадить дерево.',
@@ -266,7 +252,7 @@ function updateHint() {
   if (state.selectedId) {
     const obj = state.objects.find(o => o.id === state.selectedId);
     if (obj && obj.type === 'plot') {
-      hint = '🏡 Участок выделен. Двигайте точки для изменения формы, белые маркеры — для размера. Двойной клик по границе — добавить точку. В панели справа — кнопка "Под размер окна".';
+      hint = '🏡 Участок выделен. Его нельзя увеличить или вытащить за пределы окна. В панели справа измените размер окна и нажмите "Под размер окна".';
     }
   }
   document.getElementById('hintBar').textContent = hint;
@@ -308,7 +294,7 @@ function onMouseDown(e) {
   if (state.tool === 'move') {
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
-      if (obj.type === 'plot') continue;
+      if (obj.type === 'plot') continue; 
       if (obj.plants) {
         for (let j = obj.plants.length - 1; j >= 0; j--) {
           const pl = obj.plants[j];
@@ -338,7 +324,9 @@ function onMouseDown(e) {
           startY: pos.y,
           startPos: obj.type === 'tree' ? { x: obj.x, y: obj.y } : null,
           startPoints: obj.points ? JSON.parse(JSON.stringify(obj.points)) : null,
+          startBasePoints: obj.basePoints ? JSON.parse(JSON.stringify(obj.basePoints)) : null,
           startPlants: obj.plants ? JSON.parse(JSON.stringify(obj.plants)) : null,
+          startBBox: obj.type === 'plot' ? getObjBBox(obj) : null
         };
         svg.style.cursor = 'grabbing';
         return;
@@ -462,48 +450,117 @@ function onMouseMove(e) {
       if (obj) {
         const dx = pos.x - d.startX;
         const dy = pos.y - d.startY;
-        if (obj.type === 'tree' && d.startPos) {
-          obj.x = d.startPos.x + dx;
-          obj.y = d.startPos.y + dy;
-        } else if (obj.points && d.startPoints) {
-          obj.points = d.startPoints.map(p => [p[0] + dx, p[1] + dy]);
-          if (obj.basePoints) {
-            obj.basePoints = d.startPoints.map(p => [p[0] + dx, p[1] + dy]);
+
+        if (obj.type === 'plot') {
+          const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
+          const bbox = d.startBBox;
+          
+          let newX = bbox.x + dx;
+          let newY = bbox.y + dy;
+
+          if (bbox.w <= vb.w) {
+            if (newX < vb.x) newX = vb.x;
+            if (newX + bbox.w > vb.x + vb.w) newX = vb.x + vb.w - bbox.w;
+          } else {
+            const minX = vb.x + vb.w - bbox.w;
+            const maxX = vb.x;
+            if (newX > maxX) newX = maxX;
+            if (newX < minX) newX = minX;
           }
-        }
-        if (obj.plants && d.startPlants) {
-          obj.plants = d.startPlants.map(pl => ({
-            ...pl,
-            x: pl.x + dx,
-            y: pl.y + dy
-          }));
+
+          if (bbox.h <= vb.h) {
+            if (newY < vb.y) newY = vb.y;
+            if (newY + bbox.h > vb.y + vb.h) newY = vb.y + vb.h - bbox.h;
+          } else {
+            const minY = vb.y + vb.h - bbox.h;
+            const maxY = vb.y;
+            if (newY > maxY) newY = maxY;
+            if (newY < minY) newY = minY;
+          }
+
+          const clampDx = newX - bbox.x;
+          const clampDy = newY - bbox.y;
+
+          obj.points = d.startPoints.map(p => [p[0] + clampDx, p[1] + clampDy]);
+          if (obj.basePoints && d.startBasePoints) {
+            obj.basePoints = d.startBasePoints.map(p => [p[0] + clampDx, p[1] + clampDy]);
+          }
+          if (obj.plants && d.startPlants) {
+            obj.plants = d.startPlants.map(pl => ({
+              ...pl,
+              x: pl.x + clampDx,
+              y: pl.y + clampDy
+            }));
+          }
+        } else {
+          if (obj.type === 'tree' && d.startPos) {
+            obj.x = d.startPos.x + dx;
+            obj.y = d.startPos.y + dy;
+          } else if (obj.points && d.startPoints) {
+            obj.points = d.startPoints.map(p => [p[0] + dx, p[1] + dy]);
+            if (obj.basePoints && d.startBasePoints) {
+              obj.basePoints = d.startBasePoints.map(p => [p[0] + dx, p[1] + dy]);
+            }
+          }
+          if (obj.plants && d.startPlants) {
+            obj.plants = d.startPlants.map(pl => ({
+              ...pl,
+              x: pl.x + dx,
+              y: pl.y + dy
+            }));
+          }
         }
         render();
       }
     } else if (d.type === 'resize') {
       const obj = state.objects.find(o => o.id === state.selectedId);
       if (obj) {
-        const newBBox = computeNewBBox(d.startBBox, d.handle, pos.x - d.startX, pos.y - d.startY);
+        let newBBox = computeNewBBox(d.startBBox, d.handle, pos.x - d.startX, pos.y - d.startY);
+        
+        // ЖЕСТКОЕ ОГРАНИЧЕНИЕ: не даем участку стать больше окна при ресайзе
+        if (obj.type === 'plot') {
+          const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
+          
+          // Ограничиваем ширину и высоту размером окна
+          newBBox.w = Math.min(newBBox.w, vb.w);
+          newBBox.h = Math.min(newBBox.h, vb.h);
+          
+          // Ограничиваем координаты, чтобы bbox не вылезал за пределы viewBox
+          if (newBBox.x < vb.x) newBBox.x = vb.x;
+          if (newBBox.y < vb.y) newBBox.y = vb.y;
+          if (newBBox.x + newBBox.w > vb.x + vb.w) newBBox.x = vb.x + vb.w - newBBox.w;
+          if (newBBox.y + newBBox.h > vb.y + vb.h) newBBox.y = vb.y + vb.h - newBBox.h;
+        }
+        
         resizeObjToBBox(obj, newBBox);
         render();
       }
     } else if (d.type === 'morph') {
       const obj = state.objects.find(o => o.id === state.selectedId);
       if (obj && obj.points) {
-        obj.points[d.idx] = [pos.x, pos.y];
+        // ЖЕСТКОЕ ОГРАНИЧЕНИЕ: не даем точке морфологии участка вылезти за окно
+        let targetX = pos.x;
+        let targetY = pos.y;
+        
+        if (obj.type === 'plot') {
+          const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
+          targetX = Math.max(vb.x, Math.min(pos.x, vb.x + vb.w));
+          targetY = Math.max(vb.y, Math.min(pos.y, vb.y + vb.h));
+        }
+
+        obj.points[d.idx] = [targetX, targetY];
         
         if (!obj.basePoints) {
           obj.basePoints = obj.points.map(p => p.slice());
         }
         
         if (obj.basePoints.length === obj.points.length) {
-          obj.basePoints[d.idx] = [pos.x, pos.y];
+          obj.basePoints[d.idx] = [targetX, targetY];
         } else {
           obj.basePoints = obj.points.map(p => p.slice());
         }
         
         obj.morphModified = true;
-        // Устанавливаем originalPointCount для использования логики фигуры
         if (!obj.originalPointCount) {
           obj.originalPointCount = obj.basePoints.length;
         }
@@ -597,7 +654,6 @@ function onDblClick(e) {
           }
         }
         obj.morphModified = true;
-        // Устанавливаем originalPointCount для использования логики фигуры
         if (!obj.originalPointCount) {
           obj.originalPointCount = obj.basePoints ? obj.basePoints.length : obj.points.length;
         }

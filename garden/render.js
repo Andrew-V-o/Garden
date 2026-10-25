@@ -409,9 +409,6 @@ function renderProps() {
 
   let html = '';
 
-  // Определяем, показывать ли панель как у фигуры
-  // Для фигуры: всегда
-  // Для не-фигуры: только если morphModified === true
   const isFigureMode = obj.originalPointCount !== undefined;
 
   if (obj.type === 'plot') {
@@ -429,7 +426,7 @@ function renderProps() {
         <input type="color" value="${obj.fill}" onchange="updateProp(${obj.id}, 'fill', this.value)">
       </div>
       <div class="prop-row" style="font-size:11px;color:#777;flex-direction:column;align-items:flex-start;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:4px;">
-        <span><b>📐 Размеры окна и участка:</b></span>
+        <span><b>📐 Размеры окна (изменяемые):</b></span>
       </div>
       <div class="prop-row">
         <span>Ширина (м):</span>
@@ -444,17 +441,15 @@ function renderProps() {
                style="width:80px">
       </div>
       <div class="prop-row" style="font-size:11px;color:#777;flex-direction:column;align-items:flex-start;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:4px;">
-        <span><b>🏡 Участок:</b> ${plotWM}×${plotHM} м</span>
+        <span><b>🏡 Текущий размер участка:</b> ${plotWM}×${plotHM} м</span>
         <span>Точек морфологии: ${obj.points.length}</span>
-        ${obj.morphModified ? '<span style="color:#d4a017;"> Форма изменена</span>' : ''}
+        ${obj.morphModified ? '<span style="color:#d4a017;">⚠ Форма изменена</span>' : ''}
       </div>
     `;
     
     if (isFigureMode) {
-      // Панель как у фигуры
       const baseCount = obj.originalPointCount;
       const currentCount = obj.points.length;
-      const currentMultiplier = Math.round(currentCount / baseCount);
       const maxMultiplier = Math.floor(FIGURE_POINTS_LIMIT / baseCount);
       
       const decimateButtons = [2, 3, 4, 5].map(div => {
@@ -527,7 +522,6 @@ function renderProps() {
         </div>
       `;
     } else {
-      // Обычная панель для недеформированного участка
       html += `
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
           <span style="font-size:12px;color:#555;">Количество точек:</span>
@@ -588,7 +582,6 @@ function renderProps() {
     `;
     
     if (isFigureMode) {
-      // Панель как у фигуры (для настоящей фигуры или деформированной не-фигуры)
       const baseCount = obj.originalPointCount;
       const currentCount = obj.points.length;
       const maxMultiplier = Math.floor(FIGURE_POINTS_LIMIT / baseCount);
@@ -663,7 +656,6 @@ function renderProps() {
         </div>
       `;
     } else {
-      // Обычная панель для недеформированной клумбы
       html += `
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
           <span style="font-size:12px;color:#555;">Количество точек:</span>

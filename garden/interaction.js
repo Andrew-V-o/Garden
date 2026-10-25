@@ -261,7 +261,7 @@ function updateHint() {
     tree: '🌳 Выберите дерево в левой панели и кликните на холст, чтобы посадить.',
     water: '💧 Кликните на холст, чтобы разместить водоём.',
     stone: '🪨 Кликните на холст, чтобы разместить камни.',
-    mulch: '🟫 Кликните на клумбу, чтобы добавить мульчу. Размер и положение можно изменить после размещения.',
+    mulch: '🟫 Кликните на клумбу, чтобы добавить мульчу. Размер и скин можно изменить после размещения.',
   };
   let hint = hints[state.tool] || '';
   if (state.plantingMode && state.selectedPlant) {
@@ -313,7 +313,6 @@ function onMouseDown(e) {
   }
 
   if (state.tool === 'move') {
-    // Мульчу теперь тоже можно перетаскивать (убрал mulch из continue)
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (obj.type === 'plot') continue;
@@ -419,7 +418,7 @@ function onMouseDown(e) {
     return;
   }
 
-  // Размещение мульчи — в точке клика, с начальным размером 2×2 м
+  // Размещение мульчи — в точке клика, с начальным размером 2×2 м и скином 'bark'
   if (state.tool === 'mulch') {
     const bed = findBedAtPoint(pos.x, pos.y);
     if (bed) {
@@ -432,6 +431,7 @@ function onMouseDown(e) {
         w: initialSize,
         h: initialSize,
         fill: '#795548',
+        skin: 'bark', // Скин по умолчанию
         shape: 'rect',
         name: 'Мульча'
       });
@@ -456,7 +456,7 @@ function onMouseDown(e) {
       }
     }
 
-    // Проверяем мульчу (по собственным координатам мульчи)
+    // Проверяем мульчу
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (obj.type === 'mulch') {
@@ -618,7 +618,6 @@ function onMouseMove(e) {
           obj.x = d.startPos.x + dx;
           obj.y = d.startPos.y + dy;
         } else if (obj.type === 'mulch' && d.startPos) {
-          // Перетаскивание мульчи
           obj.x = d.startPos.x + dx;
           obj.y = d.startPos.y + dy;
         } else if (obj.points && d.startPoints) {

@@ -82,6 +82,305 @@ function renderBedPolygon(obj) {
   objectsLayer.appendChild(el);
 }
 
+// ===== РЕНДЕР МУЛЬЧИ С ТЕКСТУРАМИ =====
+
+function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const skin = mulch.skin || 'bark';
+  const baseColor = mulch.fill;
+  
+  // Количество элементов зависит от площади мульчи
+  const area = mw * mh;
+  const density = Math.max(20, Math.min(200, Math.floor(area / 100)));
+  
+  switch (skin) {
+    case 'bark': {
+      // Кора — хаотичные прямоугольники разных размеров
+      for (let i = 0; i < density; i++) {
+        const rect = document.createElementNS(ns, 'rect');
+        const w = 3 + rand() * 8;
+        const h = 2 + rand() * 5;
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const rot = rand() * 360;
+        const shade = Math.floor(rand() * 40) - 20;
+        rect.setAttribute('x', x - w/2);
+        rect.setAttribute('y', y - h/2);
+        rect.setAttribute('width', w);
+        rect.setAttribute('height', h);
+        rect.setAttribute('fill', adjustColor(baseColor, shade));
+        rect.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        rect.setAttribute('rx', 1);
+        rect.setAttribute('pointer-events', 'none');
+        g.appendChild(rect);
+      }
+      break;
+    }
+    
+    case 'oak_leaves': {
+      // Листья дуба — крупные округлые формы
+      for (let i = 0; i < density * 0.6; i++) {
+        const leaf = document.createElementNS(ns, 'ellipse');
+        const rx = 5 + rand() * 8;
+        const ry = 4 + rand() * 6;
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const rot = rand() * 360;
+        const shade = Math.floor(rand() * 30) - 15;
+        leaf.setAttribute('cx', x);
+        leaf.setAttribute('cy', y);
+        leaf.setAttribute('rx', rx);
+        leaf.setAttribute('ry', ry);
+        leaf.setAttribute('fill', adjustColor(baseColor, shade));
+        leaf.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        leaf.setAttribute('pointer-events', 'none');
+        g.appendChild(leaf);
+        
+        // Прожилка листа
+        const vein = document.createElementNS(ns, 'line');
+        vein.setAttribute('x1', x - rx * 0.7);
+        vein.setAttribute('y1', y);
+        vein.setAttribute('x2', x + rx * 0.7);
+        vein.setAttribute('y2', y);
+        vein.setAttribute('stroke', adjustColor(baseColor, -30));
+        vein.setAttribute('stroke-width', '0.5');
+        vein.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        vein.setAttribute('pointer-events', 'none');
+        g.appendChild(vein);
+      }
+      break;
+    }
+    
+    case 'red_oak_leaves': {
+      // Листья краснолистного дуба — аналогично, но с красноватыми оттенками
+      for (let i = 0; i < density * 0.6; i++) {
+        const leaf = document.createElementNS(ns, 'ellipse');
+        const rx = 5 + rand() * 8;
+        const ry = 4 + rand() * 6;
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const rot = rand() * 360;
+        const colors = ['#a1524a', '#8b3a3a', '#b5594f', '#7a2e2e', '#c26b5f'];
+        leaf.setAttribute('cx', x);
+        leaf.setAttribute('cy', y);
+        leaf.setAttribute('rx', rx);
+        leaf.setAttribute('ry', ry);
+        leaf.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
+        leaf.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        leaf.setAttribute('pointer-events', 'none');
+        g.appendChild(leaf);
+        
+        const vein = document.createElementNS(ns, 'line');
+        vein.setAttribute('x1', x - rx * 0.7);
+        vein.setAttribute('y1', y);
+        vein.setAttribute('x2', x + rx * 0.7);
+        vein.setAttribute('y2', y);
+        vein.setAttribute('stroke', '#5a2020');
+        vein.setAttribute('stroke-width', '0.5');
+        vein.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        vein.setAttribute('pointer-events', 'none');
+        g.appendChild(vein);
+      }
+      break;
+    }
+    
+    case 'spruce_needles': {
+      // Иголки ели — тонкие короткие линии тёмно-коричневого цвета
+      for (let i = 0; i < density * 1.5; i++) {
+        const needle = document.createElementNS(ns, 'line');
+        const len = 3 + rand() * 5;
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const angle = rand() * Math.PI * 2;
+        const colors = ['#4e342e', '#3e2723', '#5d4037', '#2c1810'];
+        needle.setAttribute('x1', x - Math.cos(angle) * len/2);
+        needle.setAttribute('y1', y - Math.sin(angle) * len/2);
+        needle.setAttribute('x2', x + Math.cos(angle) * len/2);
+        needle.setAttribute('y2', y + Math.sin(angle) * len/2);
+        needle.setAttribute('stroke', colors[Math.floor(rand() * colors.length)]);
+        needle.setAttribute('stroke-width', '1');
+        needle.setAttribute('stroke-linecap', 'round');
+        needle.setAttribute('pointer-events', 'none');
+        g.appendChild(needle);
+      }
+      break;
+    }
+    
+    case 'pine_needles': {
+      // Иголки сосны — длинные тонкие линии рыжеватого цвета
+      for (let i = 0; i < density * 1.2; i++) {
+        const needle = document.createElementNS(ns, 'line');
+        const len = 6 + rand() * 8;
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const angle = rand() * Math.PI * 2;
+        const colors = ['#a1887f', '#8d6e63', '#bcaaa4', '#795548'];
+        needle.setAttribute('x1', x - Math.cos(angle) * len/2);
+        needle.setAttribute('y1', y - Math.sin(angle) * len/2);
+        needle.setAttribute('x2', x + Math.cos(angle) * len/2);
+        needle.setAttribute('y2', y + Math.sin(angle) * len/2);
+        needle.setAttribute('stroke', colors[Math.floor(rand() * colors.length)]);
+        needle.setAttribute('stroke-width', '0.8');
+        needle.setAttribute('stroke-linecap', 'round');
+        needle.setAttribute('pointer-events', 'none');
+        g.appendChild(needle);
+      }
+      break;
+    }
+    
+    case 'spruce_bark': {
+      // Кора ели — тёмные чешуйки
+      for (let i = 0; i < density; i++) {
+        const scale = document.createElementNS(ns, 'path');
+        const w = 4 + rand() * 6;
+        const h = 3 + rand() * 4;
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const rot = rand() * 360;
+        const colors = ['#3e2723', '#2c1810', '#4e342e', '#1b0f0a'];
+        scale.setAttribute('d', `M${x} ${y-h/2} Q${x+w/2} ${y} ${x} ${y+h/2} Q${x-w/2} ${y} ${x} ${y-h/2} Z`);
+        scale.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
+        scale.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        scale.setAttribute('pointer-events', 'none');
+        g.appendChild(scale);
+      }
+      break;
+    }
+    
+    case 'pine_bark': {
+      // Кора сосны — крупные красновато-коричневые чешуйки
+      for (let i = 0; i < density * 0.7; i++) {
+        const plate = document.createElementNS(ns, 'rect');
+        const w = 6 + rand() * 10;
+        const h = 4 + rand() * 7;
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const rot = rand() * 360;
+        const colors = ['#6d4c41', '#5d4037', '#795548', '#8d6e63'];
+        plate.setAttribute('x', x - w/2);
+        plate.setAttribute('y', y - h/2);
+        plate.setAttribute('width', w);
+        plate.setAttribute('height', h);
+        plate.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
+        plate.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        plate.setAttribute('rx', 1);
+        plate.setAttribute('pointer-events', 'none');
+        g.appendChild(plate);
+      }
+      break;
+    }
+    
+    case 'woodchips': {
+      // Щепа — мелкие прямоугольники светло-коричневого цвета
+      for (let i = 0; i < density * 1.3; i++) {
+        const chip = document.createElementNS(ns, 'rect');
+        const w = 2 + rand() * 5;
+        const h = 1 + rand() * 3;
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const rot = rand() * 360;
+        const colors = ['#bcaaa4', '#a1887f', '#d7ccc8', '#8d6e63'];
+        chip.setAttribute('x', x - w/2);
+        chip.setAttribute('y', y - h/2);
+        chip.setAttribute('width', w);
+        chip.setAttribute('height', h);
+        chip.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
+        chip.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        chip.setAttribute('pointer-events', 'none');
+        g.appendChild(chip);
+      }
+      break;
+    }
+    
+    case 'straw': {
+      // Солома — длинные тонкие линии жёлтого цвета
+      for (let i = 0; i < density * 1.5; i++) {
+        const straw = document.createElementNS(ns, 'line');
+        const len = 8 + rand() * 12;
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const angle = -Math.PI/4 + rand() * Math.PI/2; // Преимущественно вертикальные
+        const colors = ['#f9a825', '#fbc02d', '#f57f17', '#ff8f00'];
+        straw.setAttribute('x1', x - Math.cos(angle) * len/2);
+        straw.setAttribute('y1', y - Math.sin(angle) * len/2);
+        straw.setAttribute('x2', x + Math.cos(angle) * len/2);
+        straw.setAttribute('y2', y + Math.sin(angle) * len/2);
+        straw.setAttribute('stroke', colors[Math.floor(rand() * colors.length)]);
+        straw.setAttribute('stroke-width', '1');
+        straw.setAttribute('stroke-linecap', 'round');
+        straw.setAttribute('pointer-events', 'none');
+        g.appendChild(straw);
+      }
+      break;
+    }
+    
+    case 'gravel': {
+      // Гравий — мелкие круги серого цвета
+      for (let i = 0; i < density * 1.5; i++) {
+        const stone = document.createElementNS(ns, 'circle');
+        const r = 1.5 + rand() * 3;
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const colors = ['#9e9e9e', '#757575', '#bdbdbd', '#616161', '#424242'];
+        stone.setAttribute('cx', x);
+        stone.setAttribute('cy', y);
+        stone.setAttribute('r', r);
+        stone.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
+        stone.setAttribute('pointer-events', 'none');
+        g.appendChild(stone);
+      }
+      break;
+    }
+    
+    case 'pine_cones': {
+      // Сосновые шишки — овальные формы коричневого цвета
+      for (let i = 0; i < density * 0.3; i++) {
+        const cone = document.createElementNS(ns, 'ellipse');
+        const rx = 3 + rand() * 4;
+        const ry = 5 + rand() * 6;
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const rot = rand() * 360;
+        const colors = ['#5d4037', '#4e342e', '#6d4c41', '#3e2723'];
+        cone.setAttribute('cx', x);
+        cone.setAttribute('cy', y);
+        cone.setAttribute('rx', rx);
+        cone.setAttribute('ry', ry);
+        cone.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
+        cone.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        cone.setAttribute('pointer-events', 'none');
+        g.appendChild(cone);
+        
+        // Чешуйки шишки
+        for (let j = 0; j < 3; j++) {
+          const scale = document.createElementNS(ns, 'path');
+          const sy = y - ry + (j + 1) * (ry * 2 / 4);
+          scale.setAttribute('d', `M${x-rx*0.6} ${sy} Q${x} ${sy-2} ${x+rx*0.6} ${sy}`);
+          scale.setAttribute('fill', 'none');
+          scale.setAttribute('stroke', adjustColor(colors[Math.floor(rand() * colors.length)], -20));
+          scale.setAttribute('stroke-width', '0.5');
+          scale.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+          scale.setAttribute('pointer-events', 'none');
+          g.appendChild(scale);
+        }
+      }
+      break;
+    }
+  }
+}
+
+// Вспомогательная функция для изменения яркости цвета
+function adjustColor(hex, amount) {
+  hex = hex.replace('#', '');
+  let r = parseInt(hex.substr(0, 2), 16);
+  let g = parseInt(hex.substr(2, 2), 16);
+  let b = parseInt(hex.substr(4, 2), 16);
+  r = Math.max(0, Math.min(255, r + amount));
+  g = Math.max(0, Math.min(255, g + amount));
+  b = Math.max(0, Math.min(255, b + amount));
+  return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+}
+
 function renderMulch(mulch) {
   const ns = 'http://www.w3.org/2000/svg';
   const bed = state.objects.find(o => o.id === mulch.bedId);
@@ -90,7 +389,10 @@ function renderMulch(mulch) {
   const isSelected = state.selectedId === mulch.id;
   const clipId = `clip-mulch-${mulch.id}`;
   
-  // Создаём clipPath по форме клумбы
+  // Детерминированный random на основе id мульчи для стабильной текстуры
+  const seed = mulch.id * 1000 + 42;
+  const rand = mulchRandom(seed);
+  
   const defs = document.createElementNS(ns, 'defs');
   const clipPath = document.createElementNS(ns, 'clipPath');
   clipPath.setAttribute('id', clipId);
@@ -100,18 +402,17 @@ function renderMulch(mulch) {
   defs.appendChild(clipPath);
   objectsLayer.appendChild(defs);
   
-  // Группа с clip-path — мульча обрезается по форме клумбы
   const g = document.createElementNS(ns, 'g');
   g.setAttribute('clip-path', `url(#${clipId})`);
   g.setAttribute('data-id', mulch.id);
   g.style.cursor = 'pointer';
   
-  // Координаты мульчи (собственные, не клумбы)
   const mx = mulch.x;
   const my = mulch.y;
   const mw = mulch.w;
   const mh = mulch.h;
   
+  // Фоновая заливка мульчи
   if (mulch.shape === 'rect') {
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('x', mx - mw / 2);
@@ -121,7 +422,6 @@ function renderMulch(mulch) {
     rect.setAttribute('fill', mulch.fill);
     g.appendChild(rect);
   } else {
-    // Круглая мульча — эллипс с собственными размерами
     const ellipse = document.createElementNS(ns, 'ellipse');
     ellipse.setAttribute('cx', mx);
     ellipse.setAttribute('cy', my);
@@ -131,21 +431,12 @@ function renderMulch(mulch) {
     g.appendChild(ellipse);
   }
   
-  // Текстура мульчи (мелкие точки) — только в пределах мульчи
-  const dotCount = Math.floor((mw * mh) / 300);
-  for (let i = 0; i < dotCount; i++) {
-    const dot = document.createElementNS(ns, 'circle');
-    dot.setAttribute('cx', mx - mw / 2 + Math.random() * mw);
-    dot.setAttribute('cy', my - mh / 2 + Math.random() * mh);
-    dot.setAttribute('r', 1 + Math.random() * 1.5);
-    dot.setAttribute('fill', 'rgba(0,0,0,0.2)');
-    dot.setAttribute('pointer-events', 'none');
-    g.appendChild(dot);
-  }
+  // Текстура поверх фона
+  renderMulchTexture(g, mulch, mx, my, mw, mh, rand);
   
   objectsLayer.appendChild(g);
   
-  // Обводка для выделенной мульчи (поверх clipPath, чтобы было видно)
+  // Обводка для выделенной мульчи
   if (isSelected) {
     const outline = document.createElementNS(ns, 'rect');
     outline.setAttribute('x', mx - mw / 2);
@@ -326,46 +617,36 @@ function render() {
 
   renderPlot();
   
-  // Слой 1: Клумбы (полигоны)
   state.objects.filter(o => o.type === 'bed').forEach(obj => {
     renderBedPolygon(obj);
   });
   
-  // Слой 2: Мульча (с clipPath по форме клумбы)
   state.objects.filter(o => o.type === 'mulch').forEach(obj => {
     renderMulch(obj);
   });
   
-  // Слой 3: Растения на клумбах (поверх мульчи)
   state.objects.filter(o => o.type === 'bed').forEach(obj => {
     renderBedPlants(obj);
   });
   
-  // Слой 4: Деревья
   state.objects.filter(o => o.type === 'tree').forEach(obj => {
     renderTree(obj);
   });
   
-  // Слой 5: Дорожки
   state.objects.filter(o => o.type === 'path').forEach(obj => {
     renderPath(obj);
   });
   
-  // Слой 6: Декор (водоёмы, камни)
   state.objects.filter(o => o.type === 'decor').forEach(obj => {
     renderDecorObject(obj);
   });
   
-  // Handles для выделенного объекта
   if (state.selectedId && state.tool === 'select') {
     const obj = state.objects.find(o => o.id === state.selectedId);
     if (obj) {
-      // Ресайз-handles для всех объектов кроме path и мульчи
-      // Мульча тоже может ресайзиться через белые квадраты
       if (obj.type !== 'path') {
         drawResizeHandles(obj);
       }
-      // Морфинг-handles только для объектов с points (клумбы, участок)
       if (obj.points && obj.type !== 'path' && obj.type !== 'mulch') {
         drawMorphHandles(obj);
       }
@@ -616,20 +897,15 @@ function renderProps() {
       </div>
       <div class="prop-row">
         <span>Ширина (м):</span>
-        <input type="number" value="${state.canvasWidthM}" min="5" max="500" 
-               onchange="setCanvasSizeMeters(+this.value, state.canvasHeightM)" 
-               style="width:80px">
+        <input type="number" value="${state.canvasWidthM}" min="5" max="500" onchange="setCanvasSizeMeters(+this.value, state.canvasHeightM)" style="width:80px">
       </div>
       <div class="prop-row">
         <span>Высота (м):</span>
-        <input type="number" value="${state.canvasHeightM}" min="5" max="500" 
-               onchange="setCanvasSizeMeters(state.canvasWidthM, +this.value)" 
-               style="width:80px">
+        <input type="number" value="${state.canvasHeightM}" min="5" max="500" onchange="setCanvasSizeMeters(state.canvasWidthM, +this.value)" style="width:80px">
       </div>
       <div class="prop-row" style="font-size:11px;color:#777;flex-direction:column;align-items:flex-start;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:4px;">
         <span><b>🏡 Текущий размер участка:</b> ${plotWM}×${plotHM} м</span>
         <span>Точек морфологии: ${obj.points.length}</span>
-        ${obj.morphModified ? '<span style="color:#d4a017;">⚠ Форма изменена</span>' : ''}
       </div>
     `;
     
@@ -640,47 +916,29 @@ function renderProps() {
       const decimateButtons = [2, 3, 4, 5].map(div => {
         const targetPoints = currentCount / div;
         const canDecimate = Number.isInteger(targetPoints) && targetPoints >= baseCount;
-        return `
-          <button onclick="setMorphPoints(${obj.id}, ${Math.round(targetPoints)})" 
-                  ${!canDecimate ? 'disabled' : ''}
-                  style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;background:${canDecimate ? 'white' : '#f0f0f0'};color:${canDecimate ? '#333' : '#bbb'};border-radius:4px;cursor:${canDecimate ? 'pointer' : 'not-allowed'};font-size:12px;">
-            ÷${div}
-          </button>
-        `;
+        return `<button onclick="setMorphPoints(${obj.id}, ${Math.round(targetPoints)})" ${!canDecimate ? 'disabled' : ''} style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;background:${canDecimate ? 'white' : '#f0f0f0'};color:${canDecimate ? '#333' : '#bbb'};border-radius:4px;cursor:${canDecimate ? 'pointer' : 'not-allowed'};font-size:12px;">÷${div}</button>`;
       }).join('');
       
       const atBase = currentCount === baseCount;
-      const resetBtn = `
-        <button onclick="setMorphPoints(${obj.id}, ${baseCount})" 
-                ${atBase ? 'disabled' : ''}
-                style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #d4a017;background:${atBase ? '#f0f0f0' : 'white'};color:${atBase ? '#bbb' : '#8a6d00'};border-radius:4px;cursor:${atBase ? 'not-allowed' : 'pointer'};font-size:12px;font-weight:600;">
-          ×1
-        </button>
-      `;
+      const resetBtn = `<button onclick="setMorphPoints(${obj.id}, ${baseCount})" ${atBase ? 'disabled' : ''} style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #d4a017;background:${atBase ? '#f0f0f0' : 'white'};color:${atBase ? '#bbb' : '#8a6d00'};border-radius:4px;cursor:${atBase ? 'not-allowed' : 'pointer'};font-size:12px;font-weight:600;">×1</button>`;
       
       const increaseButtons = [2, 3, 4, 5].map(mult => {
         const targetPoints = currentCount * mult;
         const canIncrease = targetPoints <= FIGURE_POINTS_LIMIT;
-        return `
-          <button onclick="setMorphPoints(${obj.id}, ${targetPoints})" 
-                  ${!canIncrease ? 'disabled' : ''}
-                  style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;background:${canIncrease ? 'white' : '#f0f0f0'};color:${canIncrease ? '#333' : '#bbb'};border-radius:4px;cursor:${canIncrease ? 'pointer' : 'not-allowed'};font-size:12px;">
-            ×${mult}
-          </button>
-        `;
+        return `<button onclick="setMorphPoints(${obj.id}, ${targetPoints})" ${!canIncrease ? 'disabled' : ''} style="flex:1;min-width:50px;padding:6px 4px;border:2px solid #ccc;background:${canIncrease ? 'white' : '#f0f0f0'};color:${canIncrease ? '#333' : '#bbb'};border-radius:4px;cursor:${canIncrease ? 'pointer' : 'not-allowed'};font-size:12px;">×${mult}</button>`;
       }).join('');
       
       html += `
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
-          <span style="font-size:12px;color:#555;">Уменьшить количество точек:</span>
+          <span style="font-size:12px;color:#555;">Уменьшить:</span>
           <div style="display:flex;flex-wrap:wrap;gap:4px;">${decimateButtons}</div>
         </div>
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
-          <span style="font-size:12px;color:#555;">Вернуться к исходному:</span>
+          <span style="font-size:12px;color:#555;">Исходное:</span>
           <div style="display:flex;flex-wrap:wrap;gap:4px;">${resetBtn}</div>
         </div>
         <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:6px;margin-top:4px;">
-          <span style="font-size:12px;color:#555;">Увеличить количество точек (лимит ${FIGURE_POINTS_LIMIT}):</span>
+          <span style="font-size:12px;color:#555;">Увеличить (лимит ${FIGURE_POINTS_LIMIT}):</span>
           <div style="display:flex;flex-wrap:wrap;gap:4px;">${increaseButtons}</div>
         </div>
       `;
@@ -690,23 +948,14 @@ function renderProps() {
           <span style="font-size:12px;color:#555;">Количество точек:</span>
           <div style="display:flex;flex-wrap:wrap;gap:4px;">
             ${[4, 8, 12, 16, 24, 32].map(n => `
-              <button onclick="setMorphPoints(${obj.id}, ${n})" 
-                      style="flex:1;min-width:40px;padding:6px 4px;border:2px solid ${obj.points.length === n ? '#4a7c59' : '#ccc'};background:${obj.points.length === n ? '#4a7c59' : 'white'};color:${obj.points.length === n ? 'white' : '#333'};border-radius:4px;cursor:pointer;font-size:12px;font-weight:${obj.points.length === n ? '600' : '400'};">
-                ${n}
-              </button>
+              <button onclick="setMorphPoints(${obj.id}, ${n})" style="flex:1;min-width:40px;padding:6px 4px;border:2px solid ${obj.points.length === n ? '#4a7c59' : '#ccc'};background:${obj.points.length === n ? '#4a7c59' : 'white'};color:${obj.points.length === n ? 'white' : '#333'};border-radius:4px;cursor:pointer;font-size:12px;">${n}</button>
             `).join('')}
           </div>
         </div>
       `;
     }
     
-    html += `
-      <button onclick="fitPlotToCanvas()" style="
-        width: 100%; background: #4a7c59; color: white; border: none;
-        padding: 10px; border-radius: 6px; cursor: pointer;
-        font-size: 13px; font-weight: 600; margin-top: 8px;
-      ">Под размер окна</button>
-    `;
+    html += `<button onclick="fitPlotToCanvas()" style="width:100%;background:#4a7c59;color:white;border:none;padding:10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;margin-top:8px;">Под размер окна</button>`;
   } else if (obj.type === 'bed') {
     html += `
       <div class="prop-row">
@@ -770,6 +1019,10 @@ function renderProps() {
     }
   } else if (obj.type === 'mulch') {
     const bed = state.objects.find(o => o.id === obj.bedId);
+    const skinOptions = MULCH_SKINS.map(s => 
+      `<option value="${s.id}" ${(obj.skin || 'bark') === s.id ? 'selected' : ''}>${s.name}</option>`
+    ).join('');
+    
     html += `
       <div class="prop-row">
         <span>Тип:</span>
@@ -780,6 +1033,12 @@ function renderProps() {
         <span style="font-weight:600;">${bed ? bed.name : 'Не найдена'}</span>
       </div>
       <div class="prop-row">
+        <span>Скин:</span>
+        <select onchange="updateProp(${obj.id}, 'skin', this.value)">
+          ${skinOptions}
+        </select>
+      </div>
+      <div class="prop-row">
         <span>Форма:</span>
         <select onchange="updateProp(${obj.id}, 'shape', this.value)">
           <option value="rect" ${obj.shape === 'rect' ? 'selected' : ''}>Прямоугольник</option>
@@ -787,16 +1046,16 @@ function renderProps() {
         </select>
       </div>
       <div class="prop-row">
-        <span>Цвет:</span>
+        <span>Цвет основы:</span>
         <input type="color" value="${obj.fill}" onchange="updateProp(${obj.id}, 'fill', this.value)">
       </div>
       <div class="prop-row">
         <span>Ширина (м):</span>
-        <input type="number" value="${Math.round(obj.w / state.scale)}" min="0.5" max="100" step="0.5" onchange="updateMulchSize(${obj.id}, 'w', +this.value)">
+        <input type="number" value="${(obj.w / state.scale).toFixed(1)}" min="0.5" max="100" step="0.5" onchange="updateMulchSize(${obj.id}, 'w', +this.value)">
       </div>
       <div class="prop-row">
         <span>Высота (м):</span>
-        <input type="number" value="${Math.round(obj.h / state.scale)}" min="0.5" max="100" step="0.5" onchange="updateMulchSize(${obj.id}, 'h', +this.value)">
+        <input type="number" value="${(obj.h / state.scale).toFixed(1)}" min="0.5" max="100" step="0.5" onchange="updateMulchSize(${obj.id}, 'h', +this.value)">
       </div>
     `;
   } else if (obj.type === 'tree') {

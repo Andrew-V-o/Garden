@@ -1344,9 +1344,19 @@ function deleteDecorFromPopup() {
 function showMulchPopup(mulchObj) {
   const popup = document.getElementById('mulchPopup');
   
-  // Динамически формируем содержимое popup с полями размера
+  // Генерируем опции скинов
+  const skinOptions = MULCH_SKINS.map(s => 
+    `<option value="${s.id}" ${(mulchObj.skin || 'bark') === s.id ? 'selected' : ''}>${s.name}</option>`
+  ).join('');
+  
   popup.innerHTML = `
     <h4>🟫 Настройка мульчи</h4>
+    <div class="popup-row">
+      <span>Скин:</span>
+      <select id="mulchPopupSkin" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:4px;font-size:12px;">
+        ${skinOptions}
+      </select>
+    </div>
     <div class="popup-row">
       <span>Форма:</span>
       <select id="mulchPopupShape">
@@ -1355,7 +1365,7 @@ function showMulchPopup(mulchObj) {
       </select>
     </div>
     <div class="popup-row">
-      <span>Цвет:</span>
+      <span>Цвет основы:</span>
       <input type="color" id="mulchPopupColor" value="${mulchObj.fill}">
     </div>
     <div class="popup-row">
@@ -1372,7 +1382,6 @@ function showMulchPopup(mulchObj) {
     </div>
   `;
   
-  // Позиционирование popup рядом с мульчей
   const pos = getRelativeScreenPos(svg, mulchObj.x, mulchObj.y, canvasWrap);
   const popupWidth = 260;
   const offset = Math.max(mulchObj.w, mulchObj.h) / 2 + 20;
@@ -1388,7 +1397,6 @@ function showMulchPopup(mulchObj) {
   popup.style.top = finalY + 'px';
   popup.classList.add('show');
 
-  // Одноразовый обработчик закрытия при клике вне popup
   const closeOnOutsideClick = (e) => {
     if (!popup.contains(e.target)) {
       closeMulchPopup();
@@ -1400,6 +1408,17 @@ function showMulchPopup(mulchObj) {
   }, 0);
 
   // Обработчики изменений
+  document.getElementById('mulchPopupSkin').onchange = (e) => {
+    mulchObj.skin = e.target.value;
+    // При смене скина обновляем базовый цвет из скина
+    const skinData = MULCH_SKINS.find(s => s.id === e.target.value);
+    if (skinData) {
+      mulchObj.fill = skinData.baseColor;
+      document.getElementById('mulchPopupColor').value = skinData.baseColor;
+    }
+    render();
+  };
+  
   document.getElementById('mulchPopupShape').onchange = (e) => {
     mulchObj.shape = e.target.value;
     render();

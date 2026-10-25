@@ -9,31 +9,33 @@ const DEFAULT_PLANTS = [
   { id: 'hosta', name: 'Хосты', color: '#4caf50', custom: false, bloomStartMonth: 7, bloomEndMonth: 8, defaultShape: 'leaf', folderId: null },
   { id: 'fern', name: 'Папоротник', color: '#2e7d32', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'leaf', folderId: null },
   { id: 'grass', name: 'Газон', color: '#8bc34a', custom: false, bloomStartMonth: 4, bloomEndMonth: 10, defaultShape: 'leaf', folderId: null },
-  { id: 'mulch', name: 'Мульча', color: '#795548', custom: false, defaultShape: 'square', folderId: null },
-  { id: 'stone', name: 'Камни', color: '#9e9e9e', custom: false, defaultShape: 'square', folderId: null },
-  { id: 'water', name: 'Водоём', color: '#29b6f6', custom: false, defaultShape: 'oval', folderId: null },
 ];
 
 const DEFAULT_TREES = [
-  { id: 'oak', name: 'Дуб', color: '#2e7d32', custom: false, defaultShape: 'oak', folderId: null, bloomStartMonth: 5, bloomEndMonth: 6 },
+  { id: 'oak', name: 'Дуб', color: '#2e7d32', custom: false, defaultShape: 'oak', folderId: null },
   { id: 'pine', name: 'Сосна', color: '#1b5e20', custom: false, defaultShape: 'pine', folderId: null },
-  { id: 'birch', name: 'Берёза', color: '#4caf50', custom: false, defaultShape: 'birch', folderId: null, bloomStartMonth: 4, bloomEndMonth: 5 },
-  { id: 'maple', name: 'Клён', color: '#ff9800', custom: false, defaultShape: 'maple', folderId: null, bloomStartMonth: 9, bloomEndMonth: 10 },
-  { id: 'willow', name: 'Ива', color: '#689f38', custom: false, defaultShape: 'willow', folderId: null, bloomStartMonth: 3, bloomEndMonth: 5 },
+  { id: 'birch', name: 'Берёза', color: '#4caf50', custom: false, defaultShape: 'birch', folderId: null },
+  { id: 'maple', name: 'Клён', color: '#ff9800', custom: false, defaultShape: 'maple', folderId: null },
+  { id: 'willow', name: 'Ива', color: '#689f38', custom: false, defaultShape: 'willow', folderId: null },
   { id: 'spruce', name: 'Ель', color: '#004d40', custom: false, defaultShape: 'spruce', folderId: null },
   { id: 'palm', name: 'Пальма', color: '#558b2f', custom: false, defaultShape: 'palm', folderId: null },
-  { id: 'cherry', name: 'Сакура', color: '#f48fb1', custom: false, defaultShape: 'cherry', folderId: null, bloomStartMonth: 3, bloomEndMonth: 5 },
+  { id: 'cherry', name: 'Сакура', color: '#f48fb1', custom: false, defaultShape: 'cherry', folderId: null },
 ];
 
-// Скопировать данные из вида дерева в посаженное дерево
-function copyBloomDataFromTree(tree, treeObj) {
-  if (!tree || !treeObj) return;
-  treeObj.bloomStartMonth = tree.bloomStartMonth || null;
-  treeObj.bloomEndMonth = tree.bloomEndMonth || null;
-  treeObj.bloomStartDate = tree.bloomStartDate || null;
-  treeObj.bloomEndDate = tree.bloomEndDate || null;
-  treeObj.shape = tree.defaultShape || 'oak';
-}
+// ===== СКИНЫ МУЛЬЧИ =====
+const MULCH_SKINS = [
+  { id: 'bark', name: 'Кора (смешанная)', baseColor: '#795548' },
+  { id: 'oak_leaves', name: 'Листья дуба', baseColor: '#8d6e63' },
+  { id: 'red_oak_leaves', name: 'Листья краснолистного дуба', baseColor: '#a1524a' },
+  { id: 'spruce_needles', name: 'Иголки ели', baseColor: '#4e342e' },
+  { id: 'pine_needles', name: 'Иголки сосны', baseColor: '#a1887f' },
+  { id: 'spruce_bark', name: 'Кора ели', baseColor: '#3e2723' },
+  { id: 'pine_bark', name: 'Кора сосны', baseColor: '#6d4c41' },
+  { id: 'woodchips', name: 'Щепа', baseColor: '#bcaaa4' },
+  { id: 'straw', name: 'Солома', baseColor: '#f9a825' },
+  { id: 'gravel', name: 'Гравий', baseColor: '#9e9e9e' },
+  { id: 'pine_cones', name: 'Сосновые шишки', baseColor: '#5d4037' },
+];
 
 const TREE_SHAPES = [
   { id: 'oak', name: 'Дуб' },
@@ -257,14 +259,10 @@ function copyBloomDataFromPlant(plant, planting) {
   planting.shape = plant.defaultShape || 'circle';
 }
 
-// ===== ФУНКЦИИ ДЛЯ РАБОТЫ С ПАПКАМИ РАСТЕНИЙ =====
+// ===== ФУНКЦИИ ДЛЯ РАБОТЫ С ПАПКАМИ =====
 
 function createFolder(name) {
-  const folder = {
-    id: nextFolderId++,
-    name: name,
-    color: '#4a7c59'
-  };
+  const folder = { id: nextFolderId++, name: name, color: '#4a7c59' };
   folders.push(folder);
   state.expandedFolders.add(folder.id);
   saveFolders();
@@ -274,9 +272,7 @@ function createFolder(name) {
 function deleteFolder(folderId) {
   if (!confirm('Удалить папку? Растения останутся без папки.')) return;
   folders = folders.filter(f => f.id !== folderId);
-  plants.forEach(p => {
-    if (p.folderId === folderId) p.folderId = null;
-  });
+  plants.forEach(p => { if (p.folderId === folderId) p.folderId = null; });
   state.expandedFolders.delete(folderId);
   saveFolders();
   renderPlantList();
@@ -284,19 +280,12 @@ function deleteFolder(folderId) {
 
 function renameFolder(folderId, newName) {
   const folder = folders.find(f => f.id === folderId);
-  if (folder) {
-    folder.name = newName;
-    saveFolders();
-    renderPlantList();
-  }
+  if (folder) { folder.name = newName; saveFolders(); renderPlantList(); }
 }
 
 function toggleFolder(folderId) {
-  if (state.expandedFolders.has(folderId)) {
-    state.expandedFolders.delete(folderId);
-  } else {
-    state.expandedFolders.add(folderId);
-  }
+  if (state.expandedFolders.has(folderId)) state.expandedFolders.delete(folderId);
+  else state.expandedFolders.add(folderId);
   renderPlantList();
 }
 
@@ -311,20 +300,14 @@ function loadFolders() {
     try {
       folders = JSON.parse(saved);
       nextFolderId = parseInt(localStorage.getItem('nextFolderId') || '1');
-    } catch (e) {
-      folders = [];
-    }
+    } catch (e) { folders = []; }
   }
 }
 
 // ===== ФУНКЦИИ ДЛЯ РАБОТЫ С ПАПКАМИ ДЕРЕВЬЕВ =====
 
 function createTreeFolder(name) {
-  const folder = {
-    id: nextTreeFolderId++,
-    name: name,
-    color: '#2e7d32'
-  };
+  const folder = { id: nextTreeFolderId++, name: name, color: '#2e7d32' };
   treeFolders.push(folder);
   state.expandedTreeFolders.add(folder.id);
   saveTreeFolders();
@@ -334,9 +317,7 @@ function createTreeFolder(name) {
 function deleteTreeFolder(folderId) {
   if (!confirm('Удалить папку? Деревья останутся без папки.')) return;
   treeFolders = treeFolders.filter(f => f.id !== folderId);
-  trees.forEach(t => {
-    if (t.folderId === folderId) t.folderId = null;
-  });
+  trees.forEach(t => { if (t.folderId === folderId) t.folderId = null; });
   state.expandedTreeFolders.delete(folderId);
   saveTreeFolders();
   renderTreeList();
@@ -344,19 +325,12 @@ function deleteTreeFolder(folderId) {
 
 function renameTreeFolder(folderId, newName) {
   const folder = treeFolders.find(f => f.id === folderId);
-  if (folder) {
-    folder.name = newName;
-    saveTreeFolders();
-    renderTreeList();
-  }
+  if (folder) { folder.name = newName; saveTreeFolders(); renderTreeList(); }
 }
 
 function toggleTreeFolder(folderId) {
-  if (state.expandedTreeFolders.has(folderId)) {
-    state.expandedTreeFolders.delete(folderId);
-  } else {
-    state.expandedTreeFolders.add(folderId);
-  }
+  if (state.expandedTreeFolders.has(folderId)) state.expandedTreeFolders.delete(folderId);
+  else state.expandedTreeFolders.add(folderId);
   renderTreeList();
 }
 
@@ -371,8 +345,16 @@ function loadTreeFolders() {
     try {
       treeFolders = JSON.parse(saved);
       nextTreeFolderId = parseInt(localStorage.getItem('nextTreeFolderId') || '1');
-    } catch (e) {
-      treeFolders = [];
-    }
+    } catch (e) { treeFolders = []; }
   }
+}
+
+// ===== ДЕТЕРМИНИРОВАННЫЙ "СЛУЧАЙНЫЙ" ГЕНЕРАТОР ДЛЯ ТЕКСТУР =====
+// Используется для стабильной отрисовки текстур мульчи при перерисовке
+function mulchRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
 }

@@ -55,6 +55,17 @@ function updateEndMonthSelect(startSelect, endSelect, includeNoneOption = false)
   }
 }
 
+// Обновление превью иконки при изменении формы или цвета
+function updateShapePreview(context) {
+  const shape = document.getElementById(`${context}PlantShape`).value;
+  const color = document.getElementById(`${context}PlantColor`).value;
+  const previewEl = document.getElementById(`${context}ShapePreview`);
+  
+  if (previewEl) {
+    previewEl.innerHTML = `<svg viewBox="0 0 16 16" style="width:40px;height:40px;">${getShapeSVGMini(shape, color)}</svg>`;
+  }
+}
+
 function renderPlantList() {
   const list = document.getElementById('plantList');
   list.innerHTML = '';
@@ -63,7 +74,6 @@ function renderPlantList() {
     el.className = 'plant-item' + (state.selectedPlant === p.id ? ' selected' : '');
     el.dataset.id = p.id;
     
-    // Получаем форму по умолчанию
     const shape = p.defaultShape || 'circle';
     
     el.innerHTML = `
@@ -141,7 +151,6 @@ function openPlantSettings(plantId) {
   
   document.getElementById('settingsPlantName').value = plant.name;
   document.getElementById('settingsPlantColor').value = plant.color;
-  document.getElementById('settingsColorPreview').style.background = plant.color;
   document.getElementById('settingsPlantShape').value = plant.defaultShape || 'circle';
   
   const startSelect = document.getElementById('settingsBloomStartMonth');
@@ -177,6 +186,8 @@ function openPlantSettings(plantId) {
   deleteBtn.style.display = plant.custom ? 'block' : 'none';
   
   document.getElementById('plantSettingsModal').classList.add('show');
+  
+  updateShapePreview('settings');
 }
 
 function closePlantSettings() {
@@ -369,7 +380,6 @@ function openPlantModal() {
   document.getElementById('plantModal').classList.add('show');
   document.getElementById('newPlantName').value = '';
   document.getElementById('newPlantColor').value = '#ff69b4';
-  document.getElementById('colorPreview').style.background = '#ff69b4';
   document.getElementById('newPlantBloomStartDay').value = '';
   document.getElementById('newPlantBloomEndDay').value = '';
   document.getElementById('newPlantShape').value = 'circle';
@@ -391,6 +401,8 @@ function openPlantModal() {
   
   document.querySelector('input[name="newBloomMode"][value="months"]').checked = true;
   toggleNewBloomMode();
+  
+  updateShapePreview('new');
 }
 
 function closePlantModal() {
@@ -407,18 +419,15 @@ function renderColorPresets() {
     if (c === '#ffffff') el.style.border = '2px solid #ccc';
     el.onclick = () => {
       document.getElementById('newPlantColor').value = c;
-      document.getElementById('colorPreview').style.background = c;
+      updateShapePreview('new');
     };
     wrap.appendChild(el);
   });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('newPlantColor').addEventListener('input', (e) => {
-    document.getElementById('colorPreview').style.background = e.target.value;
-  });
   document.getElementById('settingsPlantColor').addEventListener('input', (e) => {
-    document.getElementById('settingsColorPreview').style.background = e.target.value;
+    updateShapePreview('settings');
   });
 });
 

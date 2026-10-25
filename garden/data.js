@@ -1,17 +1,17 @@
 // ===== КОНСТАНТЫ =====
 const DEFAULT_PLANTS = [
   { id: 'rose', name: 'Розы', color: '#e91e63', custom: false, bloomStartMonth: 6, bloomEndMonth: 9, defaultShape: 'circle' },
-  { id: 'tulip', name: 'Тюльпаны', color: '#ff5722', custom: false, bloomStartMonth: 4, bloomEndMonth: 5, defaultShape: 'circle' },
-  { id: 'lavender', name: 'Лаванда', color: '#9c27b0', custom: false, bloomStartMonth: 6, bloomEndMonth: 8, defaultShape: 'circle' },
+  { id: 'tulip', name: 'Тюльпаны', color: '#ff5722', custom: false, bloomStartMonth: 4, bloomEndMonth: 5, defaultShape: 'drop' },
+  { id: 'lavender', name: 'Лаванда', color: '#9c27b0', custom: false, bloomStartMonth: 6, bloomEndMonth: 8, defaultShape: 'oval' },
   { id: 'sunflower', name: 'Подсолнухи', color: '#ffc107', custom: false, bloomStartMonth: 7, bloomEndMonth: 9, defaultShape: 'flower' },
   { id: 'daisy', name: 'Ромашки', color: '#ffffff', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'flower' },
   { id: 'peony', name: 'Пионы', color: '#f06292', custom: false, bloomStartMonth: 5, bloomEndMonth: 6, defaultShape: 'circle' },
-  { id: 'hosta', name: 'Хосты', color: '#4caf50', custom: false, bloomStartMonth: 7, bloomEndMonth: 8, defaultShape: 'circle' },
-  { id: 'fern', name: 'Папоротник', color: '#2e7d32', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'circle' },
-  { id: 'grass', name: 'Газон', color: '#8bc34a', custom: false, bloomStartMonth: 4, bloomEndMonth: 10, defaultShape: 'circle' },
-  { id: 'mulch', name: 'Мульча', color: '#795548', custom: false, defaultShape: 'circle' },
+  { id: 'hosta', name: 'Хосты', color: '#4caf50', custom: false, bloomStartMonth: 7, bloomEndMonth: 8, defaultShape: 'leaf' },
+  { id: 'fern', name: 'Папоротник', color: '#2e7d32', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'leaf' },
+  { id: 'grass', name: 'Газон', color: '#8bc34a', custom: false, bloomStartMonth: 4, bloomEndMonth: 10, defaultShape: 'leaf' },
+  { id: 'mulch', name: 'Мульча', color: '#795548', custom: false, defaultShape: 'square' },
   { id: 'stone', name: 'Камни', color: '#9e9e9e', custom: false, defaultShape: 'square' },
-  { id: 'water', name: 'Водоём', color: '#29b6f6', custom: false, defaultShape: 'circle' },
+  { id: 'water', name: 'Водоём', color: '#29b6f6', custom: false, defaultShape: 'oval' },
 ];
 
 const COLOR_PRESETS = [
@@ -25,9 +25,15 @@ const SHAPES = [
   { id: 'circle', name: 'Круг' },
   { id: 'square', name: 'Квадрат' },
   { id: 'diamond', name: 'Ромб' },
+  { id: 'triangle', name: 'Треугольник' },
+  { id: 'oval', name: 'Овал' },
   { id: 'star', name: 'Звезда' },
   { id: 'heart', name: 'Сердце' },
   { id: 'flower', name: 'Цветок' },
+  { id: 'cross', name: 'Крест' },
+  { id: 'moon', name: 'Полумесяц' },
+  { id: 'drop', name: 'Капля' },
+  { id: 'leaf', name: 'Лист' },
 ];
 
 const MONTHS = [

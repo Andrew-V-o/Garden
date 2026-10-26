@@ -295,14 +295,13 @@ function drawRedOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   g.appendChild(leafG);
 }
 
-// ===== РЕНДЕР МУЛЬЧИ С ТЕКСТУРАМИ (БЕЗ ФОНА) =====
+// ===== РЕНДЕР МУЛЬЧИ С ТЕКСТУРАМИ =====
 
 function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
   const ns = 'http://www.w3.org/2000/svg';
   const skin = mulch.skin || 'bark';
   const shape = mulch.shape || 'rect';
   
-  // Плотность с учётом множителя из настроек
   const area = mw * mh;
   const baseDensity = Math.max(20, Math.min(200, Math.floor(area / 80)));
   const densityMultiplier = mulch.densityMultiplier != null ? mulch.densityMultiplier : 1.0;
@@ -960,7 +959,7 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
     case 'pine_cones': {
       const coneColors = ['#5D4037', '#4E342E', '#6D4C41', '#3E2723', '#795548'];
       
-      for (let i = 0; i < density * 0.35; i++) {
+      for (let i = 0; i < density * 0.4; i++) {
         const pos = nextPos(i);
         const r1 = prand(i, 1);
         const r2 = prand(i, 2);
@@ -1106,12 +1105,10 @@ function renderMulch(mulch) {
   const mw = mulch.w;
   const mh = mulch.h;
   
-  // ФОН УБРАН — только частицы
   renderMulchTexture(g, mulch, mx, my, mw, mh, rand);
   
   objectsLayer.appendChild(g);
   
-  // Невидимый прямоугольник/эллипс для клика (чтобы можно было выбрать мульчу)
   const hitArea = document.createElementNS(ns, mulch.shape === 'circle' ? 'ellipse' : 'rect');
   if (mulch.shape === 'circle') {
     hitArea.setAttribute('cx', mx);
@@ -1150,6 +1147,253 @@ function renderMulch(mulch) {
     outline.setAttribute('pointer-events', 'none');
     objectsLayer.appendChild(outline);
   }
+}
+
+// ===== РЕНДЕР ДОРОЖКИ (ПОЛНОСТЬЮ СЛУЧАЙНОЕ РАСПРЕДЕЛЕНИЕ) =====
+
+function renderPathTexture(g, pathObj) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const skin = pathObj.skin || 'gravel';
+  const width = 30;
+  const baseColor = pathObj.fill || '#b8a88a';
+  
+  if (pathObj.points.length < 2) return;
+  
+  const densityMultiplier = pathObj.densityMultiplier != null ? pathObj.densityMultiplier : 1.0;
+  
+  let globalParticleIndex = 0;
+  
+  // Обрабатываем каждый сегмент дорожки
+  for (let segIdx = 0; segIdx < pathObj.points.length - 1; segIdx++) {
+    const p1 = pathObj.points[segIdx];
+    const p2 = pathObj.points[segIdx + 1];
+    
+    const dx = p2[0] - p1[0];
+    const dy = p2[1] - p1[1];
+    const segLength = Math.sqrt(dx * dx + dy * dy);
+    
+    if (segLength < 1) continue;
+    
+    // Перпендикуляр к направлению сегмента
+    const nx = -dy / segLength;
+    const ny = dx / segLength;
+    
+    // Площадь "прямоугольника" сегмента
+    const area = segLength * width;
+    
+    // Плотность частиц (как в мульче)
+    const baseDensity = Math.max(20, Math.floor(area / 15));
+    const density = Math.max(5, Math.floor(baseDensity * densityMultiplier));
+    
+    // Генерируем частицы для этого сегмента
+    for (let i = 0; i < density; i++) {
+      // ПОЛНОСТЬЮ СЛУЧАЙНАЯ позиция (Math.random)
+      const tAlong = Math.random();  // 0..1 вдоль сегмента
+      const tAcross = Math.random(); // 0..1 поперёк сегмента
+      
+      // Мировые координаты
+      const alongX = p1[0] + tAlong * dx;
+      const alongY = p1[1] + tAlong * dy;
+      
+      const offset = (tAcross - 0.5) * width;
+      const px = alongX + nx * offset;
+      const py = alongY + ny * offset;
+      
+      // Детерминированные параметры частицы (размер, цвет, поворот)
+      const seed = pathObj.id * 1000 + 99;
+      const prParticle = particleRand(seed, globalParticleIndex);
+      drawPathParticle(g, ns, skin, px, py, prParticle, baseColor);
+      
+      globalParticleIndex++;
+    }
+  }
+}
+
+function drawPathParticle(g, ns, skin, px, py, pr, baseColor) {
+  switch (skin) {
+    case 'gravel': {
+      const r = 1.0 + pr() * 2.0;
+      const shade = Math.floor(pr() * 50) - 25;
+      const color = adjustColor(baseColor, shade);
+      const stone = document.createElementNS(ns, 'ellipse');
+      stone.setAttribute('cx', px);
+      stone.setAttribute('cy', py);
+      stone.setAttribute('rx', r * (0.7 + pr() * 0.5));
+      stone.setAttribute('ry', r * (0.6 + pr() * 0.4));
+      stone.setAttribute('fill', color);
+      stone.setAttribute('stroke', adjustColor(color, -25));
+      stone.setAttribute('stroke-width', '0.3');
+      stone.setAttribute('transform', `rotate(${pr() * 360} ${px} ${py})`);
+      stone.setAttribute('pointer-events', 'none');
+      g.appendChild(stone);
+      break;
+    }
+    case 'sand': {
+      const r = 0.3 + pr() * 0.8;
+      const shade = Math.floor(pr() * 30) - 10;
+      const color = adjustColor(baseColor, shade);
+      const grain = document.createElementNS(ns, 'circle');
+      grain.setAttribute('cx', px);
+      grain.setAttribute('cy', py);
+      grain.setAttribute('r', r);
+      grain.setAttribute('fill', color);
+      grain.setAttribute('pointer-events', 'none');
+      g.appendChild(grain);
+      if (pr() > 0.4) {
+        const g2 = document.createElementNS(ns, 'circle');
+        g2.setAttribute('cx', px + (pr() - 0.5) * 2);
+        g2.setAttribute('cy', py + (pr() - 0.5) * 2);
+        g2.setAttribute('r', 0.3 + pr() * 0.6);
+        g2.setAttribute('fill', adjustColor(baseColor, Math.floor(pr() * 20) - 5));
+        g2.setAttribute('pointer-events', 'none');
+        g.appendChild(g2);
+      }
+      break;
+    }
+    case 'cobblestone': {
+      const w = 3 + pr() * 5;
+      const h = 2.5 + pr() * 4;
+      const rot = pr() * 360;
+      const shade = Math.floor(pr() * 40) - 20;
+      const color = adjustColor(baseColor, shade);
+      const tile = document.createElementNS(ns, 'rect');
+      tile.setAttribute('x', px - w/2);
+      tile.setAttribute('y', py - h/2);
+      tile.setAttribute('width', w);
+      tile.setAttribute('height', h);
+      tile.setAttribute('rx', 0.5);
+      tile.setAttribute('fill', color);
+      tile.setAttribute('stroke', adjustColor(color, -35));
+      tile.setAttribute('stroke-width', '0.4');
+      tile.setAttribute('transform', `rotate(${rot} ${px} ${py})`);
+      tile.setAttribute('pointer-events', 'none');
+      g.appendChild(tile);
+      break;
+    }
+    case 'crushed_stone': {
+      const r = 1.5 + pr() * 2.5;
+      const shade = Math.floor(pr() * 40) - 25;
+      const color = adjustColor(baseColor, shade);
+      const points = 4 + Math.floor(pr() * 3);
+      let d = '';
+      for (let j = 0; j < points; j++) {
+        const a = (j / points) * Math.PI * 2;
+        const rr = r * (0.5 + pr() * 0.6);
+        const x = px + Math.cos(a) * rr;
+        const y = py + Math.sin(a) * rr;
+        d += (j === 0 ? 'M' : 'L') + ` ${x.toFixed(1)} ${y.toFixed(1)} `;
+      }
+      d += 'Z';
+      const stone = document.createElementNS(ns, 'path');
+      stone.setAttribute('d', d);
+      stone.setAttribute('fill', color);
+      stone.setAttribute('stroke', adjustColor(color, -30));
+      stone.setAttribute('stroke-width', '0.3');
+      stone.setAttribute('pointer-events', 'none');
+      g.appendChild(stone);
+      break;
+    }
+    case 'bark_path': {
+      const w = 2 + pr() * 5;
+      const h = 1.5 + pr() * 2.5;
+      const rot = pr() * 360;
+      const shade = Math.floor(pr() * 30) - 15;
+      const color = adjustColor(baseColor, shade);
+      const bark = document.createElementNS(ns, 'ellipse');
+      bark.setAttribute('cx', px);
+      bark.setAttribute('cy', py);
+      bark.setAttribute('rx', w/2);
+      bark.setAttribute('ry', h/2);
+      bark.setAttribute('fill', color);
+      bark.setAttribute('stroke', adjustColor(color, -30));
+      bark.setAttribute('stroke-width', '0.3');
+      bark.setAttribute('transform', `rotate(${rot} ${px} ${py})`);
+      bark.setAttribute('pointer-events', 'none');
+      g.appendChild(bark);
+      if (pr() > 0.5) {
+        const grain = document.createElementNS(ns, 'line');
+        grain.setAttribute('x1', px - w/2 + 1);
+        grain.setAttribute('y1', py);
+        grain.setAttribute('x2', px + w/2 - 1);
+        grain.setAttribute('y2', py + (pr() - 0.5));
+        grain.setAttribute('stroke', adjustColor(color, -20));
+        grain.setAttribute('stroke-width', '0.2');
+        grain.setAttribute('transform', `rotate(${rot} ${px} ${py})`);
+        grain.setAttribute('pointer-events', 'none');
+        g.appendChild(grain);
+      }
+      break;
+    }
+    case 'soil': {
+      const r = 1.0 + pr() * 2.0;
+      const shade = Math.floor(pr() * 30) - 20;
+      const color = adjustColor(baseColor, shade);
+      const points = 5 + Math.floor(pr() * 3);
+      let d = '';
+      for (let j = 0; j < points; j++) {
+        const a = (j / points) * Math.PI * 2;
+        const rr = r * (0.6 + pr() * 0.5);
+        const x = px + Math.cos(a) * rr;
+        const y = py + Math.sin(a) * rr;
+        d += (j === 0 ? 'M' : 'L') + ` ${x.toFixed(1)} ${y.toFixed(1)} `;
+      }
+      d += 'Z';
+      const clod = document.createElementNS(ns, 'path');
+      clod.setAttribute('d', d);
+      clod.setAttribute('fill', color);
+      clod.setAttribute('pointer-events', 'none');
+      g.appendChild(clod);
+      if (pr() > 0.5) {
+        const speck = document.createElementNS(ns, 'circle');
+        speck.setAttribute('cx', px + (pr() - 0.5) * r);
+        speck.setAttribute('cy', py + (pr() - 0.5) * r);
+        speck.setAttribute('r', 0.3 + pr() * 0.4);
+        speck.setAttribute('fill', adjustColor(baseColor, 20));
+        speck.setAttribute('pointer-events', 'none');
+        g.appendChild(speck);
+      }
+      break;
+    }
+  }
+}
+
+function renderPath(obj) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const isSelected = obj.id === state.selectedId;
+  
+  const g = document.createElementNS(ns, 'g');
+  g.setAttribute('data-id', obj.id);
+  g.style.cursor = 'pointer';
+  
+  renderPathTexture(g, obj);
+  
+  let d = `M ${obj.points[0][0]} ${obj.points[0][1]}`;
+  for (let i = 1; i < obj.points.length; i++) d += ` L ${obj.points[i][0]} ${obj.points[i][1]}`;
+  
+  const hitPath = document.createElementNS(ns, 'path');
+  hitPath.setAttribute('d', d);
+  hitPath.setAttribute('fill', 'none');
+  hitPath.setAttribute('stroke', 'transparent');
+  hitPath.setAttribute('stroke-width', '30');
+  hitPath.setAttribute('stroke-linecap', 'round');
+  hitPath.setAttribute('stroke-linejoin', 'round');
+  hitPath.setAttribute('pointer-events', 'stroke');
+  g.appendChild(hitPath);
+  
+  if (isSelected) {
+    const outline = document.createElementNS(ns, 'path');
+    outline.setAttribute('d', d);
+    outline.setAttribute('fill', 'none');
+    outline.setAttribute('stroke', '#ff6b00');
+    outline.setAttribute('stroke-width', '34');
+    outline.setAttribute('stroke-linecap', 'round');
+    outline.setAttribute('stroke-linejoin', 'round');
+    outline.setAttribute('opacity', '0.25');
+    outline.setAttribute('pointer-events', 'none');
+    g.appendChild(outline);
+  }
+  
+  objectsLayer.appendChild(g);
 }
 
 function renderBedPlants(obj) {
@@ -1223,22 +1467,6 @@ function renderTree(obj) {
   }
 }
 
-function renderPath(obj) {
-  const isSelected = obj.id === state.selectedId;
-  const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  let d = `M ${obj.points[0][0]} ${obj.points[0][1]}`;
-  for (let i = 1; i < obj.points.length; i++) d += ` L ${obj.points[i][0]} ${obj.points[i][1]}`;
-  el.setAttribute('d', d);
-  el.setAttribute('fill', 'none');
-  el.setAttribute('stroke', isSelected ? '#ff6b00' : obj.fill);
-  el.setAttribute('stroke-width', '30');
-  el.setAttribute('stroke-linecap', 'round');
-  el.setAttribute('stroke-linejoin', 'round');
-  el.setAttribute('data-id', obj.id);
-  el.style.cursor = 'pointer';
-  objectsLayer.appendChild(el);
-}
-
 function renderDecorObject(obj) {
   const ns = 'http://www.w3.org/2000/svg';
   const isSelected = obj.id === state.selectedId;
@@ -1278,23 +1506,6 @@ function renderDecorObject(obj) {
       wave.setAttribute('pointer-events', 'none');
       g.appendChild(wave);
     }
-  } else if (obj.decorType === 'stone') {
-    const stones = [
-      { cx: -0.25, cy: -0.15, rx: 0.35, ry: 0.3 },
-      { cx: 0.2, cy: -0.2, rx: 0.3, ry: 0.25 },
-      { cx: 0, cy: 0.2, rx: 0.4, ry: 0.3 }
-    ];
-    stones.forEach(s => {
-      const stone = document.createElementNS(ns, 'ellipse');
-      stone.setAttribute('cx', obj.x + s.cx * w);
-      stone.setAttribute('cy', obj.y + s.cy * h);
-      stone.setAttribute('rx', s.rx * w / 2);
-      stone.setAttribute('ry', s.ry * h / 2);
-      stone.setAttribute('fill', obj.fill);
-      stone.setAttribute('stroke', isSelected ? '#ff6b00' : '#424242');
-      stone.setAttribute('stroke-width', isSelected ? 2 : 1);
-      g.appendChild(stone);
-    });
   }
   
   const text = document.createElementNS(ns, 'text');
@@ -1764,6 +1975,41 @@ function renderProps() {
         <input type="number" value="${(obj.h / state.scale).toFixed(1)}" min="0.5" max="100" step="0.5" onchange="updateMulchSize(${obj.id}, 'h', +this.value)">
       </div>
     `;
+  } else if (obj.type === 'path') {
+    const skinOptions = PATH_SKINS.map(s => 
+      `<option value="${s.id}" ${(obj.skin || 'gravel') === s.id ? 'selected' : ''}>${s.name}</option>`
+    ).join('');
+    const densityVal = obj.densityMultiplier != null ? obj.densityMultiplier : 1.0;
+    
+    html += `
+      <div class="prop-row">
+        <span>Тип:</span>
+        <span style="font-weight:600;">🛤️ Дорожка</span>
+      </div>
+      <div class="prop-row">
+        <span>Название:</span>
+        <input type="text" value="${obj.name}" onchange="updateProp(${obj.id}, 'name', this.value)">
+      </div>
+      <div class="prop-row">
+        <span>Скин:</span>
+        <select onchange="updateProp(${obj.id}, 'skin', this.value)">
+          ${skinOptions}
+        </select>
+      </div>
+      <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:4px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Плотность частиц:</span>
+          <span id="pathDensityVal" style="font-size:11px;color:#555;">×${densityVal.toFixed(1)}</span>
+        </div>
+        <input type="range" min="0.2" max="3.0" step="0.1" value="${densityVal}" 
+               oninput="updatePathDensity(${obj.id}, +this.value)" 
+               style="width:100%;">
+      </div>
+      <div class="prop-row">
+        <span>Цвет:</span>
+        <input type="color" value="${obj.fill}" onchange="updateProp(${obj.id}, 'fill', this.value)">
+      </div>
+    `;
   } else if (obj.type === 'tree') {
     const tree = trees.find(t => t.id === obj.treeId);
     html += `
@@ -1777,7 +2023,7 @@ function renderProps() {
       </div>
     `;
   } else if (obj.type === 'decor') {
-    const decorNames = { water: '💧 Водоём', stone: '🪨 Камни' };
+    const decorNames = { water: '💧 Водоём' };
     html += `
       <div class="prop-row">
         <span>Тип:</span>
@@ -1844,6 +2090,15 @@ function updateMulchDensity(id, value) {
   if (!obj || obj.type !== 'mulch') return;
   obj.densityMultiplier = Math.max(0.2, Math.min(3.0, value));
   const label = document.getElementById('mulchDensityVal');
+  if (label) label.textContent = '×' + obj.densityMultiplier.toFixed(1);
+  render();
+}
+
+function updatePathDensity(id, value) {
+  const obj = state.objects.find(o => o.id === id);
+  if (!obj || obj.type !== 'path') return;
+  obj.densityMultiplier = Math.max(0.2, Math.min(3.0, value));
+  const label = document.getElementById('pathDensityVal');
   if (label) label.textContent = '×' + obj.densityMultiplier.toFixed(1);
   render();
 }

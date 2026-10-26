@@ -24,6 +24,7 @@ function setTool(tool) {
   closeTreePopup();
   closeDecorPopup();
   closeMulchPopup();
+  closePathPopup();
   updateHint();
   renderPlantingsPanel();
 
@@ -254,13 +255,12 @@ function updateFinishButton() {
 
 function updateHint() {
   const hints = {
-    select: '💡 Выберите объект. Кликните по цветку, дереву, мульче или декоративному объекту для настройки.',
+    select: '💡 Выберите объект. Кликните по цветку, дереву, мульче, дорожке или декоративному объекту для настройки.',
     move: '✋ Перетаскивайте объекты. Участок физически ограничен границами окна. Колёсико — зум.',
     bed: `💡 Рисование клумбы (${state.bedShape === 'rect' ? 'прямоугольная' : state.bedShape === 'circle' ? 'круглая' : 'фигура'}). ${state.bedShape === 'poly' ? 'Кликайте для точек. Нажмите "✓ Завершить" или Enter для подтверждения.' : 'Зажмите мышь и тяните.'}`,
-    path: '💡 Рисуйте дорожки. Кликайте для точек. Нажмите "✓ Завершить" или Enter.',
+    path: '🛤️ Рисуйте дорожки. Кликайте для точек. Нажмите "✓ Завершить" или Enter. После завершения можно выбрать скин и плотность частиц.',
     tree: '🌳 Выберите дерево в левой панели и кликните на холст, чтобы посадить.',
     water: '💧 Кликните на холст, чтобы разместить водоём.',
-    stone: '🪨 Кликните на холст, чтобы разместить камни.',
     mulch: '🟫 Кликните на клумбу, чтобы добавить мульчу. Плотность частиц регулируется в настройках.',
   };
   let hint = hints[state.tool] || '';
@@ -397,16 +397,12 @@ function onMouseDown(e) {
     }
   }
 
-  // Размещение декоративных объектов (водоём, камни)
-  if (state.tool === 'water' || state.tool === 'stone') {
-    const decorDefaults = {
-      water: { name: 'Водоём', fill: '#29b6f6', w: state.scale * 3, h: state.scale * 2 },
-      stone: { name: 'Камни', fill: '#9e9e9e', w: state.scale * 2, h: state.scale * 1.5 }
-    };
-    const d = decorDefaults[state.tool];
+  // Размещение водоёма
+  if (state.tool === 'water') {
+    const d = { name: 'Водоём', fill: '#29b6f6', w: state.scale * 3, h: state.scale * 2 };
     addObject({
       type: 'decor',
-      decorType: state.tool,
+      decorType: 'water',
       x: snapToGrid(pos.x),
       y: snapToGrid(pos.y),
       w: d.w,
@@ -418,7 +414,7 @@ function onMouseDown(e) {
     return;
   }
 
-  // Размещение мульчи — в точке клика, с начальным размером 2×2 м
+  // Размещение мульчи
   if (state.tool === 'mulch') {
     const bed = findBedAtPoint(pos.x, pos.y);
     if (bed) {
@@ -434,7 +430,7 @@ function onMouseDown(e) {
         skin: 'bark',
         shape: 'rect',
         name: 'Мульча',
-        densityMultiplier: 1.0  // Плотность по умолчанию
+        densityMultiplier: 1.0
       });
       setTool('select');
     }
@@ -464,6 +460,21 @@ function onMouseDown(e) {
         if (pointInObject(obj, pos.x, pos.y)) {
           showMulchPopup(obj);
           return;
+        }
+      }
+    }
+
+    // Проверяем дорожки
+    for (let i = state.objects.length - 1; i >= 0; i--) {
+      const obj = state.objects[i];
+      if (obj.type === 'path' && obj.points && obj.points.length >= 2) {
+        for (let j = 0; j < obj.points.length - 1; j++) {
+          const p = closestPointOnSegment(pos.x, pos.y, obj.points[j], obj.points[j+1]);
+          const d = Math.hypot(p.x - pos.x, p.y - pos.y);
+          if (d < 15) {
+            showPathPopup(obj);
+            return;
+          }
         }
       }
     }
@@ -515,6 +526,7 @@ function onMouseDown(e) {
     closeTreePopup();
     closeDecorPopup();
     closeMulchPopup();
+    closePathPopup();
     document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
     render();
     return;
@@ -806,6 +818,7 @@ function onKeyDown(e) {
     closeTreePopup();
     closeDecorPopup();
     closeMulchPopup();
+    closePathPopup();
   }
   if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedPlantingId) {
     deletePlanting(state.selectedPlantingId);
@@ -836,8 +849,12 @@ function finishPolyOrPath() {
     });
   } else {
     addObject({
-      type: 'path', points: state.drawing.points,
-      fill: '#b8a88a', name: 'Дорожка'
+      type: 'path',
+      points: state.drawing.points,
+      fill: '#b8a88a',
+      name: 'Дорожка',
+      skin: 'gravel',
+      densityMultiplier: 1.0
     });
   }
   state.drawing = null;

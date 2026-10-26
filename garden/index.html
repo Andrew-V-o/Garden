@@ -61,10 +61,6 @@
         <span class="icon">💧</span>Водоём
       </div>
       
-      <div class="obj-btn" data-obj="stone" onclick="setTool('stone')">
-        <span class="icon">🪨</span>Камни
-      </div>
-      
       <div class="obj-btn" data-obj="mulch" onclick="setTool('mulch')">
         <span class="icon">🟫</span>Мульча
       </div>
@@ -116,7 +112,6 @@
       ✓ Завершить
     </button>
     
-    <!-- Popup для растения -->
     <div class="plant-popup" id="plantPopup">
       <h4>🌺 Настройка цветка</h4>
       <div class="popup-row">
@@ -162,7 +157,6 @@
       </div>
     </div>
 
-    <!-- Popup для дерева -->
     <div class="plant-popup" id="treePopup">
       <h4>🌳 Настройка дерева</h4>
       <div class="popup-row">
@@ -180,7 +174,6 @@
       </div>
     </div>
 
-    <!-- Popup для декоративных объектов (водоём, камни) -->
     <div class="plant-popup" id="decorPopup">
       <h4 id="decorPopupTitle">⚙️ Настройка объекта</h4>
       <div class="popup-row">
@@ -198,8 +191,9 @@
       </div>
     </div>
 
-    <!-- Popup для мульчи — пустой контейнер, содержимое генерируется динамически -->
     <div class="plant-popup" id="mulchPopup"></div>
+
+    <div class="plant-popup" id="pathPopup"></div>
   </div>
 
   <aside class="sidebar right">
@@ -229,7 +223,7 @@
 
 <div class="hint-bar" id="hintBar">💡 Выберите инструмент или объект из панели слева.</div>
 
-<!-- Модалка создания нового растения -->
+<!-- Модалки растений, деревьев, карты цветения — без изменений из предыдущих версий -->
 <div class="modal-bg" id="plantModal">
   <div class="modal">
     <h2>🌺 Новое растение</h2>
@@ -290,7 +284,6 @@
   </div>
 </div>
 
-<!-- Модалка настроек вида растения -->
 <div class="modal-bg" id="plantSettingsModal">
   <div class="modal">
     <h2>⚙️ Настройки вида растения</h2>
@@ -352,7 +345,6 @@
   </div>
 </div>
 
-<!-- Модалка создания нового дерева -->
 <div class="modal-bg" id="treeModal">
   <div class="modal">
     <h2>🌳 Новое дерево</h2>
@@ -387,7 +379,6 @@
   </div>
 </div>
 
-<!-- Модалка настроек вида дерева -->
 <div class="modal-bg" id="treeSettingsModal">
   <div class="modal">
     <h2>⚙️ Настройки вида дерева</h2>
@@ -423,7 +414,6 @@
   </div>
 </div>
 
-<!-- Модалка карты цветения -->
 <div class="modal-bg" id="bloomMapModal">
   <div class="modal" style="width:420px;">
     <h2>🌸 Карта цветения</h2>

@@ -1462,6 +1462,105 @@ function deleteMulchFromPopup() {
   }
 }
 
+// ===== POPUP ДЛЯ ДОРОЖКИ =====
+
+function showPathPopup(pathObj) {
+  const popup = document.getElementById('pathPopup');
+  
+  const skinOptions = PATH_SKINS.map(s => 
+    `<option value="${s.id}" ${(pathObj.skin || 'gravel') === s.id ? 'selected' : ''}>${s.name}</option>`
+  ).join('');
+  
+  const densityVal = pathObj.densityMultiplier != null ? pathObj.densityMultiplier : 1.0;
+  
+  popup.innerHTML = `
+    <h4>🛤️ Настройка дорожки</h4>
+    <div class="popup-row">
+      <span>Скин:</span>
+      <select id="pathPopupSkin" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:4px;font-size:12px;">
+        ${skinOptions}
+      </select>
+    </div>
+    <div class="popup-row" style="flex-direction:column;align-items:stretch;gap:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Плотность частиц:</span>
+        <span id="pathPopupDensityVal" style="font-size:11px;color:#555;">×${densityVal.toFixed(1)}</span>
+      </div>
+      <input type="range" id="pathPopupDensity" min="0.2" max="3.0" step="0.1" value="${densityVal}" style="width:100%;">
+    </div>
+    <div class="popup-row">
+      <span>Цвет:</span>
+      <input type="color" id="pathPopupColor" value="${pathObj.fill}">
+    </div>
+    <div class="popup-buttons">
+      <button class="delete-btn" onclick="deletePathFromPopup()">🗑️ Удалить</button>
+      <button class="close-btn" onclick="closePathPopup()">✖ Закрыть</button>
+    </div>
+  `;
+  
+  // Позиционирование рядом с первой точкой дорожки
+  const pos = getRelativeScreenPos(svg, pathObj.points[0][0], pathObj.points[0][1], canvasWrap);
+  const popupWidth = 260;
+  const offset = 40;
+
+  let finalX = pos.x + offset;
+  let finalY = Math.max(10, pos.y - 30);
+
+  if (finalX + popupWidth > canvasWrap.clientWidth) {
+    finalX = pos.x - popupWidth - offset;
+  }
+
+  popup.style.left = finalX + 'px';
+  popup.style.top = finalY + 'px';
+  popup.classList.add('show');
+
+  const closeOnOutsideClick = (e) => {
+    if (!popup.contains(e.target)) {
+      closePathPopup();
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+    }
+  };
+  setTimeout(() => {
+    document.addEventListener('mousedown', closeOnOutsideClick);
+  }, 0);
+
+  document.getElementById('pathPopupSkin').onchange = (e) => {
+    pathObj.skin = e.target.value;
+    render();
+  };
+  
+  document.getElementById('pathPopupDensity').oninput = (e) => {
+    const val = parseFloat(e.target.value);
+    pathObj.densityMultiplier = val;
+    document.getElementById('pathPopupDensityVal').textContent = '×' + val.toFixed(1);
+    render();
+  };
+  
+  document.getElementById('pathPopupColor').oninput = (e) => {
+    pathObj.fill = e.target.value;
+    render();
+  };
+  
+  state.selectedId = pathObj.id;
+  render();
+}
+
+function closePathPopup() {
+  document.getElementById('pathPopup').classList.remove('show');
+}
+
+function deletePathFromPopup() {
+  if (state.selectedId) {
+    const obj = state.objects.find(o => o.id === state.selectedId);
+    if (obj && obj.type === 'path') {
+      deleteObject(state.selectedId);
+      state.selectedId = null;
+      closePathPopup();
+      render();
+    }
+  }
+}
+
 // ===== КАРТА ЦВЕТЕНИЯ =====
 
 function openBloomMap() {

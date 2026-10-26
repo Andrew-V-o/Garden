@@ -22,7 +22,6 @@ const DEFAULT_TREES = [
   { id: 'cherry', name: 'Сакура', color: '#f48fb1', custom: false, defaultShape: 'cherry', folderId: null },
 ];
 
-// ===== СКИНЫ МУЛЬЧИ =====
 const MULCH_SKINS = [
   { id: 'bark', name: 'Кора (смешанная)', baseColor: '#795548' },
   { id: 'oak_leaves', name: 'Листья дуба', baseColor: '#8d6e63' },
@@ -35,6 +34,15 @@ const MULCH_SKINS = [
   { id: 'straw', name: 'Солома', baseColor: '#f9a825' },
   { id: 'gravel', name: 'Гравий', baseColor: '#9e9e9e' },
   { id: 'pine_cones', name: 'Сосновые шишки', baseColor: '#5d4037' },
+];
+
+const PATH_SKINS = [
+  { id: 'gravel', name: 'Гравий' },
+  { id: 'sand', name: 'Песок' },
+  { id: 'cobblestone', name: 'Брусчатка' },
+  { id: 'crushed_stone', name: 'Щебень' },
+  { id: 'bark_path', name: 'Кора' },
+  { id: 'soil', name: 'Грунтовая' },
 ];
 
 const TREE_SHAPES = [
@@ -349,10 +357,18 @@ function loadTreeFolders() {
   }
 }
 
-// ===== ДЕТЕРМИНИРОВАННЫЙ "СЛУЧАЙНЫЙ" ГЕНЕРАТОР ДЛЯ ТЕКСТУР =====
-// Используется для стабильной отрисовки текстур мульчи при перерисовке
+// ===== ДЕТЕРМИНИРОВАННЫЙ ГЕНЕРАТОР ДЛЯ ТЕКСТУР =====
+
 function mulchRandom(seed) {
   let s = seed;
+  return function() {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+function particleRand(seed, index) {
+  let s = seed + index * 7919;
   return function() {
     s = (s * 9301 + 49297) % 233280;
     return s / 233280;

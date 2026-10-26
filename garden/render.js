@@ -82,296 +82,11 @@ function renderBedPolygon(obj) {
   objectsLayer.appendChild(el);
 }
 
-// ===== РЕНДЕР МУЛЬЧИ С ТЕКСТУРАМИ =====
+// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ТЕКСТУР =====
 
-function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
-  const ns = 'http://www.w3.org/2000/svg';
-  const skin = mulch.skin || 'bark';
-  const baseColor = mulch.fill;
-  
-  // Количество элементов зависит от площади мульчи
-  const area = mw * mh;
-  const density = Math.max(20, Math.min(200, Math.floor(area / 100)));
-  
-  switch (skin) {
-    case 'bark': {
-      // Кора — хаотичные прямоугольники разных размеров
-      for (let i = 0; i < density; i++) {
-        const rect = document.createElementNS(ns, 'rect');
-        const w = 3 + rand() * 8;
-        const h = 2 + rand() * 5;
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const rot = rand() * 360;
-        const shade = Math.floor(rand() * 40) - 20;
-        rect.setAttribute('x', x - w/2);
-        rect.setAttribute('y', y - h/2);
-        rect.setAttribute('width', w);
-        rect.setAttribute('height', h);
-        rect.setAttribute('fill', adjustColor(baseColor, shade));
-        rect.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
-        rect.setAttribute('rx', 1);
-        rect.setAttribute('pointer-events', 'none');
-        g.appendChild(rect);
-      }
-      break;
-    }
-    
-    case 'oak_leaves': {
-      // Листья дуба — крупные округлые формы
-      for (let i = 0; i < density * 0.6; i++) {
-        const leaf = document.createElementNS(ns, 'ellipse');
-        const rx = 5 + rand() * 8;
-        const ry = 4 + rand() * 6;
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const rot = rand() * 360;
-        const shade = Math.floor(rand() * 30) - 15;
-        leaf.setAttribute('cx', x);
-        leaf.setAttribute('cy', y);
-        leaf.setAttribute('rx', rx);
-        leaf.setAttribute('ry', ry);
-        leaf.setAttribute('fill', adjustColor(baseColor, shade));
-        leaf.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
-        leaf.setAttribute('pointer-events', 'none');
-        g.appendChild(leaf);
-        
-        // Прожилка листа
-        const vein = document.createElementNS(ns, 'line');
-        vein.setAttribute('x1', x - rx * 0.7);
-        vein.setAttribute('y1', y);
-        vein.setAttribute('x2', x + rx * 0.7);
-        vein.setAttribute('y2', y);
-        vein.setAttribute('stroke', adjustColor(baseColor, -30));
-        vein.setAttribute('stroke-width', '0.5');
-        vein.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
-        vein.setAttribute('pointer-events', 'none');
-        g.appendChild(vein);
-      }
-      break;
-    }
-    
-    case 'red_oak_leaves': {
-      // Листья краснолистного дуба — аналогично, но с красноватыми оттенками
-      for (let i = 0; i < density * 0.6; i++) {
-        const leaf = document.createElementNS(ns, 'ellipse');
-        const rx = 5 + rand() * 8;
-        const ry = 4 + rand() * 6;
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const rot = rand() * 360;
-        const colors = ['#a1524a', '#8b3a3a', '#b5594f', '#7a2e2e', '#c26b5f'];
-        leaf.setAttribute('cx', x);
-        leaf.setAttribute('cy', y);
-        leaf.setAttribute('rx', rx);
-        leaf.setAttribute('ry', ry);
-        leaf.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
-        leaf.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
-        leaf.setAttribute('pointer-events', 'none');
-        g.appendChild(leaf);
-        
-        const vein = document.createElementNS(ns, 'line');
-        vein.setAttribute('x1', x - rx * 0.7);
-        vein.setAttribute('y1', y);
-        vein.setAttribute('x2', x + rx * 0.7);
-        vein.setAttribute('y2', y);
-        vein.setAttribute('stroke', '#5a2020');
-        vein.setAttribute('stroke-width', '0.5');
-        vein.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
-        vein.setAttribute('pointer-events', 'none');
-        g.appendChild(vein);
-      }
-      break;
-    }
-    
-    case 'spruce_needles': {
-      // Иголки ели — тонкие короткие линии тёмно-коричневого цвета
-      for (let i = 0; i < density * 1.5; i++) {
-        const needle = document.createElementNS(ns, 'line');
-        const len = 3 + rand() * 5;
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const angle = rand() * Math.PI * 2;
-        const colors = ['#4e342e', '#3e2723', '#5d4037', '#2c1810'];
-        needle.setAttribute('x1', x - Math.cos(angle) * len/2);
-        needle.setAttribute('y1', y - Math.sin(angle) * len/2);
-        needle.setAttribute('x2', x + Math.cos(angle) * len/2);
-        needle.setAttribute('y2', y + Math.sin(angle) * len/2);
-        needle.setAttribute('stroke', colors[Math.floor(rand() * colors.length)]);
-        needle.setAttribute('stroke-width', '1');
-        needle.setAttribute('stroke-linecap', 'round');
-        needle.setAttribute('pointer-events', 'none');
-        g.appendChild(needle);
-      }
-      break;
-    }
-    
-    case 'pine_needles': {
-      // Иголки сосны — длинные тонкие линии рыжеватого цвета
-      for (let i = 0; i < density * 1.2; i++) {
-        const needle = document.createElementNS(ns, 'line');
-        const len = 6 + rand() * 8;
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const angle = rand() * Math.PI * 2;
-        const colors = ['#a1887f', '#8d6e63', '#bcaaa4', '#795548'];
-        needle.setAttribute('x1', x - Math.cos(angle) * len/2);
-        needle.setAttribute('y1', y - Math.sin(angle) * len/2);
-        needle.setAttribute('x2', x + Math.cos(angle) * len/2);
-        needle.setAttribute('y2', y + Math.sin(angle) * len/2);
-        needle.setAttribute('stroke', colors[Math.floor(rand() * colors.length)]);
-        needle.setAttribute('stroke-width', '0.8');
-        needle.setAttribute('stroke-linecap', 'round');
-        needle.setAttribute('pointer-events', 'none');
-        g.appendChild(needle);
-      }
-      break;
-    }
-    
-    case 'spruce_bark': {
-      // Кора ели — тёмные чешуйки
-      for (let i = 0; i < density; i++) {
-        const scale = document.createElementNS(ns, 'path');
-        const w = 4 + rand() * 6;
-        const h = 3 + rand() * 4;
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const rot = rand() * 360;
-        const colors = ['#3e2723', '#2c1810', '#4e342e', '#1b0f0a'];
-        scale.setAttribute('d', `M${x} ${y-h/2} Q${x+w/2} ${y} ${x} ${y+h/2} Q${x-w/2} ${y} ${x} ${y-h/2} Z`);
-        scale.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
-        scale.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
-        scale.setAttribute('pointer-events', 'none');
-        g.appendChild(scale);
-      }
-      break;
-    }
-    
-    case 'pine_bark': {
-      // Кора сосны — крупные красновато-коричневые чешуйки
-      for (let i = 0; i < density * 0.7; i++) {
-        const plate = document.createElementNS(ns, 'rect');
-        const w = 6 + rand() * 10;
-        const h = 4 + rand() * 7;
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const rot = rand() * 360;
-        const colors = ['#6d4c41', '#5d4037', '#795548', '#8d6e63'];
-        plate.setAttribute('x', x - w/2);
-        plate.setAttribute('y', y - h/2);
-        plate.setAttribute('width', w);
-        plate.setAttribute('height', h);
-        plate.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
-        plate.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
-        plate.setAttribute('rx', 1);
-        plate.setAttribute('pointer-events', 'none');
-        g.appendChild(plate);
-      }
-      break;
-    }
-    
-    case 'woodchips': {
-      // Щепа — мелкие прямоугольники светло-коричневого цвета
-      for (let i = 0; i < density * 1.3; i++) {
-        const chip = document.createElementNS(ns, 'rect');
-        const w = 2 + rand() * 5;
-        const h = 1 + rand() * 3;
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const rot = rand() * 360;
-        const colors = ['#bcaaa4', '#a1887f', '#d7ccc8', '#8d6e63'];
-        chip.setAttribute('x', x - w/2);
-        chip.setAttribute('y', y - h/2);
-        chip.setAttribute('width', w);
-        chip.setAttribute('height', h);
-        chip.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
-        chip.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
-        chip.setAttribute('pointer-events', 'none');
-        g.appendChild(chip);
-      }
-      break;
-    }
-    
-    case 'straw': {
-      // Солома — длинные тонкие линии жёлтого цвета
-      for (let i = 0; i < density * 1.5; i++) {
-        const straw = document.createElementNS(ns, 'line');
-        const len = 8 + rand() * 12;
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const angle = -Math.PI/4 + rand() * Math.PI/2; // Преимущественно вертикальные
-        const colors = ['#f9a825', '#fbc02d', '#f57f17', '#ff8f00'];
-        straw.setAttribute('x1', x - Math.cos(angle) * len/2);
-        straw.setAttribute('y1', y - Math.sin(angle) * len/2);
-        straw.setAttribute('x2', x + Math.cos(angle) * len/2);
-        straw.setAttribute('y2', y + Math.sin(angle) * len/2);
-        straw.setAttribute('stroke', colors[Math.floor(rand() * colors.length)]);
-        straw.setAttribute('stroke-width', '1');
-        straw.setAttribute('stroke-linecap', 'round');
-        straw.setAttribute('pointer-events', 'none');
-        g.appendChild(straw);
-      }
-      break;
-    }
-    
-    case 'gravel': {
-      // Гравий — мелкие круги серого цвета
-      for (let i = 0; i < density * 1.5; i++) {
-        const stone = document.createElementNS(ns, 'circle');
-        const r = 1.5 + rand() * 3;
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const colors = ['#9e9e9e', '#757575', '#bdbdbd', '#616161', '#424242'];
-        stone.setAttribute('cx', x);
-        stone.setAttribute('cy', y);
-        stone.setAttribute('r', r);
-        stone.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
-        stone.setAttribute('pointer-events', 'none');
-        g.appendChild(stone);
-      }
-      break;
-    }
-    
-    case 'pine_cones': {
-      // Сосновые шишки — овальные формы коричневого цвета
-      for (let i = 0; i < density * 0.3; i++) {
-        const cone = document.createElementNS(ns, 'ellipse');
-        const rx = 3 + rand() * 4;
-        const ry = 5 + rand() * 6;
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const rot = rand() * 360;
-        const colors = ['#5d4037', '#4e342e', '#6d4c41', '#3e2723'];
-        cone.setAttribute('cx', x);
-        cone.setAttribute('cy', y);
-        cone.setAttribute('rx', rx);
-        cone.setAttribute('ry', ry);
-        cone.setAttribute('fill', colors[Math.floor(rand() * colors.length)]);
-        cone.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
-        cone.setAttribute('pointer-events', 'none');
-        g.appendChild(cone);
-        
-        // Чешуйки шишки
-        for (let j = 0; j < 3; j++) {
-          const scale = document.createElementNS(ns, 'path');
-          const sy = y - ry + (j + 1) * (ry * 2 / 4);
-          scale.setAttribute('d', `M${x-rx*0.6} ${sy} Q${x} ${sy-2} ${x+rx*0.6} ${sy}`);
-          scale.setAttribute('fill', 'none');
-          scale.setAttribute('stroke', adjustColor(colors[Math.floor(rand() * colors.length)], -20));
-          scale.setAttribute('stroke-width', '0.5');
-          scale.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
-          scale.setAttribute('pointer-events', 'none');
-          g.appendChild(scale);
-        }
-      }
-      break;
-    }
-  }
-}
-
-// Вспомогательная функция для изменения яркости цвета
 function adjustColor(hex, amount) {
   hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
   let r = parseInt(hex.substr(0, 2), 16);
   let g = parseInt(hex.substr(2, 2), 16);
   let b = parseInt(hex.substr(4, 2), 16);
@@ -379,6 +94,958 @@ function adjustColor(hex, amount) {
   g = Math.max(0, Math.min(255, g + amount));
   b = Math.max(0, Math.min(255, b + amount));
   return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+}
+
+function mulchRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+// ===== ЛИСТ ДУБА (группа SVG: тело-эллипс + круглые лопасти) =====
+function drawOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
+  const leafG = document.createElementNS(ns, 'g');
+  leafG.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+  
+  const bodyRx = size * 0.32;
+  const bodyRy = size * 0.65;
+  
+  // Тело листа — вытянутый эллипс
+  const body = document.createElementNS(ns, 'ellipse');
+  body.setAttribute('cx', 0);
+  body.setAttribute('cy', 0);
+  body.setAttribute('rx', bodyRx);
+  body.setAttribute('ry', bodyRy);
+  body.setAttribute('fill', color);
+  leafG.appendChild(body);
+  
+  // Лопасти — круглые выступы по бокам
+  const lobeCount = 4 + Math.floor(rand() * 2); // 4-5 пар
+  for (let i = 0; i < lobeCount; i++) {
+    const t = (i + 0.5) / lobeCount; // 0..1 по длине листа
+    const ly = -bodyRy * 0.85 + t * bodyRy * 1.7;
+    
+    // Конверт — лопасти крупнее в середине листа
+    const env = Math.sin(t * Math.PI);
+    const lobeR = size * 0.22 * env * (0.7 + rand() * 0.4);
+    const lobeX = bodyRx * 0.7 * env + lobeR * 0.3;
+    
+    if (lobeR < 1) continue;
+    
+    // Правая лопасть
+    const lobeR1 = document.createElementNS(ns, 'circle');
+    lobeR1.setAttribute('cx', lobeX);
+    lobeR1.setAttribute('cy', ly);
+    lobeR1.setAttribute('r', lobeR);
+    lobeR1.setAttribute('fill', color);
+    leafG.appendChild(lobeR1);
+    
+    // Левая лопасть
+    const lobeL1 = document.createElementNS(ns, 'circle');
+    lobeL1.setAttribute('cx', -lobeX);
+    lobeL1.setAttribute('cy', ly);
+    lobeL1.setAttribute('r', lobeR);
+    lobeL1.setAttribute('fill', color);
+    leafG.appendChild(lobeL1);
+  }
+  
+  // Обводка листа (объединяет все элементы визуально)
+  const outline = document.createElementNS(ns, 'ellipse');
+  outline.setAttribute('cx', 0);
+  outline.setAttribute('cy', 0);
+  outline.setAttribute('rx', bodyRx + 0.3);
+  outline.setAttribute('ry', bodyRy + 0.3);
+  outline.setAttribute('fill', 'none');
+  outline.setAttribute('stroke', adjustColor(color, -40));
+  outline.setAttribute('stroke-width', '0.4');
+  leafG.appendChild(outline);
+  
+  // Центральная жилка
+  const mainVein = document.createElementNS(ns, 'line');
+  mainVein.setAttribute('x1', 0);
+  mainVein.setAttribute('y1', -bodyRy * 0.9);
+  mainVein.setAttribute('x2', 0);
+  mainVein.setAttribute('y2', bodyRy * 0.9);
+  mainVein.setAttribute('stroke', adjustColor(color, -50));
+  mainVein.setAttribute('stroke-width', '0.7');
+  leafG.appendChild(mainVein);
+  
+  // Боковые жилки — к каждой паре лопастей
+  for (let i = 0; i < lobeCount; i++) {
+    const t = (i + 0.5) / lobeCount;
+    const vy = -bodyRy * 0.8 + t * bodyRy * 1.6;
+    const env = Math.sin(t * Math.PI);
+    const vLen = bodyRx * 1.5 * env;
+    
+    if (vLen < 2) continue;
+    
+    // Вправо
+    const vR = document.createElementNS(ns, 'line');
+    vR.setAttribute('x1', 0);
+    vR.setAttribute('y1', vy);
+    vR.setAttribute('x2', vLen);
+    vR.setAttribute('y2', vy - vLen * 0.25);
+    vR.setAttribute('stroke', adjustColor(color, -35));
+    vR.setAttribute('stroke-width', '0.35');
+    leafG.appendChild(vR);
+    
+    // Влево
+    const vL = document.createElementNS(ns, 'line');
+    vL.setAttribute('x1', 0);
+    vL.setAttribute('y1', vy);
+    vL.setAttribute('x2', -vLen);
+    vL.setAttribute('y2', vy - vLen * 0.25);
+    vL.setAttribute('stroke', adjustColor(color, -35));
+    vL.setAttribute('stroke-width', '0.35');
+    leafG.appendChild(vL);
+  }
+  
+  g.appendChild(leafG);
+}
+
+// ===== ЛИСТ КРАСНОГО ДУБА (более острые и глубокие лопасти) =====
+function drawRedOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
+  const leafG = document.createElementNS(ns, 'g');
+  leafG.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+  
+  const bodyRx = size * 0.3;
+  const bodyRy = size * 0.7;
+  
+  // Тело — более вытянутое
+  const body = document.createElementNS(ns, 'ellipse');
+  body.setAttribute('cx', 0);
+  body.setAttribute('cy', 0);
+  body.setAttribute('rx', bodyRx);
+  body.setAttribute('ry', bodyRy);
+  body.setAttribute('fill', color);
+  leafG.appendChild(body);
+  
+  // Лопасти — больше пар, более острые (эллипсы вместо кругов)
+  const lobeCount = 5 + Math.floor(rand() * 2); // 5-6 пар
+  for (let i = 0; i < lobeCount; i++) {
+    const t = (i + 0.5) / lobeCount;
+    const ly = -bodyRy * 0.88 + t * bodyRy * 1.76;
+    
+    const env = Math.sin(t * Math.PI);
+    const lobeRx = size * 0.18 * env * (0.7 + rand() * 0.4);
+    const lobeRy = size * 0.12 * env * (0.7 + rand() * 0.3);
+    const lobeX = bodyRx * 0.8 * env + lobeRx * 0.4;
+    
+    if (lobeRx < 0.8) continue;
+    
+    // Правая лопасть (вытянутый эллипс — острее)
+    const lobeR1 = document.createElementNS(ns, 'ellipse');
+    lobeR1.setAttribute('cx', lobeX);
+    lobeR1.setAttribute('cy', ly);
+    lobeR1.setAttribute('rx', lobeRx);
+    lobeR1.setAttribute('ry', lobeRy);
+    lobeR1.setAttribute('fill', color);
+    leafG.appendChild(lobeR1);
+    
+    // Левая лопасть
+    const lobeL1 = document.createElementNS(ns, 'ellipse');
+    lobeL1.setAttribute('cx', -lobeX);
+    lobeL1.setAttribute('cy', ly);
+    lobeL1.setAttribute('rx', lobeRx);
+    lobeL1.setAttribute('ry', lobeRy);
+    lobeL1.setAttribute('fill', color);
+    leafG.appendChild(lobeL1);
+  }
+  
+  // Обводка
+  const outline = document.createElementNS(ns, 'ellipse');
+  outline.setAttribute('cx', 0);
+  outline.setAttribute('cy', 0);
+  outline.setAttribute('rx', bodyRx + 0.3);
+  outline.setAttribute('ry', bodyRy + 0.3);
+  outline.setAttribute('fill', 'none');
+  outline.setAttribute('stroke', adjustColor(color, -35));
+  outline.setAttribute('stroke-width', '0.4');
+  leafG.appendChild(outline);
+  
+  // Центральная жилка
+  const mainVein = document.createElementNS(ns, 'line');
+  mainVein.setAttribute('x1', 0);
+  mainVein.setAttribute('y1', -bodyRy * 0.92);
+  mainVein.setAttribute('x2', 0);
+  mainVein.setAttribute('y2', bodyRy * 0.92);
+  mainVein.setAttribute('stroke', adjustColor(color, -45));
+  mainVein.setAttribute('stroke-width', '0.7');
+  leafG.appendChild(mainVein);
+  
+  // Боковые жилки
+  for (let i = 0; i < lobeCount; i++) {
+    const t = (i + 0.5) / lobeCount;
+    const vy = -bodyRy * 0.85 + t * bodyRy * 1.7;
+    const env = Math.sin(t * Math.PI);
+    const vLen = bodyRx * 1.8 * env;
+    
+    if (vLen < 2) continue;
+    
+    const vR = document.createElementNS(ns, 'line');
+    vR.setAttribute('x1', 0);
+    vR.setAttribute('y1', vy);
+    vR.setAttribute('x2', vLen);
+    vR.setAttribute('y2', vy - vLen * 0.35);
+    vR.setAttribute('stroke', adjustColor(color, -30));
+    vR.setAttribute('stroke-width', '0.3');
+    leafG.appendChild(vR);
+    
+    const vL = document.createElementNS(ns, 'line');
+    vL.setAttribute('x1', 0);
+    vL.setAttribute('y1', vy);
+    vL.setAttribute('x2', -vLen);
+    vL.setAttribute('y2', vy - vLen * 0.35);
+    vL.setAttribute('stroke', adjustColor(color, -30));
+    vL.setAttribute('stroke-width', '0.3');
+    leafG.appendChild(vL);
+  }
+  
+  g.appendChild(leafG);
+}
+
+// ===== РЕНДЕР МУЛЬЧИ С ТЕКСТУРАМИ =====
+
+function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const skin = mulch.skin || 'bark';
+  const baseColor = mulch.fill;
+  
+  const area = mw * mh;
+  const density = Math.max(20, Math.min(200, Math.floor(area / 80)));
+  
+  switch (skin) {
+    
+    // ===== КОРА СМЕШАННАЯ =====
+    case 'bark': {
+      const barkColors = ['#6D4C41', '#5D4037', '#795548', '#4E342E', '#8D6E63', '#3E2723'];
+      
+      for (let i = 0; i < density * 1.2; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const w = 5 + rand() * 12;
+        const h = 3 + rand() * 6;
+        const rot = rand() * 360;
+        const color = barkColors[Math.floor(rand() * barkColors.length)];
+        
+        const bark = document.createElementNS(ns, 'path');
+        const jag = 0.25;
+        const d = `M ${-w/2 + rand()*w*jag} ${-h/2}
+                   L ${-w/4 + rand()*w*jag} ${-h/2 + rand()*h*0.2}
+                   L ${0} ${-h/2 + rand()*h*0.15}
+                   L ${w/4 - rand()*w*jag} ${-h/2 + rand()*h*0.2}
+                   L ${w/2 - rand()*w*jag} ${-h/2}
+                   L ${w/2} ${-h/4 + rand()*h*0.2}
+                   L ${w/2 - rand()*w*0.1} ${0}
+                   L ${w/2} ${h/4 - rand()*h*0.2}
+                   L ${w/2 - rand()*w*jag} ${h/2}
+                   L ${w/4} ${h/2 - rand()*h*0.15}
+                   L ${0} ${h/2}
+                   L ${-w/4} ${h/2 - rand()*h*0.2}
+                   L ${-w/2 + rand()*w*jag} ${h/2}
+                   L ${-w/2} ${h/4}
+                   L ${-w/2 + rand()*w*0.1} ${0}
+                   L ${-w/2} ${-h/4}
+                   Z`;
+        bark.setAttribute('d', d);
+        bark.setAttribute('fill', color);
+        bark.setAttribute('stroke', adjustColor(color, -35));
+        bark.setAttribute('stroke-width', '0.4');
+        bark.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+        bark.setAttribute('pointer-events', 'none');
+        g.appendChild(bark);
+        
+        if (rand() > 0.4) {
+          const grainCount = 1 + Math.floor(rand() * 3);
+          for (let j = 0; j < grainCount; j++) {
+            const grain = document.createElementNS(ns, 'line');
+            const gy = -h/2 + rand() * h;
+            grain.setAttribute('x1', -w/2 + 1);
+            grain.setAttribute('y1', gy);
+            grain.setAttribute('x2', w/2 - 1);
+            grain.setAttribute('y2', gy + (rand() - 0.5) * 2);
+            grain.setAttribute('stroke', adjustColor(color, -20));
+            grain.setAttribute('stroke-width', '0.3');
+            grain.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+            grain.setAttribute('pointer-events', 'none');
+            g.appendChild(grain);
+          }
+        }
+      }
+      break;
+    }
+    
+    // ===== ЛИСТЬЯ ДУБА (переработано) =====
+    case 'oak_leaves': {
+      const leafColors = ['#B8860B', '#A0722A', '#8B6914', '#9B7B3A', '#7A5C28', '#C49A2A', '#6B4E1D', '#D4A84A', '#AA8030'];
+      
+      // Значительно увеличена плотность — листья должны лежать густо, перекрываясь
+      for (let i = 0; i < density * 1.2; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const size = 8 + rand() * 12; // крупные листья 8-20px
+        const rot = rand() * 360;
+        const color = leafColors[Math.floor(rand() * leafColors.length)];
+        const shade = Math.floor(rand() * 30) - 15;
+        const leafColor = adjustColor(color, shade);
+        
+        drawOakLeafGroup(g, ns, x, y, size, rot, leafColor, rand);
+      }
+      
+      // Мелкие обрывки и фрагменты листьев для реалистичности
+      for (let i = 0; i < density * 0.5; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const size = 2 + rand() * 4;
+        const rot = rand() * 360;
+        const color = leafColors[Math.floor(rand() * leafColors.length)];
+        
+        const fragment = document.createElementNS(ns, 'ellipse');
+        fragment.setAttribute('cx', x);
+        fragment.setAttribute('cy', y);
+        fragment.setAttribute('rx', size);
+        fragment.setAttribute('ry', size * 0.4);
+        fragment.setAttribute('fill', adjustColor(color, -20));
+        fragment.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        fragment.setAttribute('pointer-events', 'none');
+        g.appendChild(fragment);
+      }
+      break;
+    }
+    
+    // ===== ЛИСТЬЯ КРАСНОГО ДУБА (переработано) =====
+    case 'red_oak_leaves': {
+      const leafColors = ['#8B2500', '#A52A2A', '#B22222', '#CD3333', '#8B3A3A', '#A0522D', '#9B1B1B', '#7A1F1F', '#C04040'];
+      
+      for (let i = 0; i < density * 1.2; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const size = 8 + rand() * 12;
+        const rot = rand() * 360;
+        const color = leafColors[Math.floor(rand() * leafColors.length)];
+        const shade = Math.floor(rand() * 30) - 15;
+        const leafColor = adjustColor(color, shade);
+        
+        drawRedOakLeafGroup(g, ns, x, y, size, rot, leafColor, rand);
+      }
+      
+      for (let i = 0; i < density * 0.5; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const size = 2 + rand() * 4;
+        const rot = rand() * 360;
+        const color = leafColors[Math.floor(rand() * leafColors.length)];
+        
+        const fragment = document.createElementNS(ns, 'ellipse');
+        fragment.setAttribute('cx', x);
+        fragment.setAttribute('cy', y);
+        fragment.setAttribute('rx', size);
+        fragment.setAttribute('ry', size * 0.4);
+        fragment.setAttribute('fill', adjustColor(color, -20));
+        fragment.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        fragment.setAttribute('pointer-events', 'none');
+        g.appendChild(fragment);
+      }
+      break;
+    }
+    
+    // ===== ИГОЛКИ ЕЛИ (переработано — гуще, реалистичнее) =====
+    case 'spruce_needles': {
+      const needleColors = ['#2C1810', '#3E2723', '#4E342E', '#1B0F0A', '#33261E', '#261A12'];
+      
+      // Очень густой слой иголок — еловая хвоя опадает плотно
+      for (let i = 0; i < density * 8; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const len = 2.5 + rand() * 4; // короткие иголки 2.5-6.5px
+        const angle = rand() * Math.PI * 2;
+        const color = needleColors[Math.floor(rand() * needleColors.length)];
+        
+        // Иголка — заострённая линия (через path, не line)
+        const x1 = x - Math.cos(angle) * len * 0.4;
+        const y1 = y - Math.sin(angle) * len * 0.4;
+        const x2 = x + Math.cos(angle) * len * 0.6;
+        const y2 = y + Math.sin(angle) * len * 0.6;
+        
+        const needle = document.createElementNS(ns, 'path');
+        needle.setAttribute('d', `M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`);
+        needle.setAttribute('stroke', color);
+        needle.setAttribute('stroke-width', '1.0');
+        needle.setAttribute('stroke-linecap', 'round');
+        needle.setAttribute('pointer-events', 'none');
+        g.appendChild(needle);
+      }
+      
+      // Мелкие веточки — более заметные
+      for (let i = 0; i < density * 0.6; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const len = 6 + rand() * 12;
+        const angle = rand() * Math.PI * 2;
+        
+        const twig = document.createElementNS(ns, 'line');
+        twig.setAttribute('x1', x - Math.cos(angle) * len/2);
+        twig.setAttribute('y1', y - Math.sin(angle) * len/2);
+        twig.setAttribute('x2', x + Math.cos(angle) * len/2);
+        twig.setAttribute('y2', y + Math.sin(angle) * len/2);
+        twig.setAttribute('stroke', '#5D4037');
+        twig.setAttribute('stroke-width', '1.0');
+        twig.setAttribute('stroke-linecap', 'round');
+        twig.setAttribute('pointer-events', 'none');
+        g.appendChild(twig);
+        
+        // Ответвления от веточки
+        const branches = 2 + Math.floor(rand() * 3);
+        for (let j = 0; j < branches; j++) {
+          const t = 0.2 + rand() * 0.6;
+          const bx = x - Math.cos(angle) * len/2 + Math.cos(angle) * len * t;
+          const by = y - Math.sin(angle) * len/2 + Math.sin(angle) * len * t;
+          const brAngle = angle + (rand() > 0.5 ? 1 : -1) * (Math.PI/3 + rand() * Math.PI/6);
+          const brLen = 2 + rand() * 4;
+          
+          const branch = document.createElementNS(ns, 'line');
+          branch.setAttribute('x1', bx);
+          branch.setAttribute('y1', by);
+          branch.setAttribute('x2', bx + Math.cos(brAngle) * brLen);
+          branch.setAttribute('y2', by + Math.sin(brAngle) * brLen);
+          branch.setAttribute('stroke', '#4E342E');
+          branch.setAttribute('stroke-width', '0.6');
+          branch.setAttribute('stroke-linecap', 'round');
+          branch.setAttribute('pointer-events', 'none');
+          g.appendChild(branch);
+        }
+      }
+      
+      // Тёмные "подушечки" у оснований иголок
+      for (let i = 0; i < density * 0.5; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const pad = document.createElementNS(ns, 'circle');
+        pad.setAttribute('cx', x);
+        pad.setAttribute('cy', y);
+        pad.setAttribute('r', 0.8 + rand() * 1.0);
+        pad.setAttribute('fill', '#1B0F0A');
+        pad.setAttribute('pointer-events', 'none');
+        g.appendChild(pad);
+      }
+      break;
+    }
+    
+    // ===== ИГОЛКИ СОСНЫ (переработано — гуще, пучки заметнее) =====
+    case 'pine_needles': {
+      const needleColors = ['#A1887F', '#8D6E63', '#BCAAA4', '#795548', '#D7CCC8', '#B09080'];
+      
+      // Пучки иголок — плотнее, пучки крупнее
+      for (let i = 0; i < density * 2.5; i++) {
+        const bx = mx - mw/2 + rand() * mw;
+        const by = my - mh/2 + rand() * mh;
+        const bundleAngle = rand() * Math.PI * 2;
+        const needlesInBundle = 3 + Math.floor(rand() * 3); // 3-5 иголок в пучке
+        
+        // Основание пучка — рыжий узелок
+        const base = document.createElementNS(ns, 'circle');
+        base.setAttribute('cx', bx);
+        base.setAttribute('cy', by);
+        base.setAttribute('r', 1.2 + rand() * 0.6);
+        base.setAttribute('fill', '#8B4513');
+        base.setAttribute('pointer-events', 'none');
+        g.appendChild(base);
+        
+        // Чешуйка у основания пучка
+        const sheath = document.createElementNS(ns, 'ellipse');
+        sheath.setAttribute('cx', bx);
+        sheath.setAttribute('cy', by);
+        sheath.setAttribute('rx', 1.5);
+        sheath.setAttribute('ry', 1);
+        sheath.setAttribute('fill', '#6D4C41');
+        sheath.setAttribute('transform', `rotate(${bundleAngle * 180 / Math.PI} ${bx} ${by})`);
+        sheath.setAttribute('pointer-events', 'none');
+        g.appendChild(sheath);
+        
+        for (let j = 0; j < needlesInBundle; j++) {
+          const len = 10 + rand() * 14; // длинные иголки 10-24px
+          const spread = (j - needlesInBundle/2) * 0.2;
+          const angle = bundleAngle + spread;
+          const color = needleColors[Math.floor(rand() * needleColors.length)];
+          
+          const x1 = bx;
+          const y1 = by;
+          const x2 = bx + Math.cos(angle) * len;
+          const y2 = by + Math.sin(angle) * len;
+          // Лёгкий изгиб
+          const cpx = (x1 + x2) / 2 + Math.cos(angle + Math.PI/2) * (rand() - 0.5) * 3;
+          const cpy = (y1 + y2) / 2 + Math.sin(angle + Math.PI/2) * (rand() - 0.5) * 3;
+          
+          const needle = document.createElementNS(ns, 'path');
+          needle.setAttribute('d', `M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cpx.toFixed(1)} ${cpy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`);
+          needle.setAttribute('stroke', color);
+          needle.setAttribute('stroke-width', '0.9');
+          needle.setAttribute('stroke-linecap', 'round');
+          needle.setAttribute('fill', 'none');
+          needle.setAttribute('pointer-events', 'none');
+          g.appendChild(needle);
+        }
+      }
+      
+      // Мелкие кусочки коры между пучками
+      for (let i = 0; i < density * 0.3; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const size = 1 + rand() * 3;
+        const rot = rand() * 360;
+        
+        const chip = document.createElementNS(ns, 'rect');
+        chip.setAttribute('x', -size);
+        chip.setAttribute('y', -size/2);
+        chip.setAttribute('width', size * 2);
+        chip.setAttribute('height', size);
+        chip.setAttribute('fill', '#6D4C41');
+        chip.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+        chip.setAttribute('pointer-events', 'none');
+        g.appendChild(chip);
+      }
+      break;
+    }
+    
+    // ===== КОРА ЕЛИ =====
+    case 'spruce_bark': {
+      const barkColors = ['#3E2723', '#2C1810', '#4E342E', '#1B0F0A', '#33261E', '#2A1A12'];
+      
+      for (let layer = 0; layer < 2; layer++) {
+        for (let i = 0; i < density * 0.8; i++) {
+          const x = mx - mw/2 + rand() * mw;
+          const y = my - mh/2 + rand() * mh;
+          const w = 3 + rand() * 7;
+          const h = 2 + rand() * 5;
+          const rot = rand() * 360;
+          const color = barkColors[Math.floor(rand() * barkColors.length)];
+          
+          const scale = document.createElementNS(ns, 'path');
+          const d = `M 0 ${-h/2} 
+                     Q ${w*0.5} ${-h*0.4} ${w/2} 0 
+                     Q ${w*0.4} ${h*0.4} 0 ${h/2} 
+                     Q ${-w*0.4} ${h*0.3} ${-w/2} 0 
+                     Q ${-w*0.4} ${-h*0.3} 0 ${-h/2} Z`;
+          scale.setAttribute('d', d);
+          scale.setAttribute('fill', color);
+          scale.setAttribute('stroke', adjustColor(color, -20));
+          scale.setAttribute('stroke-width', '0.3');
+          scale.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+          scale.setAttribute('pointer-events', 'none');
+          g.appendChild(scale);
+          
+          if (rand() > 0.5) {
+            const shadow = document.createElementNS(ns, 'path');
+            const sd = `M ${-w/2 + 1} ${h/2 - 1} Q 0 ${h/2 + 1} ${w/2 - 1} ${h/2 - 1}`;
+            shadow.setAttribute('d', sd);
+            shadow.setAttribute('stroke', '#000000');
+            shadow.setAttribute('stroke-width', '0.4');
+            shadow.setAttribute('fill', 'none');
+            shadow.setAttribute('opacity', '0.3');
+            shadow.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+            shadow.setAttribute('pointer-events', 'none');
+            g.appendChild(shadow);
+          }
+        }
+      }
+      break;
+    }
+    
+    // ===== КОРА СОСНЫ =====
+    case 'pine_bark': {
+      const barkColors = ['#6D4C41', '#5D4037', '#795548', '#8D6E63', '#A1887F', '#8B5A3C'];
+      
+      for (let i = 0; i < density * 0.5; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const w = 10 + rand() * 16;
+        const h = 6 + rand() * 12;
+        const rot = rand() * 360;
+        const color = barkColors[Math.floor(rand() * barkColors.length)];
+        
+        const plate = document.createElementNS(ns, 'path');
+        const jag = 0.15;
+        const d = `M ${-w/2 + rand()*w*jag} ${-h/2 + rand()*h*jag}
+                   L ${-w/4} ${-h/2}
+                   L ${w/4 - rand()*w*jag} ${-h/2 + rand()*h*jag}
+                   L ${w/2} ${-h/4}
+                   L ${w/2 - rand()*w*jag} ${h/4}
+                   L ${w/4} ${h/2}
+                   L ${-w/4 + rand()*w*jag} ${h/2 - rand()*h*jag}
+                   L ${-w/2} ${h/4}
+                   Z`;
+        plate.setAttribute('d', d);
+        plate.setAttribute('fill', color);
+        plate.setAttribute('stroke', adjustColor(color, -40));
+        plate.setAttribute('stroke-width', '0.7');
+        plate.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+        plate.setAttribute('pointer-events', 'none');
+        g.appendChild(plate);
+        
+        const highlight = document.createElementNS(ns, 'path');
+        highlight.setAttribute('d', `M ${-w/2 + 2} ${-h/2 + 1} L ${w/2 - 2} ${-h/2 + 1}`);
+        highlight.setAttribute('stroke', adjustColor(color, 25));
+        highlight.setAttribute('stroke-width', '0.5');
+        highlight.setAttribute('fill', 'none');
+        highlight.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+        highlight.setAttribute('pointer-events', 'none');
+        g.appendChild(highlight);
+        
+        const crackCount = 2 + Math.floor(rand() * 3);
+        for (let j = 0; j < crackCount; j++) {
+          const crack = document.createElementNS(ns, 'path');
+          const cx = -w/2 + rand() * w;
+          const cy = -h/2 + rand() * h;
+          const len = 3 + rand() * (w * 0.5);
+          const angle = rand() * Math.PI;
+          const cd = `M ${cx} ${cy} 
+                      Q ${cx + Math.cos(angle) * len/2 + (rand()-0.5)*2} ${cy + Math.sin(angle) * len/2 + (rand()-0.5)*2} 
+                      ${cx + Math.cos(angle) * len} ${cy + Math.sin(angle) * len}`;
+          crack.setAttribute('d', cd);
+          crack.setAttribute('stroke', adjustColor(color, -50));
+          crack.setAttribute('stroke-width', '0.6');
+          crack.setAttribute('fill', 'none');
+          crack.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+          crack.setAttribute('pointer-events', 'none');
+          g.appendChild(crack);
+        }
+      }
+      
+      for (let i = 0; i < density * 0.3; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const dot = document.createElementNS(ns, 'circle');
+        dot.setAttribute('cx', x);
+        dot.setAttribute('cy', y);
+        dot.setAttribute('r', 1 + rand() * 2);
+        dot.setAttribute('fill', '#1B0F0A');
+        dot.setAttribute('opacity', '0.6');
+        dot.setAttribute('pointer-events', 'none');
+        g.appendChild(dot);
+      }
+      break;
+    }
+    
+    // ===== ЩЕПА =====
+    case 'woodchips': {
+      const chipColors = ['#BCAAA4', '#A1887F', '#D7CCC8', '#8D6E63', '#EFEBE9', '#C9B8A8'];
+      
+      for (let i = 0; i < density * 2.0; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const w = 2 + rand() * 8;
+        const h = 1 + rand() * 4;
+        const rot = rand() * 360;
+        const color = chipColors[Math.floor(rand() * chipColors.length)];
+        
+        const chip = document.createElementNS(ns, 'path');
+        const isPointed = rand() > 0.5;
+        let d;
+        if (isPointed) {
+          d = `M ${-w/2} 0 L ${-w/4} ${-h/2} L ${w/4} ${-h/2 + rand()*h*0.3} L ${w/2} 0 L ${w/4} ${h/2} L ${-w/4} ${h/2 - rand()*h*0.3} Z`;
+        } else {
+          d = `M ${-w/2} ${-h/2 + rand()*h*0.2} L ${w/2 - rand()*w*0.1} ${-h/2} L ${w/2} ${h/2 - rand()*h*0.2} L ${-w/2 + rand()*w*0.1} ${h/2} Z`;
+        }
+        chip.setAttribute('d', d);
+        chip.setAttribute('fill', color);
+        chip.setAttribute('stroke', adjustColor(color, -25));
+        chip.setAttribute('stroke-width', '0.3');
+        chip.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+        chip.setAttribute('pointer-events', 'none');
+        g.appendChild(chip);
+        
+        const grainCount = 1 + Math.floor(rand() * 2);
+        for (let j = 0; j < grainCount; j++) {
+          const grain = document.createElementNS(ns, 'line');
+          const gy = -h/2 + rand() * h;
+          grain.setAttribute('x1', -w/2 + 1);
+          grain.setAttribute('y1', gy);
+          grain.setAttribute('x2', w/2 - 1);
+          grain.setAttribute('y2', gy + (rand() - 0.5));
+          grain.setAttribute('stroke', adjustColor(color, -15));
+          grain.setAttribute('stroke-width', '0.2');
+          grain.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+          grain.setAttribute('pointer-events', 'none');
+          g.appendChild(grain);
+        }
+        
+        if (rand() > 0.7) {
+          const barkEdge = document.createElementNS(ns, 'line');
+          barkEdge.setAttribute('x1', -w/2);
+          barkEdge.setAttribute('y1', -h/2);
+          barkEdge.setAttribute('x2', -w/2);
+          barkEdge.setAttribute('y2', h/2);
+          barkEdge.setAttribute('stroke', '#5D4037');
+          barkEdge.setAttribute('stroke-width', '0.8');
+          barkEdge.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+          barkEdge.setAttribute('pointer-events', 'none');
+          g.appendChild(barkEdge);
+        }
+      }
+      break;
+    }
+    
+    // ===== СОЛОМА =====
+    case 'straw': {
+      const strawColors = ['#F9A825', '#FBC02D', '#F57F17', '#FF8F00', '#FFB300', '#E8A020', '#D4A017'];
+      
+      for (let i = 0; i < density * 2.5; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const len = 12 + rand() * 18;
+        const baseAngle = -Math.PI/2 + (rand() - 0.5) * Math.PI * 0.8;
+        const angle = baseAngle + (rand() - 0.5) * 0.3;
+        const color = strawColors[Math.floor(rand() * strawColors.length)];
+        
+        const x1 = x - Math.cos(angle) * len/2;
+        const y1 = y - Math.sin(angle) * len/2;
+        const x2 = x + Math.cos(angle) * len/2;
+        const y2 = y + Math.sin(angle) * len/2;
+        const bend = (rand() - 0.5) * len * 0.3;
+        const cpx = x + Math.cos(angle + Math.PI/2) * bend;
+        const cpy = y + Math.sin(angle + Math.PI/2) * bend;
+        
+        const straw = document.createElementNS(ns, 'path');
+        straw.setAttribute('d', `M ${x1} ${y1} Q ${cpx} ${cpy} ${x2} ${y2}`);
+        straw.setAttribute('stroke', color);
+        straw.setAttribute('stroke-width', '1.3');
+        straw.setAttribute('stroke-linecap', 'round');
+        straw.setAttribute('fill', 'none');
+        straw.setAttribute('pointer-events', 'none');
+        g.appendChild(straw);
+        
+        const nodeCount = 1 + Math.floor(rand() * 2);
+        for (let j = 0; j < nodeCount; j++) {
+          const t = 0.2 + rand() * 0.6;
+          const nodeX = x1 + (x2 - x1) * t + (cpx - x) * 2 * t * (1-t);
+          const nodeY = y1 + (y2 - y1) * t + (cpy - y) * 2 * t * (1-t);
+          const node = document.createElementNS(ns, 'ellipse');
+          node.setAttribute('cx', nodeX);
+          node.setAttribute('cy', nodeY);
+          node.setAttribute('rx', '1.3');
+          node.setAttribute('ry', '0.8');
+          node.setAttribute('fill', adjustColor(color, -30));
+          node.setAttribute('transform', `rotate(${angle * 180 / Math.PI} ${nodeX} ${nodeY})`);
+          node.setAttribute('pointer-events', 'none');
+          g.appendChild(node);
+        }
+        
+        if (rand() > 0.7) {
+          const tipX = x2;
+          const tipY = y2;
+          const bristles = 3 + Math.floor(rand() * 3);
+          for (let j = 0; j < bristles; j++) {
+            const brAngle = angle + (j - bristles/2) * 0.2;
+            const brLen = 2 + rand() * 3;
+            const bristle = document.createElementNS(ns, 'line');
+            bristle.setAttribute('x1', tipX);
+            bristle.setAttribute('y1', tipY);
+            bristle.setAttribute('x2', tipX + Math.cos(brAngle) * brLen);
+            bristle.setAttribute('y2', tipY + Math.sin(brAngle) * brLen);
+            bristle.setAttribute('stroke', adjustColor(color, -10));
+            bristle.setAttribute('stroke-width', '0.5');
+            bristle.setAttribute('stroke-linecap', 'round');
+            bristle.setAttribute('pointer-events', 'none');
+            g.appendChild(bristle);
+          }
+        }
+      }
+      break;
+    }
+    
+    // ===== ГРАВИЙ =====
+    case 'gravel': {
+      const gravelColors = ['#9E9E9E', '#757575', '#BDBDBD', '#616161', '#424242', '#A8A8A8', '#8A8A8A'];
+      
+      for (let i = 0; i < density * 2.5; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const r = 1.5 + rand() * 4.5;
+        const color = gravelColors[Math.floor(rand() * gravelColors.length)];
+        const isAngular = rand() > 0.5;
+        
+        if (isAngular) {
+          const stone = document.createElementNS(ns, 'path');
+          const points = 5 + Math.floor(rand() * 3);
+          let d = '';
+          for (let j = 0; j < points; j++) {
+            const a = (j / points) * Math.PI * 2;
+            const rr = r * (0.6 + rand() * 0.5);
+            const px = x + Math.cos(a) * rr;
+            const py = y + Math.sin(a) * rr;
+            d += (j === 0 ? 'M' : 'L') + ` ${px.toFixed(2)} ${py.toFixed(2)} `;
+          }
+          d += 'Z';
+          stone.setAttribute('d', d);
+          stone.setAttribute('fill', color);
+          stone.setAttribute('stroke', adjustColor(color, -30));
+          stone.setAttribute('stroke-width', '0.3');
+          stone.setAttribute('pointer-events', 'none');
+          g.appendChild(stone);
+        } else {
+          const stone = document.createElementNS(ns, 'ellipse');
+          stone.setAttribute('cx', x);
+          stone.setAttribute('cy', y);
+          stone.setAttribute('rx', r * (0.7 + rand() * 0.6));
+          stone.setAttribute('ry', r * (0.6 + rand() * 0.5));
+          stone.setAttribute('fill', color);
+          stone.setAttribute('stroke', adjustColor(color, -25));
+          stone.setAttribute('stroke-width', '0.3');
+          stone.setAttribute('transform', `rotate(${rand() * 360} ${x} ${y})`);
+          stone.setAttribute('pointer-events', 'none');
+          g.appendChild(stone);
+        }
+        
+        if (rand() > 0.4) {
+          const highlight = document.createElementNS(ns, 'circle');
+          highlight.setAttribute('cx', x - r * 0.25);
+          highlight.setAttribute('cy', y - r * 0.25);
+          highlight.setAttribute('r', r * 0.25);
+          highlight.setAttribute('fill', adjustColor(color, 40));
+          highlight.setAttribute('opacity', '0.5');
+          highlight.setAttribute('pointer-events', 'none');
+          g.appendChild(highlight);
+        }
+        
+        if (rand() > 0.6) {
+          const shadow = document.createElementNS(ns, 'ellipse');
+          shadow.setAttribute('cx', x + r * 0.2);
+          shadow.setAttribute('cy', y + r * 0.3);
+          shadow.setAttribute('rx', r * 0.8);
+          shadow.setAttribute('ry', r * 0.3);
+          shadow.setAttribute('fill', '#000000');
+          shadow.setAttribute('opacity', '0.15');
+          shadow.setAttribute('pointer-events', 'none');
+          g.appendChild(shadow);
+        }
+      }
+      break;
+    }
+    
+    // ===== СОСНОВЫЕ ШИШКИ (полностью переработано) =====
+    case 'pine_cones': {
+      const coneColors = ['#5D4037', '#4E342E', '#6D4C41', '#3E2723', '#795548'];
+      
+      for (let i = 0; i < density * 0.35; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const rx = 5 + rand() * 7;  // увеличен размер
+        const ry = 8 + rand() * 12;
+        const rot = rand() * 360;
+        const color = coneColors[Math.floor(rand() * coneColors.length)];
+        
+        const coneGroup = document.createElementNS(ns, 'g');
+        coneGroup.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+        coneGroup.setAttribute('pointer-events', 'none');
+        
+        // Тело шишки — тёмный фон с чётким контуром
+        const coneBody = document.createElementNS(ns, 'ellipse');
+        coneBody.setAttribute('cx', 0);
+        coneBody.setAttribute('cy', 0);
+        coneBody.setAttribute('rx', rx);
+        coneBody.setAttribute('ry', ry);
+        coneBody.setAttribute('fill', adjustColor(color, -25));
+        coneBody.setAttribute('stroke', adjustColor(color, -45));
+        coneBody.setAttribute('stroke-width', '0.8');
+        coneGroup.appendChild(coneBody);
+        
+        // Чешуйки — крупные, контрастные, с чёткими контурами
+        const scalesRows = 6 + Math.floor(rand() * 4); // 6-9 рядов
+        for (let row = 0; row < scalesRows; row++) {
+          const t = (row + 0.5) / scalesRows;
+          const sy = -ry * 0.85 + t * ry * 1.7;
+          
+          // Ширина ряда — максимальная в середине
+          const rowWidth = rx * Math.sin(t * Math.PI) * 1.9;
+          const scalesInRow = Math.max(2, Math.floor(rowWidth / 3.5));
+          
+          // Смещение чётных рядов для шахматного порядка
+          const rowOffset = (row % 2 === 0) ? 0 : (rowWidth / scalesInRow) * 0.5;
+          
+          for (let col = 0; col < scalesInRow; col++) {
+            const sx = -rowWidth/2 + rowOffset + (col + 0.5) * (rowWidth / scalesInRow);
+            const scaleW = (rowWidth / scalesInRow) * 0.85;
+            const scaleH = (ry / scalesRows) * 0.85;
+            
+            if (scaleW < 1 || scaleH < 1) continue;
+            
+            // Ромбовидная чешуйка с выпуклостью
+            const scale = document.createElementNS(ns, 'path');
+            const sd = `M 0 ${-scaleH/2} 
+                        Q ${scaleW*0.55} ${-scaleH*0.35} ${scaleW/2} 0 
+                        Q ${scaleW*0.55} ${scaleH*0.35} 0 ${scaleH/2} 
+                        Q ${-scaleW*0.55} ${scaleH*0.35} ${-scaleW/2} 0 
+                        Q ${-scaleW*0.55} ${-scaleH*0.35} 0 ${-scaleH/2} Z`;
+            
+            const scaleColor = adjustColor(color, Math.floor(rand() * 35) - 12);
+            scale.setAttribute('d', sd);
+            scale.setAttribute('fill', scaleColor);
+            scale.setAttribute('stroke', adjustColor(color, -40));
+            scale.setAttribute('stroke-width', '0.5');
+            scale.setAttribute('transform', `translate(${sx.toFixed(1)} ${sy.toFixed(1)})`);
+            coneGroup.appendChild(scale);
+            
+            // Тёмная линия в центре чешуйки (бороздка)
+            const groove = document.createElementNS(ns, 'line');
+            groove.setAttribute('x1', -scaleW * 0.3);
+            groove.setAttribute('y1', 0);
+            groove.setAttribute('x2', scaleW * 0.3);
+            groove.setAttribute('y2', 0);
+            groove.setAttribute('stroke', adjustColor(color, -50));
+            groove.setAttribute('stroke-width', '0.3');
+            groove.setAttribute('transform', `translate(${sx.toFixed(1)} ${sy.toFixed(1)})`);
+            coneGroup.appendChild(groove);
+            
+            // Блик на верхней части чешуйки
+            if (rand() > 0.4) {
+              const shine = document.createElementNS(ns, 'ellipse');
+              shine.setAttribute('cx', sx - scaleW * 0.1);
+              shine.setAttribute('cy', sy - scaleH * 0.2);
+              shine.setAttribute('rx', scaleW * 0.15);
+              shine.setAttribute('ry', scaleH * 0.12);
+              shine.setAttribute('fill', adjustColor(scaleColor, 35));
+              shine.setAttribute('opacity', '0.6');
+              coneGroup.appendChild(shine);
+            }
+          }
+        }
+        
+        // Тень под шишкой
+        const shadow = document.createElementNS(ns, 'ellipse');
+        shadow.setAttribute('cx', 2);
+        shadow.setAttribute('cy', ry * 0.4);
+        shadow.setAttribute('rx', rx * 0.8);
+        shadow.setAttribute('ry', ry * 0.2);
+        shadow.setAttribute('fill', '#000000');
+        shadow.setAttribute('opacity', '0.2');
+        coneGroup.appendChild(shadow);
+        
+        g.appendChild(coneGroup);
+      }
+      
+      // Иголки и мелкие веточки между шишками
+      for (let i = 0; i < density * 0.8; i++) {
+        const x = mx - mw/2 + rand() * mw;
+        const y = my - mh/2 + rand() * mh;
+        const len = 3 + rand() * 7;
+        const angle = rand() * Math.PI * 2;
+        
+        const needle = document.createElementNS(ns, 'line');
+        needle.setAttribute('x1', x - Math.cos(angle) * len/2);
+        needle.setAttribute('y1', y - Math.sin(angle) * len/2);
+        needle.setAttribute('x2', x + Math.cos(angle) * len/2);
+        needle.setAttribute('y2', y + Math.sin(angle) * len/2);
+        needle.setAttribute('stroke', '#8D6E63');
+        needle.setAttribute('stroke-width', '0.7');
+        needle.setAttribute('stroke-linecap', 'round');
+        needle.setAttribute('pointer-events', 'none');
+        g.appendChild(needle);
+      }
+      break;
+    }
+  }
 }
 
 function renderMulch(mulch) {
@@ -389,7 +1056,6 @@ function renderMulch(mulch) {
   const isSelected = state.selectedId === mulch.id;
   const clipId = `clip-mulch-${mulch.id}`;
   
-  // Детерминированный random на основе id мульчи для стабильной текстуры
   const seed = mulch.id * 1000 + 42;
   const rand = mulchRandom(seed);
   
@@ -412,7 +1078,6 @@ function renderMulch(mulch) {
   const mw = mulch.w;
   const mh = mulch.h;
   
-  // Фоновая заливка мульчи
   if (mulch.shape === 'rect') {
     const rect = document.createElementNS(ns, 'rect');
     rect.setAttribute('x', mx - mw / 2);
@@ -431,12 +1096,10 @@ function renderMulch(mulch) {
     g.appendChild(ellipse);
   }
   
-  // Текстура поверх фона
   renderMulchTexture(g, mulch, mx, my, mw, mh, rand);
   
   objectsLayer.appendChild(g);
   
-  // Обводка для выделенной мульчи
   if (isSelected) {
     const outline = document.createElementNS(ns, 'rect');
     outline.setAttribute('x', mx - mw / 2);

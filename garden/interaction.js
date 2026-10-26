@@ -246,7 +246,17 @@ function setMorphPoints(objId, numPoints) {
 function updateFinishButton() {
   const btn = document.getElementById('finishBtn');
   if (!btn) return;
-  if (state.drawing && (state.drawing.type === 'poly' || state.drawing.type === 'path')) {
+  
+  if (!state.drawing) {
+    btn.style.display = 'none';
+    return;
+  }
+  
+  // Для path (дорожки) достаточно 2 точек (1 сегмент)
+  // Для poly (фигуры) нужно минимум 3 точки
+  if (state.drawing.type === 'poly' && state.drawing.points.length >= 3) {
+    btn.style.display = 'block';
+  } else if (state.drawing.type === 'path' && state.drawing.points.length >= 2) {
     btn.style.display = 'block';
   } else {
     btn.style.display = 'none';
@@ -255,10 +265,10 @@ function updateFinishButton() {
 
 function updateHint() {
   const hints = {
-    select: '💡 Выберите объект. Кликните по цветку, дереву, мульче, дорожке или декоративному объекту для настройки.',
+    select: ' Выберите объект. Кликните по цветку, дереву, мульче, дорожке или декоративному объекту для настройки.',
     move: '✋ Перетаскивайте объекты. Участок физически ограничен границами окна. Колёсико — зум.',
     bed: `💡 Рисование клумбы (${state.bedShape === 'rect' ? 'прямоугольная' : state.bedShape === 'circle' ? 'круглая' : 'фигура'}). ${state.bedShape === 'poly' ? 'Кликайте для точек. Нажмите "✓ Завершить" или Enter для подтверждения.' : 'Зажмите мышь и тяните.'}`,
-    path: '🛤️ Рисуйте дорожки. Кликайте для точек. Нажмите "✓ Завершить" или Enter. После завершения можно выбрать скин и плотность частиц.',
+    path: '🛤️ Рисуйте дорожки. Кликайте для точек. Нажмите "✓ Завершить" или Enter. Достаточно 2 точек для прямой дорожки.',
     tree: '🌳 Выберите дерево в левой панели и кликните на холст, чтобы посадить.',
     water: '💧 Кликните на холст, чтобы разместить водоём.',
     mulch: '🟫 Кликните на клумбу, чтобы добавить мульчу. Плотность частиц регулируется в настройках.',
@@ -266,7 +276,7 @@ function updateHint() {
   let hint = hints[state.tool] || '';
   if (state.plantingMode && state.selectedPlant) {
     const p = plants.find(x => x.id === state.selectedPlant);
-    hint = `🌱 Режим посадки: кликайте внутри клумбы, чтобы разместить "${p ? p.name : ''}"`;
+    hint = ` Режим посадки: кликайте внутри клумбы, чтобы разместить "${p ? p.name : ''}"`;
   } else if (state.plantingMode) {
     hint = '🌱 Выберите растение в левой панели';
   }
@@ -801,8 +811,14 @@ function onDblClick(e) {
 }
 
 function onKeyDown(e) {
-  if (e.key === 'Enter' && state.drawing && (state.drawing.type === 'poly' || state.drawing.type === 'path')) {
-    finishPolyOrPath();
+  if (e.key === 'Enter' && state.drawing) {
+    // Для path (дорожки) достаточно 2 точек
+    // Для poly (фигуры) нужно минимум 3 точки
+    if (state.drawing.type === 'path' && state.drawing.points.length >= 2) {
+      finishPolyOrPath();
+    } else if (state.drawing.type === 'poly' && state.drawing.points.length >= 3) {
+      finishPolyOrPath();
+    }
   }
   if (e.key === 'Escape') {
     if (state.plantingMode) {
@@ -831,12 +847,23 @@ function onKeyDown(e) {
 }
 
 function finishPolyOrPath() {
-  if (!state.drawing || state.drawing.points.length < 3) {
+  if (!state.drawing) {
+    previewLayer.innerHTML = '';
+    updateFinishButton();
+    return;
+  }
+  
+  // Для path (дорожки) достаточно 2 точек (1 сегмент)
+  // Для poly (фигуры) нужно минимум 3 точки
+  const minPoints = state.drawing.type === 'path' ? 2 : 3;
+  
+  if (state.drawing.points.length < minPoints) {
     state.drawing = null;
     previewLayer.innerHTML = '';
     updateFinishButton();
     return;
   }
+  
   if (state.drawing.type === 'poly') {
     const points = state.drawing.points;
     addObject({
@@ -847,7 +874,7 @@ function finishPolyOrPath() {
       plants: [],
       originalPointCount: points.length
     });
-  } else {
+  } else if (state.drawing.type === 'path') {
     addObject({
       type: 'path',
       points: state.drawing.points,
@@ -857,6 +884,7 @@ function finishPolyOrPath() {
       densityMultiplier: 1.0
     });
   }
+  
   state.drawing = null;
   previewLayer.innerHTML = '';
   updateFinishButton();

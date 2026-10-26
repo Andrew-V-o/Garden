@@ -261,7 +261,7 @@ function updateHint() {
     tree: '🌳 Выберите дерево в левой панели и кликните на холст, чтобы посадить.',
     water: '💧 Кликните на холст, чтобы разместить водоём.',
     stone: '🪨 Кликните на холст, чтобы разместить камни.',
-    mulch: '🟫 Кликните на клумбу, чтобы добавить мульчу. Размер и скин можно изменить после размещения.',
+    mulch: '🟫 Кликните на клумбу, чтобы добавить мульчу. Плотность частиц регулируется в настройках.',
   };
   let hint = hints[state.tool] || '';
   if (state.plantingMode && state.selectedPlant) {
@@ -418,11 +418,11 @@ function onMouseDown(e) {
     return;
   }
 
-  // Размещение мульчи — в точке клика, с начальным размером 2×2 м и скином 'bark'
+  // Размещение мульчи — в точке клика, с начальным размером 2×2 м
   if (state.tool === 'mulch') {
     const bed = findBedAtPoint(pos.x, pos.y);
     if (bed) {
-      const initialSize = state.scale * 2; // 2 метра
+      const initialSize = state.scale * 2;
       addObject({
         type: 'mulch',
         bedId: bed.id,
@@ -431,9 +431,10 @@ function onMouseDown(e) {
         w: initialSize,
         h: initialSize,
         fill: '#795548',
-        skin: 'bark', // Скин по умолчанию
+        skin: 'bark',
         shape: 'rect',
-        name: 'Мульча'
+        name: 'Мульча',
+        densityMultiplier: 1.0  // Плотность по умолчанию
       });
       setTool('select');
     }

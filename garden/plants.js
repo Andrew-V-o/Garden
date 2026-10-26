@@ -1339,15 +1339,16 @@ function deleteDecorFromPopup() {
   }
 }
 
-// ===== POPUP ДЛЯ МУЛЬЧИ =====
+// ===== POPUP ДЛЯ МУЛЬЧИ (С ПОЛЗУНКОМ ПЛОТНОСТИ) =====
 
 function showMulchPopup(mulchObj) {
   const popup = document.getElementById('mulchPopup');
   
-  // Генерируем опции скинов
   const skinOptions = MULCH_SKINS.map(s => 
     `<option value="${s.id}" ${(mulchObj.skin || 'bark') === s.id ? 'selected' : ''}>${s.name}</option>`
   ).join('');
+  
+  const densityVal = mulchObj.densityMultiplier != null ? mulchObj.densityMultiplier : 1.0;
   
   popup.innerHTML = `
     <h4>🟫 Настройка мульчи</h4>
@@ -1364,9 +1365,12 @@ function showMulchPopup(mulchObj) {
         <option value="circle" ${mulchObj.shape === 'circle' ? 'selected' : ''}>Круг</option>
       </select>
     </div>
-    <div class="popup-row">
-      <span>Цвет основы:</span>
-      <input type="color" id="mulchPopupColor" value="${mulchObj.fill}">
+    <div class="popup-row" style="flex-direction:column;align-items:stretch;gap:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Плотность частиц:</span>
+        <span id="mulchPopupDensityVal" style="font-size:11px;color:#555;">×${densityVal.toFixed(1)}</span>
+      </div>
+      <input type="range" id="mulchPopupDensity" min="0.2" max="3.0" step="0.1" value="${densityVal}" style="width:100%;">
     </div>
     <div class="popup-row">
       <span>Ширина (м):</span>
@@ -1407,15 +1411,8 @@ function showMulchPopup(mulchObj) {
     document.addEventListener('mousedown', closeOnOutsideClick);
   }, 0);
 
-  // Обработчики изменений
   document.getElementById('mulchPopupSkin').onchange = (e) => {
     mulchObj.skin = e.target.value;
-    // При смене скина обновляем базовый цвет из скина
-    const skinData = MULCH_SKINS.find(s => s.id === e.target.value);
-    if (skinData) {
-      mulchObj.fill = skinData.baseColor;
-      document.getElementById('mulchPopupColor').value = skinData.baseColor;
-    }
     render();
   };
   
@@ -1424,8 +1421,10 @@ function showMulchPopup(mulchObj) {
     render();
   };
   
-  document.getElementById('mulchPopupColor').oninput = (e) => {
-    mulchObj.fill = e.target.value;
+  document.getElementById('mulchPopupDensity').oninput = (e) => {
+    const val = parseFloat(e.target.value);
+    mulchObj.densityMultiplier = val;
+    document.getElementById('mulchPopupDensityVal').textContent = '×' + val.toFixed(1);
     render();
   };
   

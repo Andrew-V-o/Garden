@@ -104,7 +104,15 @@ function mulchRandom(seed) {
   };
 }
 
-// ===== ЛИСТ ДУБА (группа SVG: тело-эллипс + круглые лопасти) =====
+function particleRand(seed, index) {
+  let s = seed + index * 7919;
+  return function() {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+// ===== ЛИСТ ДУБА =====
 function drawOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   const leafG = document.createElementNS(ns, 'g');
   leafG.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
@@ -112,7 +120,6 @@ function drawOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   const bodyRx = size * 0.32;
   const bodyRy = size * 0.65;
   
-  // Тело листа — вытянутый эллипс
   const body = document.createElementNS(ns, 'ellipse');
   body.setAttribute('cx', 0);
   body.setAttribute('cy', 0);
@@ -121,20 +128,16 @@ function drawOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   body.setAttribute('fill', color);
   leafG.appendChild(body);
   
-  // Лопасти — круглые выступы по бокам
-  const lobeCount = 4 + Math.floor(rand() * 2); // 4-5 пар
+  const lobeCount = 4 + Math.floor(rand() * 2);
   for (let i = 0; i < lobeCount; i++) {
-    const t = (i + 0.5) / lobeCount; // 0..1 по длине листа
+    const t = (i + 0.5) / lobeCount;
     const ly = -bodyRy * 0.85 + t * bodyRy * 1.7;
-    
-    // Конверт — лопасти крупнее в середине листа
     const env = Math.sin(t * Math.PI);
     const lobeR = size * 0.22 * env * (0.7 + rand() * 0.4);
     const lobeX = bodyRx * 0.7 * env + lobeR * 0.3;
     
     if (lobeR < 1) continue;
     
-    // Правая лопасть
     const lobeR1 = document.createElementNS(ns, 'circle');
     lobeR1.setAttribute('cx', lobeX);
     lobeR1.setAttribute('cy', ly);
@@ -142,7 +145,6 @@ function drawOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
     lobeR1.setAttribute('fill', color);
     leafG.appendChild(lobeR1);
     
-    // Левая лопасть
     const lobeL1 = document.createElementNS(ns, 'circle');
     lobeL1.setAttribute('cx', -lobeX);
     lobeL1.setAttribute('cy', ly);
@@ -151,7 +153,6 @@ function drawOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
     leafG.appendChild(lobeL1);
   }
   
-  // Обводка листа (объединяет все элементы визуально)
   const outline = document.createElementNS(ns, 'ellipse');
   outline.setAttribute('cx', 0);
   outline.setAttribute('cy', 0);
@@ -162,7 +163,6 @@ function drawOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   outline.setAttribute('stroke-width', '0.4');
   leafG.appendChild(outline);
   
-  // Центральная жилка
   const mainVein = document.createElementNS(ns, 'line');
   mainVein.setAttribute('x1', 0);
   mainVein.setAttribute('y1', -bodyRy * 0.9);
@@ -172,7 +172,6 @@ function drawOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   mainVein.setAttribute('stroke-width', '0.7');
   leafG.appendChild(mainVein);
   
-  // Боковые жилки — к каждой паре лопастей
   for (let i = 0; i < lobeCount; i++) {
     const t = (i + 0.5) / lobeCount;
     const vy = -bodyRy * 0.8 + t * bodyRy * 1.6;
@@ -181,7 +180,6 @@ function drawOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
     
     if (vLen < 2) continue;
     
-    // Вправо
     const vR = document.createElementNS(ns, 'line');
     vR.setAttribute('x1', 0);
     vR.setAttribute('y1', vy);
@@ -191,7 +189,6 @@ function drawOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
     vR.setAttribute('stroke-width', '0.35');
     leafG.appendChild(vR);
     
-    // Влево
     const vL = document.createElementNS(ns, 'line');
     vL.setAttribute('x1', 0);
     vL.setAttribute('y1', vy);
@@ -205,7 +202,7 @@ function drawOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   g.appendChild(leafG);
 }
 
-// ===== ЛИСТ КРАСНОГО ДУБА (более острые и глубокие лопасти) =====
+// ===== ЛИСТ КРАСНОГО ДУБА =====
 function drawRedOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   const leafG = document.createElementNS(ns, 'g');
   leafG.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
@@ -213,7 +210,6 @@ function drawRedOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   const bodyRx = size * 0.3;
   const bodyRy = size * 0.7;
   
-  // Тело — более вытянутое
   const body = document.createElementNS(ns, 'ellipse');
   body.setAttribute('cx', 0);
   body.setAttribute('cy', 0);
@@ -222,12 +218,10 @@ function drawRedOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   body.setAttribute('fill', color);
   leafG.appendChild(body);
   
-  // Лопасти — больше пар, более острые (эллипсы вместо кругов)
-  const lobeCount = 5 + Math.floor(rand() * 2); // 5-6 пар
+  const lobeCount = 5 + Math.floor(rand() * 2);
   for (let i = 0; i < lobeCount; i++) {
     const t = (i + 0.5) / lobeCount;
     const ly = -bodyRy * 0.88 + t * bodyRy * 1.76;
-    
     const env = Math.sin(t * Math.PI);
     const lobeRx = size * 0.18 * env * (0.7 + rand() * 0.4);
     const lobeRy = size * 0.12 * env * (0.7 + rand() * 0.3);
@@ -235,7 +229,6 @@ function drawRedOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
     
     if (lobeRx < 0.8) continue;
     
-    // Правая лопасть (вытянутый эллипс — острее)
     const lobeR1 = document.createElementNS(ns, 'ellipse');
     lobeR1.setAttribute('cx', lobeX);
     lobeR1.setAttribute('cy', ly);
@@ -244,7 +237,6 @@ function drawRedOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
     lobeR1.setAttribute('fill', color);
     leafG.appendChild(lobeR1);
     
-    // Левая лопасть
     const lobeL1 = document.createElementNS(ns, 'ellipse');
     lobeL1.setAttribute('cx', -lobeX);
     lobeL1.setAttribute('cy', ly);
@@ -254,7 +246,6 @@ function drawRedOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
     leafG.appendChild(lobeL1);
   }
   
-  // Обводка
   const outline = document.createElementNS(ns, 'ellipse');
   outline.setAttribute('cx', 0);
   outline.setAttribute('cy', 0);
@@ -265,7 +256,6 @@ function drawRedOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   outline.setAttribute('stroke-width', '0.4');
   leafG.appendChild(outline);
   
-  // Центральная жилка
   const mainVein = document.createElementNS(ns, 'line');
   mainVein.setAttribute('x1', 0);
   mainVein.setAttribute('y1', -bodyRy * 0.92);
@@ -275,7 +265,6 @@ function drawRedOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   mainVein.setAttribute('stroke-width', '0.7');
   leafG.appendChild(mainVein);
   
-  // Боковые жилки
   for (let i = 0; i < lobeCount; i++) {
     const t = (i + 0.5) / lobeCount;
     const vy = -bodyRy * 0.85 + t * bodyRy * 1.7;
@@ -306,47 +295,71 @@ function drawRedOakLeafGroup(g, ns, x, y, size, rot, color, rand) {
   g.appendChild(leafG);
 }
 
-// ===== РЕНДЕР МУЛЬЧИ С ТЕКСТУРАМИ =====
+// ===== РЕНДЕР МУЛЬЧИ С ТЕКСТУРАМИ (БЕЗ ФОНА) =====
 
 function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
   const ns = 'http://www.w3.org/2000/svg';
   const skin = mulch.skin || 'bark';
-  const baseColor = mulch.fill;
+  const shape = mulch.shape || 'rect';
   
+  // Плотность с учётом множителя из настроек
   const area = mw * mh;
-  const density = Math.max(20, Math.min(200, Math.floor(area / 80)));
+  const baseDensity = Math.max(20, Math.min(200, Math.floor(area / 80)));
+  const densityMultiplier = mulch.densityMultiplier != null ? mulch.densityMultiplier : 1.0;
+  const density = Math.max(5, Math.floor(baseDensity * densityMultiplier));
+  
+  const seed = mulch.id * 1000 + 42;
+  
+  function nextPos(i) {
+    const pr = particleRand(seed, i);
+    if (shape === 'circle') {
+      const angle = pr() * Math.PI * 2;
+      const r = Math.sqrt(pr()) * Math.min(mw, mh) / 2;
+      return { x: mx + Math.cos(angle) * r, y: my + Math.sin(angle) * r };
+    } else {
+      return { x: mx - mw/2 + pr() * mw, y: my - mh/2 + pr() * mh };
+    }
+  }
+  
+  function prand(i, subIndex) {
+    return particleRand(seed, i * 10000 + (subIndex || 0));
+  }
   
   switch (skin) {
     
-    // ===== КОРА СМЕШАННАЯ =====
     case 'bark': {
       const barkColors = ['#6D4C41', '#5D4037', '#795548', '#4E342E', '#8D6E63', '#3E2723'];
       
       for (let i = 0; i < density * 1.2; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const w = 5 + rand() * 12;
-        const h = 3 + rand() * 6;
-        const rot = rand() * 360;
-        const color = barkColors[Math.floor(rand() * barkColors.length)];
+        const pos = nextPos(i);
+        const x = pos.x, y = pos.y;
+        const r1 = prand(i, 1);
+        const r2 = prand(i, 2);
+        const r3 = prand(i, 3);
+        const r4 = prand(i, 4);
+        
+        const w = 5 + r1() * 12;
+        const h = 3 + r2() * 6;
+        const rot = r3() * 360;
+        const color = barkColors[Math.floor(r4() * barkColors.length)];
         
         const bark = document.createElementNS(ns, 'path');
         const jag = 0.25;
-        const d = `M ${-w/2 + rand()*w*jag} ${-h/2}
-                   L ${-w/4 + rand()*w*jag} ${-h/2 + rand()*h*0.2}
-                   L ${0} ${-h/2 + rand()*h*0.15}
-                   L ${w/4 - rand()*w*jag} ${-h/2 + rand()*h*0.2}
-                   L ${w/2 - rand()*w*jag} ${-h/2}
-                   L ${w/2} ${-h/4 + rand()*h*0.2}
-                   L ${w/2 - rand()*w*0.1} ${0}
-                   L ${w/2} ${h/4 - rand()*h*0.2}
-                   L ${w/2 - rand()*w*jag} ${h/2}
-                   L ${w/4} ${h/2 - rand()*h*0.15}
+        const d = `M ${-w/2 + r1()*w*jag} ${-h/2}
+                   L ${-w/4 + r2()*w*jag} ${-h/2 + r3()*h*0.2}
+                   L ${0} ${-h/2 + r4()*h*0.15}
+                   L ${w/4 - r1()*w*jag} ${-h/2 + r2()*h*0.2}
+                   L ${w/2 - r3()*w*jag} ${-h/2}
+                   L ${w/2} ${-h/4 + r4()*h*0.2}
+                   L ${w/2 - r1()*w*0.1} ${0}
+                   L ${w/2} ${h/4 - r2()*h*0.2}
+                   L ${w/2 - r3()*w*jag} ${h/2}
+                   L ${w/4} ${h/2 - r4()*h*0.15}
                    L ${0} ${h/2}
-                   L ${-w/4} ${h/2 - rand()*h*0.2}
-                   L ${-w/2 + rand()*w*jag} ${h/2}
+                   L ${-w/4} ${h/2 - r1()*h*0.2}
+                   L ${-w/2 + r2()*w*jag} ${h/2}
                    L ${-w/2} ${h/4}
-                   L ${-w/2 + rand()*w*0.1} ${0}
+                   L ${-w/2 + r3()*w*0.1} ${0}
                    L ${-w/2} ${-h/4}
                    Z`;
         bark.setAttribute('d', d);
@@ -357,15 +370,16 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
         bark.setAttribute('pointer-events', 'none');
         g.appendChild(bark);
         
-        if (rand() > 0.4) {
-          const grainCount = 1 + Math.floor(rand() * 3);
+        if (r4() > 0.4) {
+          const grainCount = 1 + Math.floor(r1() * 3);
           for (let j = 0; j < grainCount; j++) {
+            const gr = prand(i, 100 + j);
             const grain = document.createElementNS(ns, 'line');
-            const gy = -h/2 + rand() * h;
+            const gy = -h/2 + gr() * h;
             grain.setAttribute('x1', -w/2 + 1);
             grain.setAttribute('y1', gy);
             grain.setAttribute('x2', w/2 - 1);
-            grain.setAttribute('y2', gy + (rand() - 0.5) * 2);
+            grain.setAttribute('y2', gy + (gr() - 0.5) * 2);
             grain.setAttribute('stroke', adjustColor(color, -20));
             grain.setAttribute('stroke-width', '0.3');
             grain.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
@@ -377,97 +391,100 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
       break;
     }
     
-    // ===== ЛИСТЬЯ ДУБА (переработано) =====
     case 'oak_leaves': {
       const leafColors = ['#B8860B', '#A0722A', '#8B6914', '#9B7B3A', '#7A5C28', '#C49A2A', '#6B4E1D', '#D4A84A', '#AA8030'];
       
-      // Значительно увеличена плотность — листья должны лежать густо, перекрываясь
       for (let i = 0; i < density * 1.2; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const size = 8 + rand() * 12; // крупные листья 8-20px
-        const rot = rand() * 360;
-        const color = leafColors[Math.floor(rand() * leafColors.length)];
-        const shade = Math.floor(rand() * 30) - 15;
+        const pos = nextPos(i);
+        const r1 = prand(i, 1);
+        const r2 = prand(i, 2);
+        const r3 = prand(i, 3);
+        
+        const size = 8 + r1() * 12;
+        const rot = r2() * 360;
+        const color = leafColors[Math.floor(r3() * leafColors.length)];
+        const shade = Math.floor(r1() * 30) - 15;
         const leafColor = adjustColor(color, shade);
         
-        drawOakLeafGroup(g, ns, x, y, size, rot, leafColor, rand);
+        drawOakLeafGroup(g, ns, pos.x, pos.y, size, rot, leafColor, prand(i, 10));
       }
       
-      // Мелкие обрывки и фрагменты листьев для реалистичности
       for (let i = 0; i < density * 0.5; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const size = 2 + rand() * 4;
-        const rot = rand() * 360;
-        const color = leafColors[Math.floor(rand() * leafColors.length)];
+        const pos = nextPos(i + 10000);
+        const r1 = prand(i + 10000, 1);
+        const r2 = prand(i + 10000, 2);
+        const color = leafColors[Math.floor(r1() * leafColors.length)];
+        const size = 2 + r2() * 4;
+        const rot = r1() * 360;
         
         const fragment = document.createElementNS(ns, 'ellipse');
-        fragment.setAttribute('cx', x);
-        fragment.setAttribute('cy', y);
+        fragment.setAttribute('cx', pos.x);
+        fragment.setAttribute('cy', pos.y);
         fragment.setAttribute('rx', size);
         fragment.setAttribute('ry', size * 0.4);
         fragment.setAttribute('fill', adjustColor(color, -20));
-        fragment.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        fragment.setAttribute('transform', `rotate(${rot} ${pos.x} ${pos.y})`);
         fragment.setAttribute('pointer-events', 'none');
         g.appendChild(fragment);
       }
       break;
     }
     
-    // ===== ЛИСТЬЯ КРАСНОГО ДУБА (переработано) =====
     case 'red_oak_leaves': {
       const leafColors = ['#8B2500', '#A52A2A', '#B22222', '#CD3333', '#8B3A3A', '#A0522D', '#9B1B1B', '#7A1F1F', '#C04040'];
       
       for (let i = 0; i < density * 1.2; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const size = 8 + rand() * 12;
-        const rot = rand() * 360;
-        const color = leafColors[Math.floor(rand() * leafColors.length)];
-        const shade = Math.floor(rand() * 30) - 15;
+        const pos = nextPos(i);
+        const r1 = prand(i, 1);
+        const r2 = prand(i, 2);
+        const r3 = prand(i, 3);
+        
+        const size = 8 + r1() * 12;
+        const rot = r2() * 360;
+        const color = leafColors[Math.floor(r3() * leafColors.length)];
+        const shade = Math.floor(r1() * 30) - 15;
         const leafColor = adjustColor(color, shade);
         
-        drawRedOakLeafGroup(g, ns, x, y, size, rot, leafColor, rand);
+        drawRedOakLeafGroup(g, ns, pos.x, pos.y, size, rot, leafColor, prand(i, 10));
       }
       
       for (let i = 0; i < density * 0.5; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const size = 2 + rand() * 4;
-        const rot = rand() * 360;
-        const color = leafColors[Math.floor(rand() * leafColors.length)];
+        const pos = nextPos(i + 10000);
+        const r1 = prand(i + 10000, 1);
+        const r2 = prand(i + 10000, 2);
+        const color = leafColors[Math.floor(r1() * leafColors.length)];
+        const size = 2 + r2() * 4;
+        const rot = r1() * 360;
         
         const fragment = document.createElementNS(ns, 'ellipse');
-        fragment.setAttribute('cx', x);
-        fragment.setAttribute('cy', y);
+        fragment.setAttribute('cx', pos.x);
+        fragment.setAttribute('cy', pos.y);
         fragment.setAttribute('rx', size);
         fragment.setAttribute('ry', size * 0.4);
         fragment.setAttribute('fill', adjustColor(color, -20));
-        fragment.setAttribute('transform', `rotate(${rot} ${x} ${y})`);
+        fragment.setAttribute('transform', `rotate(${rot} ${pos.x} ${pos.y})`);
         fragment.setAttribute('pointer-events', 'none');
         g.appendChild(fragment);
       }
       break;
     }
     
-    // ===== ИГОЛКИ ЕЛИ (переработано — гуще, реалистичнее) =====
     case 'spruce_needles': {
       const needleColors = ['#2C1810', '#3E2723', '#4E342E', '#1B0F0A', '#33261E', '#261A12'];
       
-      // Очень густой слой иголок — еловая хвоя опадает плотно
       for (let i = 0; i < density * 8; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const len = 2.5 + rand() * 4; // короткие иголки 2.5-6.5px
-        const angle = rand() * Math.PI * 2;
-        const color = needleColors[Math.floor(rand() * needleColors.length)];
+        const pos = nextPos(i);
+        const r1 = prand(i, 1);
+        const r2 = prand(i, 2);
         
-        // Иголка — заострённая линия (через path, не line)
-        const x1 = x - Math.cos(angle) * len * 0.4;
-        const y1 = y - Math.sin(angle) * len * 0.4;
-        const x2 = x + Math.cos(angle) * len * 0.6;
-        const y2 = y + Math.sin(angle) * len * 0.6;
+        const len = 2.5 + r1() * 4;
+        const angle = r2() * Math.PI * 2;
+        const color = needleColors[Math.floor(r1() * needleColors.length)];
+        
+        const x1 = pos.x - Math.cos(angle) * len * 0.4;
+        const y1 = pos.y - Math.sin(angle) * len * 0.4;
+        const x2 = pos.x + Math.cos(angle) * len * 0.6;
+        const y2 = pos.y + Math.sin(angle) * len * 0.6;
         
         const needle = document.createElementNS(ns, 'path');
         needle.setAttribute('d', `M ${x1.toFixed(1)} ${y1.toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)}`);
@@ -478,32 +495,33 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
         g.appendChild(needle);
       }
       
-      // Мелкие веточки — более заметные
       for (let i = 0; i < density * 0.6; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const len = 6 + rand() * 12;
-        const angle = rand() * Math.PI * 2;
+        const pos = nextPos(i + 20000);
+        const r1 = prand(i + 20000, 1);
+        const r2 = prand(i + 20000, 2);
+        
+        const len = 6 + r1() * 12;
+        const angle = r2() * Math.PI * 2;
         
         const twig = document.createElementNS(ns, 'line');
-        twig.setAttribute('x1', x - Math.cos(angle) * len/2);
-        twig.setAttribute('y1', y - Math.sin(angle) * len/2);
-        twig.setAttribute('x2', x + Math.cos(angle) * len/2);
-        twig.setAttribute('y2', y + Math.sin(angle) * len/2);
+        twig.setAttribute('x1', pos.x - Math.cos(angle) * len/2);
+        twig.setAttribute('y1', pos.y - Math.sin(angle) * len/2);
+        twig.setAttribute('x2', pos.x + Math.cos(angle) * len/2);
+        twig.setAttribute('y2', pos.y + Math.sin(angle) * len/2);
         twig.setAttribute('stroke', '#5D4037');
         twig.setAttribute('stroke-width', '1.0');
         twig.setAttribute('stroke-linecap', 'round');
         twig.setAttribute('pointer-events', 'none');
         g.appendChild(twig);
         
-        // Ответвления от веточки
-        const branches = 2 + Math.floor(rand() * 3);
+        const branches = 2 + Math.floor(r1() * 3);
         for (let j = 0; j < branches; j++) {
-          const t = 0.2 + rand() * 0.6;
-          const bx = x - Math.cos(angle) * len/2 + Math.cos(angle) * len * t;
-          const by = y - Math.sin(angle) * len/2 + Math.sin(angle) * len * t;
-          const brAngle = angle + (rand() > 0.5 ? 1 : -1) * (Math.PI/3 + rand() * Math.PI/6);
-          const brLen = 2 + rand() * 4;
+          const br = prand(i + 20000, 100 + j);
+          const t = 0.2 + br() * 0.6;
+          const bx = pos.x - Math.cos(angle) * len/2 + Math.cos(angle) * len * t;
+          const by = pos.y - Math.sin(angle) * len/2 + Math.sin(angle) * len * t;
+          const brAngle = angle + (br() > 0.5 ? 1 : -1) * (Math.PI/3 + br() * Math.PI/6);
+          const brLen = 2 + br() * 4;
           
           const branch = document.createElementNS(ns, 'line');
           branch.setAttribute('x1', bx);
@@ -518,14 +536,13 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
         }
       }
       
-      // Тёмные "подушечки" у оснований иголок
       for (let i = 0; i < density * 0.5; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
+        const pos = nextPos(i + 30000);
+        const r1 = prand(i + 30000, 1);
         const pad = document.createElementNS(ns, 'circle');
-        pad.setAttribute('cx', x);
-        pad.setAttribute('cy', y);
-        pad.setAttribute('r', 0.8 + rand() * 1.0);
+        pad.setAttribute('cx', pos.x);
+        pad.setAttribute('cy', pos.y);
+        pad.setAttribute('r', 0.8 + r1() * 1.0);
         pad.setAttribute('fill', '#1B0F0A');
         pad.setAttribute('pointer-events', 'none');
         g.appendChild(pad);
@@ -533,50 +550,48 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
       break;
     }
     
-    // ===== ИГОЛКИ СОСНЫ (переработано — гуще, пучки заметнее) =====
     case 'pine_needles': {
       const needleColors = ['#A1887F', '#8D6E63', '#BCAAA4', '#795548', '#D7CCC8', '#B09080'];
       
-      // Пучки иголок — плотнее, пучки крупнее
       for (let i = 0; i < density * 2.5; i++) {
-        const bx = mx - mw/2 + rand() * mw;
-        const by = my - mh/2 + rand() * mh;
-        const bundleAngle = rand() * Math.PI * 2;
-        const needlesInBundle = 3 + Math.floor(rand() * 3); // 3-5 иголок в пучке
+        const pos = nextPos(i);
+        const r1 = prand(i, 1);
+        const r2 = prand(i, 2);
         
-        // Основание пучка — рыжий узелок
+        const bundleAngle = r1() * Math.PI * 2;
+        const needlesInBundle = 3 + Math.floor(r2() * 3);
+        
         const base = document.createElementNS(ns, 'circle');
-        base.setAttribute('cx', bx);
-        base.setAttribute('cy', by);
-        base.setAttribute('r', 1.2 + rand() * 0.6);
+        base.setAttribute('cx', pos.x);
+        base.setAttribute('cy', pos.y);
+        base.setAttribute('r', 1.2 + r1() * 0.6);
         base.setAttribute('fill', '#8B4513');
         base.setAttribute('pointer-events', 'none');
         g.appendChild(base);
         
-        // Чешуйка у основания пучка
         const sheath = document.createElementNS(ns, 'ellipse');
-        sheath.setAttribute('cx', bx);
-        sheath.setAttribute('cy', by);
+        sheath.setAttribute('cx', pos.x);
+        sheath.setAttribute('cy', pos.y);
         sheath.setAttribute('rx', 1.5);
         sheath.setAttribute('ry', 1);
         sheath.setAttribute('fill', '#6D4C41');
-        sheath.setAttribute('transform', `rotate(${bundleAngle * 180 / Math.PI} ${bx} ${by})`);
+        sheath.setAttribute('transform', `rotate(${bundleAngle * 180 / Math.PI} ${pos.x} ${pos.y})`);
         sheath.setAttribute('pointer-events', 'none');
         g.appendChild(sheath);
         
         for (let j = 0; j < needlesInBundle; j++) {
-          const len = 10 + rand() * 14; // длинные иголки 10-24px
+          const nr = prand(i, 100 + j);
+          const len = 10 + nr() * 14;
           const spread = (j - needlesInBundle/2) * 0.2;
           const angle = bundleAngle + spread;
-          const color = needleColors[Math.floor(rand() * needleColors.length)];
+          const color = needleColors[Math.floor(nr() * needleColors.length)];
           
-          const x1 = bx;
-          const y1 = by;
-          const x2 = bx + Math.cos(angle) * len;
-          const y2 = by + Math.sin(angle) * len;
-          // Лёгкий изгиб
-          const cpx = (x1 + x2) / 2 + Math.cos(angle + Math.PI/2) * (rand() - 0.5) * 3;
-          const cpy = (y1 + y2) / 2 + Math.sin(angle + Math.PI/2) * (rand() - 0.5) * 3;
+          const x1 = pos.x;
+          const y1 = pos.y;
+          const x2 = pos.x + Math.cos(angle) * len;
+          const y2 = pos.y + Math.sin(angle) * len;
+          const cpx = (x1 + x2) / 2 + Math.cos(angle + Math.PI/2) * (nr() - 0.5) * 3;
+          const cpy = (y1 + y2) / 2 + Math.sin(angle + Math.PI/2) * (nr() - 0.5) * 3;
           
           const needle = document.createElementNS(ns, 'path');
           needle.setAttribute('d', `M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cpx.toFixed(1)} ${cpy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`);
@@ -589,12 +604,12 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
         }
       }
       
-      // Мелкие кусочки коры между пучками
       for (let i = 0; i < density * 0.3; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const size = 1 + rand() * 3;
-        const rot = rand() * 360;
+        const pos = nextPos(i + 20000);
+        const r1 = prand(i + 20000, 1);
+        const r2 = prand(i + 20000, 2);
+        const size = 1 + r1() * 3;
+        const rot = r2() * 360;
         
         const chip = document.createElementNS(ns, 'rect');
         chip.setAttribute('x', -size);
@@ -602,25 +617,27 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
         chip.setAttribute('width', size * 2);
         chip.setAttribute('height', size);
         chip.setAttribute('fill', '#6D4C41');
-        chip.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+        chip.setAttribute('transform', `translate(${pos.x} ${pos.y}) rotate(${rot})`);
         chip.setAttribute('pointer-events', 'none');
         g.appendChild(chip);
       }
       break;
     }
     
-    // ===== КОРА ЕЛИ =====
     case 'spruce_bark': {
       const barkColors = ['#3E2723', '#2C1810', '#4E342E', '#1B0F0A', '#33261E', '#2A1A12'];
       
       for (let layer = 0; layer < 2; layer++) {
         for (let i = 0; i < density * 0.8; i++) {
-          const x = mx - mw/2 + rand() * mw;
-          const y = my - mh/2 + rand() * mh;
-          const w = 3 + rand() * 7;
-          const h = 2 + rand() * 5;
-          const rot = rand() * 360;
-          const color = barkColors[Math.floor(rand() * barkColors.length)];
+          const pos = nextPos(i + layer * 10000);
+          const r1 = prand(i + layer * 10000, 1);
+          const r2 = prand(i + layer * 10000, 2);
+          const r3 = prand(i + layer * 10000, 3);
+          
+          const w = 3 + r1() * 7;
+          const h = 2 + r2() * 5;
+          const rot = r3() * 360;
+          const color = barkColors[Math.floor(r1() * barkColors.length)];
           
           const scale = document.createElementNS(ns, 'path');
           const d = `M 0 ${-h/2} 
@@ -632,11 +649,11 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
           scale.setAttribute('fill', color);
           scale.setAttribute('stroke', adjustColor(color, -20));
           scale.setAttribute('stroke-width', '0.3');
-          scale.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+          scale.setAttribute('transform', `translate(${pos.x} ${pos.y}) rotate(${rot})`);
           scale.setAttribute('pointer-events', 'none');
           g.appendChild(scale);
           
-          if (rand() > 0.5) {
+          if (r2() > 0.5) {
             const shadow = document.createElementNS(ns, 'path');
             const sd = `M ${-w/2 + 1} ${h/2 - 1} Q 0 ${h/2 + 1} ${w/2 - 1} ${h/2 - 1}`;
             shadow.setAttribute('d', sd);
@@ -644,7 +661,7 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
             shadow.setAttribute('stroke-width', '0.4');
             shadow.setAttribute('fill', 'none');
             shadow.setAttribute('opacity', '0.3');
-            shadow.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+            shadow.setAttribute('transform', `translate(${pos.x} ${pos.y}) rotate(${rot})`);
             shadow.setAttribute('pointer-events', 'none');
             g.appendChild(shadow);
           }
@@ -653,34 +670,37 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
       break;
     }
     
-    // ===== КОРА СОСНЫ =====
     case 'pine_bark': {
       const barkColors = ['#6D4C41', '#5D4037', '#795548', '#8D6E63', '#A1887F', '#8B5A3C'];
       
       for (let i = 0; i < density * 0.5; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const w = 10 + rand() * 16;
-        const h = 6 + rand() * 12;
-        const rot = rand() * 360;
-        const color = barkColors[Math.floor(rand() * barkColors.length)];
+        const pos = nextPos(i);
+        const r1 = prand(i, 1);
+        const r2 = prand(i, 2);
+        const r3 = prand(i, 3);
+        const r4 = prand(i, 4);
+        
+        const w = 10 + r1() * 16;
+        const h = 6 + r2() * 12;
+        const rot = r3() * 360;
+        const color = barkColors[Math.floor(r4() * barkColors.length)];
         
         const plate = document.createElementNS(ns, 'path');
         const jag = 0.15;
-        const d = `M ${-w/2 + rand()*w*jag} ${-h/2 + rand()*h*jag}
+        const d = `M ${-w/2 + r1()*w*jag} ${-h/2 + r2()*h*jag}
                    L ${-w/4} ${-h/2}
-                   L ${w/4 - rand()*w*jag} ${-h/2 + rand()*h*jag}
+                   L ${w/4 - r3()*w*jag} ${-h/2 + r4()*h*jag}
                    L ${w/2} ${-h/4}
-                   L ${w/2 - rand()*w*jag} ${h/4}
+                   L ${w/2 - r1()*w*jag} ${h/4}
                    L ${w/4} ${h/2}
-                   L ${-w/4 + rand()*w*jag} ${h/2 - rand()*h*jag}
+                   L ${-w/4 + r2()*w*jag} ${h/2 - r3()*h*jag}
                    L ${-w/2} ${h/4}
                    Z`;
         plate.setAttribute('d', d);
         plate.setAttribute('fill', color);
         plate.setAttribute('stroke', adjustColor(color, -40));
         plate.setAttribute('stroke-width', '0.7');
-        plate.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+        plate.setAttribute('transform', `translate(${pos.x} ${pos.y}) rotate(${rot})`);
         plate.setAttribute('pointer-events', 'none');
         g.appendChild(plate);
         
@@ -689,37 +709,38 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
         highlight.setAttribute('stroke', adjustColor(color, 25));
         highlight.setAttribute('stroke-width', '0.5');
         highlight.setAttribute('fill', 'none');
-        highlight.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+        highlight.setAttribute('transform', `translate(${pos.x} ${pos.y}) rotate(${rot})`);
         highlight.setAttribute('pointer-events', 'none');
         g.appendChild(highlight);
         
-        const crackCount = 2 + Math.floor(rand() * 3);
+        const crackCount = 2 + Math.floor(r1() * 3);
         for (let j = 0; j < crackCount; j++) {
+          const cr = prand(i, 100 + j);
           const crack = document.createElementNS(ns, 'path');
-          const cx = -w/2 + rand() * w;
-          const cy = -h/2 + rand() * h;
-          const len = 3 + rand() * (w * 0.5);
-          const angle = rand() * Math.PI;
+          const cx = -w/2 + cr() * w;
+          const cy = -h/2 + cr() * h;
+          const len = 3 + cr() * (w * 0.5);
+          const angle = cr() * Math.PI;
           const cd = `M ${cx} ${cy} 
-                      Q ${cx + Math.cos(angle) * len/2 + (rand()-0.5)*2} ${cy + Math.sin(angle) * len/2 + (rand()-0.5)*2} 
+                      Q ${cx + Math.cos(angle) * len/2 + (cr()-0.5)*2} ${cy + Math.sin(angle) * len/2 + (cr()-0.5)*2} 
                       ${cx + Math.cos(angle) * len} ${cy + Math.sin(angle) * len}`;
           crack.setAttribute('d', cd);
           crack.setAttribute('stroke', adjustColor(color, -50));
           crack.setAttribute('stroke-width', '0.6');
           crack.setAttribute('fill', 'none');
-          crack.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+          crack.setAttribute('transform', `translate(${pos.x} ${pos.y}) rotate(${rot})`);
           crack.setAttribute('pointer-events', 'none');
           g.appendChild(crack);
         }
       }
       
       for (let i = 0; i < density * 0.3; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
+        const pos = nextPos(i + 20000);
+        const r1 = prand(i + 20000, 1);
         const dot = document.createElementNS(ns, 'circle');
-        dot.setAttribute('cx', x);
-        dot.setAttribute('cy', y);
-        dot.setAttribute('r', 1 + rand() * 2);
+        dot.setAttribute('cx', pos.x);
+        dot.setAttribute('cy', pos.y);
+        dot.setAttribute('r', 1 + r1() * 2);
         dot.setAttribute('fill', '#1B0F0A');
         dot.setAttribute('opacity', '0.6');
         dot.setAttribute('pointer-events', 'none');
@@ -728,50 +749,54 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
       break;
     }
     
-    // ===== ЩЕПА =====
     case 'woodchips': {
       const chipColors = ['#BCAAA4', '#A1887F', '#D7CCC8', '#8D6E63', '#EFEBE9', '#C9B8A8'];
       
       for (let i = 0; i < density * 2.0; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const w = 2 + rand() * 8;
-        const h = 1 + rand() * 4;
-        const rot = rand() * 360;
-        const color = chipColors[Math.floor(rand() * chipColors.length)];
+        const pos = nextPos(i);
+        const r1 = prand(i, 1);
+        const r2 = prand(i, 2);
+        const r3 = prand(i, 3);
+        const r4 = prand(i, 4);
+        
+        const w = 2 + r1() * 8;
+        const h = 1 + r2() * 4;
+        const rot = r3() * 360;
+        const color = chipColors[Math.floor(r4() * chipColors.length)];
         
         const chip = document.createElementNS(ns, 'path');
-        const isPointed = rand() > 0.5;
+        const isPointed = r1() > 0.5;
         let d;
         if (isPointed) {
-          d = `M ${-w/2} 0 L ${-w/4} ${-h/2} L ${w/4} ${-h/2 + rand()*h*0.3} L ${w/2} 0 L ${w/4} ${h/2} L ${-w/4} ${h/2 - rand()*h*0.3} Z`;
+          d = `M ${-w/2} 0 L ${-w/4} ${-h/2} L ${w/4} ${-h/2 + r2()*h*0.3} L ${w/2} 0 L ${w/4} ${h/2} L ${-w/4} ${h/2 - r3()*h*0.3} Z`;
         } else {
-          d = `M ${-w/2} ${-h/2 + rand()*h*0.2} L ${w/2 - rand()*w*0.1} ${-h/2} L ${w/2} ${h/2 - rand()*h*0.2} L ${-w/2 + rand()*w*0.1} ${h/2} Z`;
+          d = `M ${-w/2} ${-h/2 + r1()*h*0.2} L ${w/2 - r2()*w*0.1} ${-h/2} L ${w/2} ${h/2 - r3()*h*0.2} L ${-w/2 + r4()*w*0.1} ${h/2} Z`;
         }
         chip.setAttribute('d', d);
         chip.setAttribute('fill', color);
         chip.setAttribute('stroke', adjustColor(color, -25));
         chip.setAttribute('stroke-width', '0.3');
-        chip.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+        chip.setAttribute('transform', `translate(${pos.x} ${pos.y}) rotate(${rot})`);
         chip.setAttribute('pointer-events', 'none');
         g.appendChild(chip);
         
-        const grainCount = 1 + Math.floor(rand() * 2);
+        const grainCount = 1 + Math.floor(r1() * 2);
         for (let j = 0; j < grainCount; j++) {
+          const gr = prand(i, 100 + j);
           const grain = document.createElementNS(ns, 'line');
-          const gy = -h/2 + rand() * h;
+          const gy = -h/2 + gr() * h;
           grain.setAttribute('x1', -w/2 + 1);
           grain.setAttribute('y1', gy);
           grain.setAttribute('x2', w/2 - 1);
-          grain.setAttribute('y2', gy + (rand() - 0.5));
+          grain.setAttribute('y2', gy + (gr() - 0.5));
           grain.setAttribute('stroke', adjustColor(color, -15));
           grain.setAttribute('stroke-width', '0.2');
-          grain.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+          grain.setAttribute('transform', `translate(${pos.x} ${pos.y}) rotate(${rot})`);
           grain.setAttribute('pointer-events', 'none');
           g.appendChild(grain);
         }
         
-        if (rand() > 0.7) {
+        if (r4() > 0.7) {
           const barkEdge = document.createElementNS(ns, 'line');
           barkEdge.setAttribute('x1', -w/2);
           barkEdge.setAttribute('y1', -h/2);
@@ -779,7 +804,7 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
           barkEdge.setAttribute('y2', h/2);
           barkEdge.setAttribute('stroke', '#5D4037');
           barkEdge.setAttribute('stroke-width', '0.8');
-          barkEdge.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+          barkEdge.setAttribute('transform', `translate(${pos.x} ${pos.y}) rotate(${rot})`);
           barkEdge.setAttribute('pointer-events', 'none');
           g.appendChild(barkEdge);
         }
@@ -787,25 +812,27 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
       break;
     }
     
-    // ===== СОЛОМА =====
     case 'straw': {
       const strawColors = ['#F9A825', '#FBC02D', '#F57F17', '#FF8F00', '#FFB300', '#E8A020', '#D4A017'];
       
       for (let i = 0; i < density * 2.5; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const len = 12 + rand() * 18;
-        const baseAngle = -Math.PI/2 + (rand() - 0.5) * Math.PI * 0.8;
-        const angle = baseAngle + (rand() - 0.5) * 0.3;
-        const color = strawColors[Math.floor(rand() * strawColors.length)];
+        const pos = nextPos(i);
+        const r1 = prand(i, 1);
+        const r2 = prand(i, 2);
+        const r3 = prand(i, 3);
         
-        const x1 = x - Math.cos(angle) * len/2;
-        const y1 = y - Math.sin(angle) * len/2;
-        const x2 = x + Math.cos(angle) * len/2;
-        const y2 = y + Math.sin(angle) * len/2;
-        const bend = (rand() - 0.5) * len * 0.3;
-        const cpx = x + Math.cos(angle + Math.PI/2) * bend;
-        const cpy = y + Math.sin(angle + Math.PI/2) * bend;
+        const len = 12 + r1() * 18;
+        const baseAngle = -Math.PI/2 + (r2() - 0.5) * Math.PI * 0.8;
+        const angle = baseAngle + (r3() - 0.5) * 0.3;
+        const color = strawColors[Math.floor(r1() * strawColors.length)];
+        
+        const x1 = pos.x - Math.cos(angle) * len/2;
+        const y1 = pos.y - Math.sin(angle) * len/2;
+        const x2 = pos.x + Math.cos(angle) * len/2;
+        const y2 = pos.y + Math.sin(angle) * len/2;
+        const bend = (r2() - 0.5) * len * 0.3;
+        const cpx = pos.x + Math.cos(angle + Math.PI/2) * bend;
+        const cpy = pos.y + Math.sin(angle + Math.PI/2) * bend;
         
         const straw = document.createElementNS(ns, 'path');
         straw.setAttribute('d', `M ${x1} ${y1} Q ${cpx} ${cpy} ${x2} ${y2}`);
@@ -816,11 +843,12 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
         straw.setAttribute('pointer-events', 'none');
         g.appendChild(straw);
         
-        const nodeCount = 1 + Math.floor(rand() * 2);
+        const nodeCount = 1 + Math.floor(r1() * 2);
         for (let j = 0; j < nodeCount; j++) {
-          const t = 0.2 + rand() * 0.6;
-          const nodeX = x1 + (x2 - x1) * t + (cpx - x) * 2 * t * (1-t);
-          const nodeY = y1 + (y2 - y1) * t + (cpy - y) * 2 * t * (1-t);
+          const nr = prand(i, 100 + j);
+          const t = 0.2 + nr() * 0.6;
+          const nodeX = x1 + (x2 - x1) * t + (cpx - pos.x) * 2 * t * (1-t);
+          const nodeY = y1 + (y2 - y1) * t + (cpy - pos.y) * 2 * t * (1-t);
           const node = document.createElementNS(ns, 'ellipse');
           node.setAttribute('cx', nodeX);
           node.setAttribute('cy', nodeY);
@@ -832,13 +860,14 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
           g.appendChild(node);
         }
         
-        if (rand() > 0.7) {
+        if (r3() > 0.7) {
           const tipX = x2;
           const tipY = y2;
-          const bristles = 3 + Math.floor(rand() * 3);
+          const bristles = 3 + Math.floor(r1() * 3);
           for (let j = 0; j < bristles; j++) {
+            const br = prand(i, 200 + j);
             const brAngle = angle + (j - bristles/2) * 0.2;
-            const brLen = 2 + rand() * 3;
+            const brLen = 2 + br() * 3;
             const bristle = document.createElementNS(ns, 'line');
             bristle.setAttribute('x1', tipX);
             bristle.setAttribute('y1', tipY);
@@ -855,26 +884,30 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
       break;
     }
     
-    // ===== ГРАВИЙ =====
     case 'gravel': {
       const gravelColors = ['#9E9E9E', '#757575', '#BDBDBD', '#616161', '#424242', '#A8A8A8', '#8A8A8A'];
       
       for (let i = 0; i < density * 2.5; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const r = 1.5 + rand() * 4.5;
-        const color = gravelColors[Math.floor(rand() * gravelColors.length)];
-        const isAngular = rand() > 0.5;
+        const pos = nextPos(i);
+        const r1 = prand(i, 1);
+        const r2 = prand(i, 2);
+        const r3 = prand(i, 3);
+        const r4 = prand(i, 4);
+        
+        const r = 1.5 + r1() * 4.5;
+        const color = gravelColors[Math.floor(r2() * gravelColors.length)];
+        const isAngular = r3() > 0.5;
         
         if (isAngular) {
           const stone = document.createElementNS(ns, 'path');
-          const points = 5 + Math.floor(rand() * 3);
+          const points = 5 + Math.floor(r4() * 3);
           let d = '';
           for (let j = 0; j < points; j++) {
+            const pr = prand(i, 100 + j);
             const a = (j / points) * Math.PI * 2;
-            const rr = r * (0.6 + rand() * 0.5);
-            const px = x + Math.cos(a) * rr;
-            const py = y + Math.sin(a) * rr;
+            const rr = r * (0.6 + pr() * 0.5);
+            const px = pos.x + Math.cos(a) * rr;
+            const py = pos.y + Math.sin(a) * rr;
             d += (j === 0 ? 'M' : 'L') + ` ${px.toFixed(2)} ${py.toFixed(2)} `;
           }
           d += 'Z';
@@ -886,22 +919,22 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
           g.appendChild(stone);
         } else {
           const stone = document.createElementNS(ns, 'ellipse');
-          stone.setAttribute('cx', x);
-          stone.setAttribute('cy', y);
-          stone.setAttribute('rx', r * (0.7 + rand() * 0.6));
-          stone.setAttribute('ry', r * (0.6 + rand() * 0.5));
+          stone.setAttribute('cx', pos.x);
+          stone.setAttribute('cy', pos.y);
+          stone.setAttribute('rx', r * (0.7 + r1() * 0.6));
+          stone.setAttribute('ry', r * (0.6 + r2() * 0.5));
           stone.setAttribute('fill', color);
           stone.setAttribute('stroke', adjustColor(color, -25));
           stone.setAttribute('stroke-width', '0.3');
-          stone.setAttribute('transform', `rotate(${rand() * 360} ${x} ${y})`);
+          stone.setAttribute('transform', `rotate(${r3() * 360} ${pos.x} ${pos.y})`);
           stone.setAttribute('pointer-events', 'none');
           g.appendChild(stone);
         }
         
-        if (rand() > 0.4) {
+        if (r4() > 0.4) {
           const highlight = document.createElementNS(ns, 'circle');
-          highlight.setAttribute('cx', x - r * 0.25);
-          highlight.setAttribute('cy', y - r * 0.25);
+          highlight.setAttribute('cx', pos.x - r * 0.25);
+          highlight.setAttribute('cy', pos.y - r * 0.25);
           highlight.setAttribute('r', r * 0.25);
           highlight.setAttribute('fill', adjustColor(color, 40));
           highlight.setAttribute('opacity', '0.5');
@@ -909,10 +942,10 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
           g.appendChild(highlight);
         }
         
-        if (rand() > 0.6) {
+        if (r1() > 0.6) {
           const shadow = document.createElementNS(ns, 'ellipse');
-          shadow.setAttribute('cx', x + r * 0.2);
-          shadow.setAttribute('cy', y + r * 0.3);
+          shadow.setAttribute('cx', pos.x + r * 0.2);
+          shadow.setAttribute('cy', pos.y + r * 0.3);
           shadow.setAttribute('rx', r * 0.8);
           shadow.setAttribute('ry', r * 0.3);
           shadow.setAttribute('fill', '#000000');
@@ -924,23 +957,24 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
       break;
     }
     
-    // ===== СОСНОВЫЕ ШИШКИ (полностью переработано) =====
     case 'pine_cones': {
       const coneColors = ['#5D4037', '#4E342E', '#6D4C41', '#3E2723', '#795548'];
       
       for (let i = 0; i < density * 0.35; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const rx = 5 + rand() * 7;  // увеличен размер
-        const ry = 8 + rand() * 12;
-        const rot = rand() * 360;
-        const color = coneColors[Math.floor(rand() * coneColors.length)];
+        const pos = nextPos(i);
+        const r1 = prand(i, 1);
+        const r2 = prand(i, 2);
+        const r3 = prand(i, 3);
+        
+        const rx = 5 + r1() * 7;
+        const ry = 8 + r2() * 12;
+        const rot = r3() * 360;
+        const color = coneColors[Math.floor(r1() * coneColors.length)];
         
         const coneGroup = document.createElementNS(ns, 'g');
-        coneGroup.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
+        coneGroup.setAttribute('transform', `translate(${pos.x} ${pos.y}) rotate(${rot})`);
         coneGroup.setAttribute('pointer-events', 'none');
         
-        // Тело шишки — тёмный фон с чётким контуром
         const coneBody = document.createElementNS(ns, 'ellipse');
         coneBody.setAttribute('cx', 0);
         coneBody.setAttribute('cy', 0);
@@ -951,27 +985,23 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
         coneBody.setAttribute('stroke-width', '0.8');
         coneGroup.appendChild(coneBody);
         
-        // Чешуйки — крупные, контрастные, с чёткими контурами
-        const scalesRows = 6 + Math.floor(rand() * 4); // 6-9 рядов
+        const scalesRows = 6 + Math.floor(r1() * 4);
         for (let row = 0; row < scalesRows; row++) {
+          const rr = prand(i, 100 + row);
           const t = (row + 0.5) / scalesRows;
           const sy = -ry * 0.85 + t * ry * 1.7;
-          
-          // Ширина ряда — максимальная в середине
           const rowWidth = rx * Math.sin(t * Math.PI) * 1.9;
           const scalesInRow = Math.max(2, Math.floor(rowWidth / 3.5));
-          
-          // Смещение чётных рядов для шахматного порядка
           const rowOffset = (row % 2 === 0) ? 0 : (rowWidth / scalesInRow) * 0.5;
           
           for (let col = 0; col < scalesInRow; col++) {
+            const cr = prand(i, 1000 + row * 100 + col);
             const sx = -rowWidth/2 + rowOffset + (col + 0.5) * (rowWidth / scalesInRow);
             const scaleW = (rowWidth / scalesInRow) * 0.85;
             const scaleH = (ry / scalesRows) * 0.85;
             
             if (scaleW < 1 || scaleH < 1) continue;
             
-            // Ромбовидная чешуйка с выпуклостью
             const scale = document.createElementNS(ns, 'path');
             const sd = `M 0 ${-scaleH/2} 
                         Q ${scaleW*0.55} ${-scaleH*0.35} ${scaleW/2} 0 
@@ -979,7 +1009,7 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
                         Q ${-scaleW*0.55} ${scaleH*0.35} ${-scaleW/2} 0 
                         Q ${-scaleW*0.55} ${-scaleH*0.35} 0 ${-scaleH/2} Z`;
             
-            const scaleColor = adjustColor(color, Math.floor(rand() * 35) - 12);
+            const scaleColor = adjustColor(color, Math.floor(cr() * 35) - 12);
             scale.setAttribute('d', sd);
             scale.setAttribute('fill', scaleColor);
             scale.setAttribute('stroke', adjustColor(color, -40));
@@ -987,7 +1017,6 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
             scale.setAttribute('transform', `translate(${sx.toFixed(1)} ${sy.toFixed(1)})`);
             coneGroup.appendChild(scale);
             
-            // Тёмная линия в центре чешуйки (бороздка)
             const groove = document.createElementNS(ns, 'line');
             groove.setAttribute('x1', -scaleW * 0.3);
             groove.setAttribute('y1', 0);
@@ -998,8 +1027,7 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
             groove.setAttribute('transform', `translate(${sx.toFixed(1)} ${sy.toFixed(1)})`);
             coneGroup.appendChild(groove);
             
-            // Блик на верхней части чешуйки
-            if (rand() > 0.4) {
+            if (cr() > 0.4) {
               const shine = document.createElementNS(ns, 'ellipse');
               shine.setAttribute('cx', sx - scaleW * 0.1);
               shine.setAttribute('cy', sy - scaleH * 0.2);
@@ -1012,7 +1040,6 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
           }
         }
         
-        // Тень под шишкой
         const shadow = document.createElementNS(ns, 'ellipse');
         shadow.setAttribute('cx', 2);
         shadow.setAttribute('cy', ry * 0.4);
@@ -1025,18 +1052,19 @@ function renderMulchTexture(g, mulch, mx, my, mw, mh, rand) {
         g.appendChild(coneGroup);
       }
       
-      // Иголки и мелкие веточки между шишками
       for (let i = 0; i < density * 0.8; i++) {
-        const x = mx - mw/2 + rand() * mw;
-        const y = my - mh/2 + rand() * mh;
-        const len = 3 + rand() * 7;
-        const angle = rand() * Math.PI * 2;
+        const pos = nextPos(i + 20000);
+        const r1 = prand(i + 20000, 1);
+        const r2 = prand(i + 20000, 2);
+        
+        const len = 3 + r1() * 7;
+        const angle = r2() * Math.PI * 2;
         
         const needle = document.createElementNS(ns, 'line');
-        needle.setAttribute('x1', x - Math.cos(angle) * len/2);
-        needle.setAttribute('y1', y - Math.sin(angle) * len/2);
-        needle.setAttribute('x2', x + Math.cos(angle) * len/2);
-        needle.setAttribute('y2', y + Math.sin(angle) * len/2);
+        needle.setAttribute('x1', pos.x - Math.cos(angle) * len/2);
+        needle.setAttribute('y1', pos.y - Math.sin(angle) * len/2);
+        needle.setAttribute('x2', pos.x + Math.cos(angle) * len/2);
+        needle.setAttribute('y2', pos.y + Math.sin(angle) * len/2);
         needle.setAttribute('stroke', '#8D6E63');
         needle.setAttribute('stroke-width', '0.7');
         needle.setAttribute('stroke-linecap', 'round');
@@ -1078,34 +1106,43 @@ function renderMulch(mulch) {
   const mw = mulch.w;
   const mh = mulch.h;
   
-  if (mulch.shape === 'rect') {
-    const rect = document.createElementNS(ns, 'rect');
-    rect.setAttribute('x', mx - mw / 2);
-    rect.setAttribute('y', my - mh / 2);
-    rect.setAttribute('width', mw);
-    rect.setAttribute('height', mh);
-    rect.setAttribute('fill', mulch.fill);
-    g.appendChild(rect);
-  } else {
-    const ellipse = document.createElementNS(ns, 'ellipse');
-    ellipse.setAttribute('cx', mx);
-    ellipse.setAttribute('cy', my);
-    ellipse.setAttribute('rx', mw / 2);
-    ellipse.setAttribute('ry', mh / 2);
-    ellipse.setAttribute('fill', mulch.fill);
-    g.appendChild(ellipse);
-  }
-  
+  // ФОН УБРАН — только частицы
   renderMulchTexture(g, mulch, mx, my, mw, mh, rand);
   
   objectsLayer.appendChild(g);
   
+  // Невидимый прямоугольник/эллипс для клика (чтобы можно было выбрать мульчу)
+  const hitArea = document.createElementNS(ns, mulch.shape === 'circle' ? 'ellipse' : 'rect');
+  if (mulch.shape === 'circle') {
+    hitArea.setAttribute('cx', mx);
+    hitArea.setAttribute('cy', my);
+    hitArea.setAttribute('rx', mw / 2);
+    hitArea.setAttribute('ry', mh / 2);
+  } else {
+    hitArea.setAttribute('x', mx - mw / 2);
+    hitArea.setAttribute('y', my - mh / 2);
+    hitArea.setAttribute('width', mw);
+    hitArea.setAttribute('height', mh);
+  }
+  hitArea.setAttribute('fill', 'transparent');
+  hitArea.setAttribute('pointer-events', 'all');
+  hitArea.setAttribute('data-id', mulch.id);
+  hitArea.style.cursor = 'pointer';
+  objectsLayer.appendChild(hitArea);
+  
   if (isSelected) {
-    const outline = document.createElementNS(ns, 'rect');
-    outline.setAttribute('x', mx - mw / 2);
-    outline.setAttribute('y', my - mh / 2);
-    outline.setAttribute('width', mw);
-    outline.setAttribute('height', mh);
+    const outline = document.createElementNS(ns, mulch.shape === 'circle' ? 'ellipse' : 'rect');
+    if (mulch.shape === 'circle') {
+      outline.setAttribute('cx', mx);
+      outline.setAttribute('cy', my);
+      outline.setAttribute('rx', mw / 2);
+      outline.setAttribute('ry', mh / 2);
+    } else {
+      outline.setAttribute('x', mx - mw / 2);
+      outline.setAttribute('y', my - mh / 2);
+      outline.setAttribute('width', mw);
+      outline.setAttribute('height', mh);
+    }
     outline.setAttribute('fill', 'none');
     outline.setAttribute('stroke', '#ff6b00');
     outline.setAttribute('stroke-width', '2');
@@ -1685,6 +1722,7 @@ function renderProps() {
     const skinOptions = MULCH_SKINS.map(s => 
       `<option value="${s.id}" ${(obj.skin || 'bark') === s.id ? 'selected' : ''}>${s.name}</option>`
     ).join('');
+    const densityVal = obj.densityMultiplier != null ? obj.densityMultiplier : 1.0;
     
     html += `
       <div class="prop-row">
@@ -1708,9 +1746,14 @@ function renderProps() {
           <option value="circle" ${obj.shape === 'circle' ? 'selected' : ''}>Круг</option>
         </select>
       </div>
-      <div class="prop-row">
-        <span>Цвет основы:</span>
-        <input type="color" value="${obj.fill}" onchange="updateProp(${obj.id}, 'fill', this.value)">
+      <div class="prop-row" style="flex-direction:column;align-items:stretch;gap:4px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span>Плотность частиц:</span>
+          <span id="mulchDensityVal" style="font-size:11px;color:#555;">×${densityVal.toFixed(1)}</span>
+        </div>
+        <input type="range" min="0.2" max="3.0" step="0.1" value="${densityVal}" 
+               oninput="updateMulchDensity(${obj.id}, +this.value)" 
+               style="width:100%;">
       </div>
       <div class="prop-row">
         <span>Ширина (м):</span>
@@ -1793,6 +1836,15 @@ function updateMulchSize(id, dim, valueM) {
   if (!obj || obj.type !== 'mulch') return;
   const value = Math.max(0.5, Math.min(100, valueM)) * state.scale;
   obj[dim] = value;
+  render();
+}
+
+function updateMulchDensity(id, value) {
+  const obj = state.objects.find(o => o.id === id);
+  if (!obj || obj.type !== 'mulch') return;
+  obj.densityMultiplier = Math.max(0.2, Math.min(3.0, value));
+  const label = document.getElementById('mulchDensityVal');
+  if (label) label.textContent = '×' + obj.densityMultiplier.toFixed(1);
   render();
 }
 

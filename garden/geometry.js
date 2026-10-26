@@ -23,7 +23,6 @@ function getObjBBox(obj) {
     return { x: obj.x - obj.w / 2, y: obj.y - obj.h / 2, w: obj.w, h: obj.h };
   }
   if (obj.type === 'mulch') {
-    // Мульча имеет собственные координаты и размеры
     return { x: obj.x - obj.w / 2, y: obj.y - obj.h / 2, w: obj.w, h: obj.h };
   }
   if (obj.points && obj.points.length > 0) {
@@ -48,7 +47,6 @@ function pointInObject(obj, x, y) {
            y >= obj.y - obj.h / 2 && y <= obj.y + obj.h / 2;
   }
   if (obj.type === 'mulch') {
-    // Проверяем попадание в прямоугольник мульчи
     return x >= obj.x - obj.w / 2 && x <= obj.x + obj.w / 2 &&
            y >= obj.y - obj.h / 2 && y <= obj.y + obj.h / 2;
   }
@@ -78,7 +76,6 @@ function pointInPolygon(x, y, pts) {
   return inside;
 }
 
-// Найти клумбу под точкой
 function findBedAtPoint(x, y) {
   for (let i = state.objects.length - 1; i >= 0; i--) {
     const obj = state.objects[i];
@@ -105,7 +102,6 @@ function resizeObjToBBox(obj, newBBox) {
     obj.w = newBBox.w;
     obj.h = newBBox.h;
   } else if (obj.type === 'mulch') {
-    // Мульча ресайзится как прямоугольник
     obj.x = newBBox.x + newBBox.w / 2;
     obj.y = newBBox.y + newBBox.h / 2;
     obj.w = newBBox.w;
@@ -121,6 +117,16 @@ function resizeObjToBBox(obj, newBBox) {
     obj.plants.forEach(pl => {
       pl.x = newBBox.x + (pl.x - oldBBox.x) * sx;
       pl.y = newBBox.y + (pl.y - oldBBox.y) * sy;
+    });
+  }
+  
+  // Перемещаем мульчи, привязанные к этой клумбе/участку
+  if (obj.type === 'bed' || obj.type === 'plot') {
+    state.objects.forEach(mulch => {
+      if (mulch.type === 'mulch' && mulch.bedId === obj.id) {
+        mulch.x = newBBox.x + (mulch.x - oldBBox.x) * sx;
+        mulch.y = newBBox.y + (mulch.y - oldBBox.y) * sy;
+      }
     });
   }
 }

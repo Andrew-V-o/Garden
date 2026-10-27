@@ -1,4 +1,4 @@
-// ===== СОХРАНЕНИЕ / ЗАГРУЗКА =====
+// ===== СОХРАНЕНИЕ / ЗАГРУЗКА ПРОЕКТА =====
 
 function saveProject() {
   const data = {
@@ -10,9 +10,10 @@ function saveProject() {
     canvasHeightM: state.canvasHeightM,
     scale: state.scale,
     viewBox: state.viewBox,
-    bloomFilter: state.bloomFilter, // ДОБАВЛЕНО
+    bloomFilter: state.bloomFilter,
     version: 7,
   };
+  
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -20,6 +21,7 @@ function saveProject() {
   a.download = 'garden-project.json';
   a.click();
   URL.revokeObjectURL(url);
+  
   localStorage.setItem('gardenProject', JSON.stringify(data));
   alert('✅ Проект сохранён!');
 }
@@ -31,32 +33,33 @@ function loadProject() {
   input.onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const raw = JSON.parse(ev.target.result);
+        
         if (Array.isArray(raw)) {
           migrateOldProject(raw);
         } else {
           state.objects = raw.objects || [];
           state.nextId = raw.nextId || 1;
           state.nextPlantingId = raw.nextPlantingId || 1;
-
+          
           if (raw.canvasWidthM) state.canvasWidthM = raw.canvasWidthM;
           if (raw.canvasHeightM) state.canvasHeightM = raw.canvasHeightM;
           if (raw.scale) state.scale = raw.scale;
-
+          
           if (!state.objects.find(o => o.type === 'plot')) {
             createDefaultPlot();
           }
-
-          // В loadProject, после загрузки объектов:
+          
+          // Миграция: если у посадки нет своих дат — копируем из вида
           state.objects.forEach(o => {
             if (o.plants) {
               o.plants.forEach(pl => {
                 if (!pl.shape) pl.shape = 'circle';
                 if (!pl.r) pl.r = state.scale * 0.4;
-                // Миграция: если у посадки нет своих дат — копируем из вида
                 if (pl.bloomStartMonth === undefined && pl.bloomStartDate === undefined) {
                   const plant = plants.find(p => p.id === pl.plantId);
                   if (plant) {
@@ -66,12 +69,13 @@ function loadProject() {
               });
             }
           });
-
+          
           if (raw.plants) {
             plants = [...DEFAULT_PLANTS, ...raw.plants];
             saveCustomPlants();
           }
         }
+        
         state.selectedId = null;
         state.selectedPlantingId = null;
         updateSvgViewBox();
@@ -99,6 +103,7 @@ function migrateObjToBed(o) {
   }
   o.type = 'bed';
   if (!o.plants) o.plants = [];
+  
   if (o._oldPlant) {
     let cx, cy;
     if (o.points.length > 0) {
@@ -121,9 +126,8 @@ function migrateOldProject(objects) {
   state.objects = [];
   state.nextId = 1;
   state.nextPlantingId = 1;
-
   createDefaultPlot();
-
+  
   objects.forEach(o => {
     const newObj = { ...o };
     if (o.plant && o.type !== 'path' && o.type !== 'tree') {
@@ -151,7 +155,6 @@ function createDefaultPlot() {
   const plot = {
     id: state.nextId++,
     type: 'plot',
-    // Участок со сдвигом на величину отступа — подписи сетки не обрезаются
     points: generateRectPoints(pad, pad, w, h),
     fill: '#c8e6a0',
     name: 'Участок',
@@ -177,13 +180,16 @@ function exportPNG() {
   const size = getSvgInternalSize();
   clone.setAttribute('width', size.w);
   clone.setAttribute('height', size.h);
+  
   const prev = clone.querySelector('#preview');
   const hnd = clone.querySelector('#handles');
   if (prev) prev.innerHTML = '';
   if (hnd) hnd.innerHTML = '';
+  
   const xml = new XMLSerializer().serializeToString(clone);
   const svg64 = btoa(unescape(encodeURIComponent(xml)));
   const img = new Image();
+  
   img.onload = () => {
     const canvas = document.createElement('canvas');
     canvas.width = size.w;
@@ -197,83 +203,3 @@ function exportPNG() {
   };
   img.src = 'data:image/svg+xml;base64,' + svg64;
 }
-
-function initApp() {
-  initDomRefs();
-  loadCustomPlants();
-
-  fitCanvasToScreen();
-
-  createDefaultPlot();
-  updateSvgViewBox();
-
-  renderPlantList();
-  render();
-  updateHint();
-  updateCanvasInfo();
-
-  svg.addEventListener('mousedown', onMouseDown);
-  svg.addEventListener('mousemove', onMouseMove);
-  svg.addEventListener('mouseup', onMouseUp);
-  svg.addEventListener('dblclick', onDblClick);
-  document.addEventListener('keydown', onKeyDown);
-
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.obj-group')) {
-      state.bedSubmenuOpen = false;
-      document.getElementById('bedSubmenu').classList.remove('open');
-      document.querySelector('.obj-btn[data-obj="bed"]').classList.remove('open');
-    }
-  });
-
-  const saved = localStorage.getItem('gardenProject');
-  if (saved) {
-    try {
-      const raw = JSON.parse(saved);
-      if (Array.isArray(raw)) {
-        if (raw.length > 0 && confirm('Найден старый проект. Загрузить?')) {
-          migrateOldProject(raw);
-          updateSvgViewBox();
-          updateCanvasInfo();
-          renderPlantList();
-          render();
-        }
-      } else if (raw.objects && raw.objects.length > 0) {
-        if (confirm('Найден сохранённый проект. Загрузить?')) {
-          state.objects = raw.objects;
-          state.nextId = raw.nextId || 1;
-          state.nextPlantingId = raw.nextPlantingId || 1;
-
-          if (raw.canvasWidthM) state.canvasWidthM = raw.canvasWidthM;
-          if (raw.canvasHeightM) state.canvasHeightM = raw.canvasHeightM;
-          if (raw.scale) state.scale = raw.scale;
-
-          if (!state.objects.find(o => o.type === 'plot')) {
-            createDefaultPlot();
-          }
-
-          state.objects.forEach(o => {
-            if (o.type === 'rect' || o.type === 'circle' || o.type === 'poly' || o.type === 'morph') {
-              migrateObjToBed(o);
-            }
-            if (o.plants) o.plants.forEach(pl => {
-              if (!pl.shape) pl.shape = 'circle';
-              if (!pl.r) pl.r = state.scale * 0.4;
-            });
-          });
-
-          if (raw.plants) {
-            plants = [...DEFAULT_PLANTS, ...raw.plants];
-            saveCustomPlants();
-            renderPlantList();
-          }
-          updateSvgViewBox();
-          updateCanvasInfo();
-          render();
-        }
-      }
-    } catch (e) { }
-  }
-}
-
-document.addEventListener('DOMContentLoaded', initApp);

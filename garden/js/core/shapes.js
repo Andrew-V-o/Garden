@@ -4,19 +4,14 @@ function getShapeSVGMini(shape, color) {
   switch (shape) {
     case 'circle':
       return `<circle cx="8" cy="8" r="7" fill="${color}"/>`;
-    
     case 'square':
       return `<rect x="2" y="2" width="12" height="12" fill="${color}"/>`;
-    
     case 'diamond':
       return `<polygon points="8,1 15,8 8,15 1,8" fill="${color}"/>`;
-    
     case 'triangle':
       return `<polygon points="8,1 15,14 1,14" fill="${color}"/>`;
-    
     case 'oval':
       return `<ellipse cx="8" cy="8" rx="7" ry="5" fill="${color}"/>`;
-    
     case 'star': {
       const pts = [];
       for (let i = 0; i < 10; i++) {
@@ -26,50 +21,35 @@ function getShapeSVGMini(shape, color) {
       }
       return `<polygon points="${pts.join(' ')}" fill="${color}"/>`;
     }
-    
     case 'heart':
       return `<path d="M8 13 C8 11 3 8 3 5 C3 3 5 2 6.5 3 C7.5 3.7 8 4.5 8 5 C8 4.5 8.5 3.7 9.5 3 C11 2 13 3 13 5 C13 8 8 11 8 13 Z" fill="${color}"/>`;
-    
     case 'flower':
       return `<circle cx="8" cy="4" r="3" fill="${color}"/><circle cx="12" cy="8" r="3" fill="${color}"/><circle cx="8" cy="12" r="3" fill="${color}"/><circle cx="4" cy="8" r="3" fill="${color}"/><circle cx="8" cy="8" r="2" fill="#ffc107"/>`;
-    
     case 'cross':
       return `<path d="M6 2 L10 2 L10 6 L14 6 L14 10 L10 10 L10 14 L6 14 L6 10 L2 10 L2 6 L6 6 Z" fill="${color}"/>`;
-    
     case 'moon':
       return `<path d="M10 2 A6 6 0 1 0 10 14 A4 4 0 1 1 10 2 Z" fill="${color}"/>`;
-    
     case 'drop':
       return `<path d="M8 1 C8 1 2 7 2 10 A6 6 0 0 0 14 10 C14 7 8 1 8 1 Z" fill="${color}"/>`;
-    
     case 'leaf':
       return `<path d="M2 14 C2 14 4 2 12 2 C12 2 14 10 6 14 C4 15 3 14 2 14 Z" fill="${color}"/>`;
-    
     // Иконки деревьев
     case 'oak':
       return `<circle cx="8" cy="6" r="5" fill="${color}"/><rect x="7" y="11" width="2" height="4" fill="#5d4037"/>`;
-    
     case 'pine':
       return `<polygon points="8,2 12,10 4,10" fill="${color}"/><rect x="7" y="10" width="2" height="4" fill="#5d4037"/>`;
-    
     case 'birch':
       return `<ellipse cx="8" cy="6" rx="4" ry="5" fill="${color}"/><rect x="7" y="11" width="2" height="4" fill="#f5f5f5"/>`;
-    
     case 'maple':
       return `<path d="M8 2 L10 5 L13 4 L11 7 L14 8 L11 9 L12 12 L8 10 L4 12 L5 9 L2 8 L5 7 L3 4 L6 5 Z" fill="${color}"/><rect x="7" y="10" width="2" height="4" fill="#5d4037"/>`;
-    
     case 'willow':
       return `<ellipse cx="8" cy="7" rx="6" ry="5" fill="${color}"/><rect x="7" y="12" width="2" height="3" fill="#5d4037"/>`;
-    
     case 'spruce':
       return `<polygon points="8,2 11,6 9,6 12,10 4,10 7,6 5,6" fill="${color}"/><rect x="7" y="10" width="2" height="4" fill="#5d4037"/>`;
-    
     case 'palm':
       return `<path d="M8 2 Q12 4 14 6 Q10 5 8 7 Q6 5 2 6 Q4 4 8 2 Z" fill="${color}"/><path d="M8 7 Q10 9 12 10 Q9 9 8 11 Q7 9 4 10 Q6 9 8 7 Z" fill="${color}"/><rect x="7" y="11" width="2" height="4" fill="#8d6e63"/>`;
-    
     case 'cherry':
       return `<circle cx="8" cy="6" r="5" fill="${color}"/><circle cx="6" cy="5" r="1" fill="#fff"/><circle cx="10" cy="7" r="1" fill="#fff"/><rect x="7" y="11" width="2" height="4" fill="#5d4037"/>`;
-    
     default:
       return `<circle cx="8" cy="8" r="7" fill="${color}"/>`;
   }
@@ -78,7 +58,6 @@ function getShapeSVGMini(shape, color) {
 function createShapeElement(shape, x, y, r, color) {
   const ns = 'http://www.w3.org/2000/svg';
   const s = r * 2;
-  
   switch (shape) {
     case 'square': {
       const el = document.createElementNS(ns, 'rect');

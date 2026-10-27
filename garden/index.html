@@ -1,872 +1,811 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
-  <meta charset="UTF-8">
-  <title>🌿 Планировщик сада v7.62</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    /* Кнопки отмены/повтора — левый верхний угол */
-    .history-buttons {
-      position: fixed;
-      top: 55px;
-      left: 10px;
-      display: flex;
-      gap: 5px;
-      z-index: 1000;
-    }
+<meta charset="UTF-8">
+<title>🌿 Планировщик сада</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Кнопки отмены/повтора — левый верхний угол */
+  .history-buttons {
+    position: fixed;
+    top: 55px;
+    left: 10px;
+    display: flex;
+    gap: 5px;
+    z-index: 1000;
+  }
 
-    .history-btn {
-      width: 36px;
-      height: 36px;
-      border: 2px solid #4a7c59;
-      background: white;
-      color: #4a7c59;
-      font-size: 18px;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+  .history-btn {
+    width: 36px;
+    height: 36px;
+    border: 2px solid #4a7c59;
+    background: white;
+    color: #4a7c59;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    .history-btn:hover:not([style*="opacity: 0.3"]) {
-      background: #4a7c59;
-      color: white;
-      transform: scale(1.05);
-    }
+  .history-btn:hover:not([style*="opacity: 0.3"]) {
+    background: #4a7c59;
+    color: white;
+    transform: scale(1.05);
+  }
 
-    .history-btn:active:not([style*="opacity: 0.3"]) {
-      transform: scale(0.95);
-    }
+  .history-btn:active:not([style*="opacity: 0.3"]) {
+    transform: scale(0.95);
+  }
 
-    /* Панель задач */
-    .tasks-panel {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 320px;
-      max-height: 70vh;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-      z-index: 50;
-      overflow-y: auto;
-      padding: 12px;
-    }
+  /* Панель задач */
+  .tasks-panel {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 320px;
+    max-height: 70vh;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 50;
+    overflow-y: auto;
+    padding: 12px;
+  }
 
-    .tasks-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e8e3d8;
-    }
+  .tasks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e8e3d8;
+  }
 
-    .tasks-header h4 {
-      margin: 0;
-      font-size: 16px;
-      color: #2d3a2e;
-    }
+  .tasks-header h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #2d3a2e;
+  }
 
-    .tasks-filters {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
+  .tasks-filters {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
 
-    .tasks-filters select {
-      flex: 1;
-      padding: 4px 6px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 11px;
-    }
+  .tasks-filters select {
+    flex: 1;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 11px;
+  }
 
-    .task-item {
-      background: #f9f7f2;
-      border-radius: 6px;
-      padding: 8px 10px;
-      margin-bottom: 6px;
-      transition: all 0.15s;
-    }
+  .task-item {
+    background: #f9f7f2;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    transition: all 0.15s;
+  }
 
-    .task-item:hover {
-      background: #f0ede4;
-    }
+  .task-item:hover {
+    background: #f0ede4;
+  }
 
-    .task-item.done {
-      opacity: 0.6;
-    }
+  .task-item.done {
+    opacity: 0.6;
+  }
 
-    .task-item.overdue {
-      background: #fff3f3;
-    }
+  .task-item.overdue {
+    background: #fff3f3;
+  }
 
-    .task-header-row {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      margin-bottom: 4px;
-    }
+  .task-header-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
 
-    .task-header-row input[type="checkbox"] {
-      margin-top: 3px;
-      cursor: pointer;
-    }
+  .task-header-row input[type="checkbox"] {
+    margin-top: 3px;
+    cursor: pointer;
+  }
 
-    .task-text {
-      flex: 1;
-      font-size: 13px;
-      color: #2d3a2e;
-      line-height: 1.4;
-    }
+  .task-text {
+    flex: 1;
+    font-size: 13px;
+    color: #2d3a2e;
+    line-height: 1.4;
+  }
 
-    .task-meta {
-      display: flex;
-      gap: 8px;
-      font-size: 10px;
-      color: #7a8a7c;
-      flex-wrap: wrap;
-      margin-top: 4px;
-    }
+  .task-meta {
+    display: flex;
+    gap: 8px;
+    font-size: 10px;
+    color: #7a8a7c;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
 
-    .task-label {
-      font-weight: 600;
-    }
+  .task-label {
+    font-weight: 600;
+  }
 
-    .task-deadline {
-      color: #7a8a7c;
-    }
+  .task-deadline {
+    color: #7a8a7c;
+  }
 
-    .task-deadline.overdue {
-      color: #d32f2f;
-      font-weight: 600;
-    }
+  .task-deadline.overdue {
+    color: #d32f2f;
+    font-weight: 600;
+  }
 
-    .task-priority {
-      font-weight: 600;
-    }
+  .task-priority {
+    font-weight: 600;
+  }
 
-    .task-actions {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 4px;
-    }
+  .task-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
 
-    .task-actions button {
-      background: transparent;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      cursor: pointer;
-      padding: 2px 6px;
-    }
+  .task-actions button {
+    background: transparent;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 2px 6px;
+  }
 
-    .task-actions button:hover {
-      background: #e8e3d8;
-    }
+  .task-actions button:hover {
+    background: #e8e3d8;
+  }
 
-    /* Кнопка сетки */
-    #gridBtn.active {
-      background: #4a7c59;
-      color: white;
-    }
+  /* Кнопка сетки */
+  #gridBtn.active {
+    background: #4a7c59;
+    color: white;
+  }
 
-    #gridBtn.active .icon {
-      filter: brightness(0) invert(1);
-    }
-  </style>
+  #gridBtn.active .icon {
+    filter: brightness(0) invert(1);
+  }
+</style>
 </head>
-
 <body>
 
-  <header>
-    <h1>🌿 Планировщик сада</h1>
-    <div class="actions">
-      <button onclick="openBloomMap()">🌸 Карта цветения</button>
-      <button onclick="toggleTasksPanel()">📋 Задачи</button>
-      <button onclick="clearAll()">🗑️ Очистить</button>
-      <button onclick="saveProject()">💾 Сохранить</button>
-      <button onclick="loadProject()">📂 Загрузить</button>
-      <button onclick="exportPNG()">🖼️ PNG</button>
-    </div>
-  </header>
-
-  <!-- Кнопки отмены/повтора -->
-  <div class="history-buttons">
-    <button id="undoBtn" class="history-btn" onclick="undo()" title="Отменить (Ctrl+Z)">↶</button>
-    <button id="redoBtn" class="history-btn" onclick="redo()" title="Повторить (Ctrl+Y)">↷</button>
+<header>
+  <h1>🌿 Планировщик сада</h1>
+  <div class="actions">
+    <button onclick="openBloomMap()">🌸 Карта цветения</button>
+    <button onclick="toggleTasksPanel()">📋 Задачи</button>
+    <button onclick="clearAll()">🗑️ Очистить</button>
+    <button onclick="saveProject()">💾 Сохранить</button>
+    <button onclick="loadProject()">📂 Загрузить</button>
+    <button onclick="exportPNG()">🖼️ PNG</button>
   </div>
+</header>
 
-  <!-- Сдвигаем main вниз, чтобы кнопки не перекрывали надпись "Инструменты" -->
-  <div class="main" style="margin-top: 50px;">
-    <aside class="sidebar">
-      <h3>️ Инструменты</h3>
-      <div class="tool-grid">
-        <div class="tool-btn active" data-tool="select" onclick="setTool('select')">
-          <span class="icon">👆</span>Выбрать
-        </div>
-        <div class="tool-btn" id="gridBtn" onclick="toggleGrid()" title="Размерная сетка">
-          <span class="icon">⊞</span>Сетка
-        </div>
+<!-- Кнопки отмены/повтора -->
+<div class="history-buttons">
+  <button id="undoBtn" class="history-btn" onclick="undo()" title="Отменить (Ctrl+Z)">↶</button>
+  <button id="redoBtn" class="history-btn" onclick="redo()" title="Повторить (Ctrl+Y)">↷</button>
+</div>
+
+<!-- Сдвигаем main вниз, чтобы кнопки не перекрывали надпись "Инструменты" -->
+<div class="main" style="margin-top: 50px;">
+  <aside class="sidebar">
+    <h3>🛠️ Инструменты</h3>
+    <div class="tool-grid">
+      <div class="tool-btn active" data-tool="select" onclick="setTool('select')">
+        <span class="icon">👆</span>Выбрать
       </div>
-
-      <h3>📦 Объекты</h3>
-      <div class="objects-panel">
-        <div class="obj-btn" data-obj="plot" onclick="selectPlot()">
-          <span class="icon">🏡</span>Участок
-        </div>
-
-        <div class="obj-group">
-          <div class="obj-btn has-submenu" data-obj="bed" onclick="toggleBedSubmenu(event)">
-            <span class="icon">▭</span>Клумба <span class="arrow">▼</span>
-          </div>
-          <div class="submenu" id="bedSubmenu">
-            <div class="submenu-item active" data-bed="rect" onclick="setBedShape('rect')">
-              <span class="icon">▭</span>Прямоугольная
-            </div>
-            <div class="submenu-item" data-bed="circle" onclick="setBedShape('circle')">
-              <span class="icon">◯</span>Круглая
-            </div>
-            <div class="submenu-item" data-bed="poly" onclick="setBedShape('poly')">
-              <span class="icon">⬠</span>Фигура
-            </div>
-          </div>
-        </div>
-
-        <div class="obj-btn" data-obj="path" onclick="setTool('path')">
-          <span class="icon">〰️</span>Дорожка
-        </div>
-
-        <div class="obj-btn" data-obj="water" onclick="toggleWaterTool()">
-          <span class="icon">💧</span>Водоём
-        </div>
-
-        <div class="obj-btn" data-obj="mulch" onclick="toggleMulchTool()">
-          <span class="icon">🟫</span>Мульча
-        </div>
-      </div>
-
-      <div class="collapsible-section">
-        <div class="collapsible-header" onclick="toggleSection('plants')">
-          <span class="collapsible-arrow" id="plantsArrow">▼</span>
-          <span>🌸 Растения</span>
-        </div>
-        <div class="collapsible-content" id="plantsSection">
-          <div class="plant-list" id="plantList"></div>
-        </div>
-      </div>
-
-      <div class="collapsible-section">
-        <div class="collapsible-header" onclick="toggleSection('trees')">
-          <span class="collapsible-arrow" id="treesArrow">▼</span>
-          <span>🌳 Деревья</span>
-        </div>
-        <div class="collapsible-content" id="treesSection">
-          <div class="tree-list" id="treeList"></div>
-        </div>
-      </div>
-
-      <h3>🎨 Цвет секции</h3>
-      <div class="prop-row">
-        <span>Заливка:</span>
-        <input type="color" id="fillColor" value="#8bc34a">
-      </div>
-    </aside>
-
-    <div class="canvas-wrap" id="canvasWrap">
-      <svg id="canvas" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#d4cfc0" stroke-width="0.5" />
-          </pattern>
-        </defs>
-        <rect id="svgBg" x="0" y="0" fill="#d4cfc0" />
-        <g id="plotLayer"></g>
-        <g id="objects"></g>
-        <g id="handles"></g>
-        <g id="preview"></g>
-      </svg>
-      <div class="zoom-info" id="zoomInfo">Окно: 50×50 м</div>
-
-      <button class="finish-btn" id="finishBtn" onclick="finishPolyOrPath()" style="display:none;">
-        ✓ Завершить
-      </button>
-
-      <!-- Popup для растения -->
-      <div class="plant-popup" id="plantPopup">
-        <h4>🌺 Настройка цветка</h4>
-        <div class="popup-row">
-          <span>Растение:</span>
-          <select id="popupPlant"></select>
-        </div>
-        <div class="popup-row">
-          <span>Форма:</span>
-          <select id="popupShape"></select>
-        </div>
-        <div class="popup-row">
-          <span>Размер:</span>
-          <input type="range" id="popupSize" min="5" max="60" value="16">
-          <span id="popupSizeVal" style="width:25px;text-align:right">16</span>
-        </div>
-        <div class="popup-row"
-          style="flex-direction:column;align-items:stretch;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:8px;">
-          <span style="font-size:11px;color:#555;"><b>🌸 Время цветения этой посадки:</b></span>
-          <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="months" checked
-                onchange="toggleBloomMode()"> Месяцы</label>
-            <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="dates"
-                onchange="toggleBloomMode()"> Точные даты</label>
-          </div>
-          <div id="bloomMonthsSection" style="display:flex;gap:4px;">
-            <select id="popupBloomStartMonth" style="flex:1;"></select>
-            <span style="line-height:28px;">—</span>
-            <select id="popupBloomEndMonth" style="flex:1;"></select>
-          </div>
-          <div id="bloomDatesSection" style="display:none;flex-direction:column;gap:6px;">
-            <div style="display:flex;gap:4px;align-items:center;">
-              <span style="font-size:11px;">С:</span>
-              <select id="popupBloomStartMonth2" style="flex:1;"></select>
-              <input type="number" id="popupBloomStartDay" min="1" max="31" placeholder="День"
-                style="width:60px;padding:4px;border:1px solid #ccc;border-radius:4px;">
-            </div>
-            <div style="display:flex;gap:4px;align-items:center;">
-              <span style="font-size:11px;">По:</span>
-              <select id="popupBloomEndMonth2" style="flex:1;"></select>
-              <input type="number" id="popupBloomEndDay" min="1" max="31" placeholder="День"
-                style="width:60px;padding:4px;border:1px solid #ccc;border-radius:4px;">
-            </div>
-          </div>
-        </div>
-        <div class="popup-row" style="border-top:1px solid #eee;padding-top:8px;margin-top:8px;">
-          <button id="plantTasksBtn" onclick="openTasksForObject('planting', null, null)"
-            style="flex:1;padding:6px;background:#4a7c59;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
-            📋 Задачи
-          </button>
-        </div>
-        <div class="popup-buttons">
-          <button class="delete-btn" onclick="deletePlantingFromPopup()">🗑️ Удалить</button>
-          <button class="close-btn" onclick="closePlantPopup()">✖ Закрыть</button>
-        </div>
-      </div>
-
-      <!-- Popup для дерева -->
-      <div class="plant-popup" id="treePopup">
-        <h4>🌳 Настройка дерева</h4>
-        <div class="popup-row">
-          <span>Тип:</span>
-          <span id="treePopupType" style="font-weight:600;"></span>
-        </div>
-        <div class="popup-row">
-          <span>Размер:</span>
-          <input type="range" id="treePopupSize" min="10" max="100" value="24">
-          <span id="treePopupSizeVal" style="width:25px;text-align:right">24</span>
-        </div>
-        <div class="popup-row" style="border-top:1px solid #eee;padding-top:8px;margin-top:8px;">
-          <button id="treeTasksBtn" onclick="openTasksForObject('object', null)"
-            style="flex:1;padding:6px;background:#4a7c59;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
-            📋 Задачи
-          </button>
-        </div>
-        <div class="popup-buttons">
-          <button class="delete-btn" onclick="deleteTreeFromPopup()">🗑️ Удалить</button>
-          <button class="close-btn" onclick="closeTreePopup()">✖ Закрыть</button>
-        </div>
-      </div>
-
-      <!-- Popup для декоративных объектов (водоём) -->
-      <div class="plant-popup" id="decorPopup">
-        <h4 id="decorPopupTitle">⚙️ Настройка объекта</h4>
-        <div class="popup-row">
-          <span>Размер:</span>
-          <input type="range" id="decorPopupSize" min="10" max="100" value="30">
-          <span id="decorPopupSizeVal" style="width:25px;text-align:right">30</span>
-        </div>
-        <div class="popup-row">
-          <span>Цвет:</span>
-          <input type="color" id="decorPopupColor" value="#29b6f6">
-        </div>
-        <div class="popup-buttons">
-          <button class="delete-btn" onclick="deleteDecorFromPopup()">🗑️ Удалить</button>
-          <button class="close-btn" onclick="closeDecorPopup()">✖ Закрыть</button>
-        </div>
-      </div>
-
-      <!-- Popup для мульчи — пустой контейнер, содержимое генерируется динамически -->
-      <div class="plant-popup" id="mulchPopup"></div>
-
-      <!-- Popup для дорожки — пустой контейнер, содержимое генерируется динамически -->
-      <div class="plant-popup" id="pathPopup"></div>
-
-      <!-- Popup для настройки сетки (fixed позиционирование, чтобы не скрывался за sidebar) -->
-      <div class="plant-popup" id="gridPopup" style="position: fixed; z-index: 2000;">
-        <h4>⊞ Настройка сетки</h4>
-        <div class="popup-row">
-          <span>Размер ячейки (м):</span>
-          <input type="number" id="gridSize" min="0.5" max="10" step="0.5" value="1"
-            style="width:70px;padding:4px;border:1px solid #ccc;border-radius:4px;">
-        </div>
-        <div class="popup-row">
-          <span>Цвет линий:</span>
-          <input type="color" id="gridColor" value="#d4cfc0">
-        </div>
-        <div class="popup-row">
-          <span>Прозрачность:</span>
-          <input type="range" id="gridOpacity" min="0.1" max="1" step="0.1" value="0.5" style="width:100px;">
-        </div>
-        <div class="popup-buttons">
-          <button class="close-btn" onclick="closeGridPopup()">✖ Закрыть</button>
-        </div>
-      </div>
-
-      <!-- Панель задач -->
-      <div class="tasks-panel" id="tasksPanel" style="display:none;">
-        <div class="tasks-header">
-          <h4>📋 Задачи</h4>
-          <button onclick="toggleTasksPanel()"
-            style="background:none;border:none;cursor:pointer;font-size:16px;"></button>
-        </div>
-        <div class="tasks-filters">
-          <select id="tasksFilterStatus" onchange="renderTasksPanel()">
-            <option value="all">Все</option>
-            <option value="active">Активные</option>
-            <option value="done">Выполненные</option>
-            <option value="overdue">Просроченные</option>
-          </select>
-          <select id="tasksFilterPriority" onchange="renderTasksPanel()">
-            <option value="all">Любой приоритет</option>
-            <option value="urgent">🔴 Срочный</option>
-            <option value="high">🟠 Высокий</option>
-            <option value="medium">🟡 Средний</option>
-            <option value="low">🟢 Низкий</option>
-          </select>
-        </div>
-        <div id="tasksList"></div>
+      <div class="tool-btn" id="gridBtn" onclick="toggleGrid()" title="Размерная сетка">
+        <span class="icon">⊞</span>Сетка
       </div>
     </div>
 
-    <aside class="sidebar right">
-      <h3>📋 Секции посадки</h3>
-      <div id="sectionsList">
-        <div class="empty-hint">Нарисуйте клумбу через панель объектов</div>
+    <h3>📦 Объекты</h3>
+    <div class="objects-panel">
+      <div class="obj-btn" data-obj="plot" onclick="selectPlot()">
+        <span class="icon">🏡</span>Участок
       </div>
+      
+      <div class="obj-group">
+        <div class="obj-btn has-submenu" data-obj="bed" onclick="toggleBedSubmenu(event)">
+          <span class="icon">▭</span>Клумба <span class="arrow">▼</span>
+        </div>
+        <div class="submenu" id="bedSubmenu">
+          <div class="submenu-item active" data-bed="rect" onclick="setBedShape('rect')">
+            <span class="icon">▭</span>Прямоугольная
+          </div>
+          <div class="submenu-item" data-bed="circle" onclick="setBedShape('circle')">
+            <span class="icon">◯</span>Круглая
+          </div>
+          <div class="submenu-item" data-bed="poly" onclick="setBedShape('poly')">
+            <span class="icon">⬠</span>Фигура
+          </div>
+        </div>
+      </div>
+      
+      <div class="obj-btn" data-obj="path" onclick="setTool('path')">
+        <span class="icon">〰️</span>Дорожка
+      </div>
+      
+      <div class="obj-btn" data-obj="water" onclick="toggleWaterTool()">
+        <span class="icon">💧</span>Водоём
+      </div>
+      
+      <div class="obj-btn" data-obj="mulch" onclick="toggleMulchTool()">
+        <span class="icon">🟫</span>Мульча
+      </div>
+    </div>
 
-      <h3>🌱 Посадки в выбранной секции</h3>
-      <div id="plantingsPanel">
-        <div class="empty-hint">Выберите секцию, чтобы добавить растения</div>
+    <div class="collapsible-section">
+      <div class="collapsible-header" onclick="toggleSection('plants')">
+        <span class="collapsible-arrow" id="plantsArrow">▼</span>
+        <span>🌸 Растения</span>
       </div>
+      <div class="collapsible-content" id="plantsSection">
+        <div class="plant-list" id="plantList"></div>
+      </div>
+    </div>
 
-      <h3>📊 Статистика</h3>
-      <div class="stats" id="stats">
-        <div><span>Секций:</span><b id="statSections">0</b></div>
-        <div><span>Площадь:</span><b id="statArea">0 м²</b></div>
-        <div><span>Посадок:</span><b id="statPlants">0</b></div>
+    <div class="collapsible-section">
+      <div class="collapsible-header" onclick="toggleSection('trees')">
+        <span class="collapsible-arrow" id="treesArrow">▼</span>
+        <span>🌳 Деревья</span>
       </div>
+      <div class="collapsible-content" id="treesSection">
+        <div class="tree-list" id="treeList"></div>
+      </div>
+    </div>
 
-      <h3>⚙️ Свойства</h3>
-      <div id="propsPanel">
-        <div class="empty-hint">Выберите объект для редактирования</div>
+    <h3>🎨 Цвет секции</h3>
+    <div class="prop-row">
+      <span>Заливка:</span>
+      <input type="color" id="fillColor" value="#8bc34a">
+    </div>
+  </aside>
+
+  <div class="canvas-wrap" id="canvasWrap">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#d4cfc0" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect id="svgBg" x="0" y="0" fill="#d4cfc0"/>
+      <g id="plotLayer"></g>
+      <g id="objects"></g>
+      <g id="handles"></g>
+      <g id="preview"></g>
+    </svg>
+    <div class="zoom-info" id="zoomInfo">Окно: 50×50 м</div>
+    
+    <button class="finish-btn" id="finishBtn" onclick="finishPolyOrPath()" style="display:none;">
+      ✓ Завершить
+    </button>
+    
+    <!-- Popup для растения -->
+    <div class="plant-popup" id="plantPopup">
+      <h4>🌺 Настройка цветка</h4>
+      <div class="popup-row">
+        <span>Растение:</span>
+        <select id="popupPlant"></select>
       </div>
-    </aside>
+      <div class="popup-row">
+        <span>Форма:</span>
+        <select id="popupShape"></select>
+      </div>
+      <div class="popup-row">
+        <span>Размер:</span>
+        <input type="range" id="popupSize" min="5" max="60" value="16">
+        <span id="popupSizeVal" style="width:25px;text-align:right">16</span>
+      </div>
+      <div class="popup-row" style="flex-direction:column;align-items:stretch;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:8px;">
+        <span style="font-size:11px;color:#555;"><b>🌸 Время цветения этой посадки:</b></span>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="months" checked onchange="toggleBloomMode()"> Месяцы</label>
+          <label style="font-size:11px;cursor:pointer;"><input type="radio" name="bloomMode" value="dates" onchange="toggleBloomMode()"> Точные даты</label>
+        </div>
+        <div id="bloomMonthsSection" style="display:flex;gap:4px;">
+          <select id="popupBloomStartMonth" style="flex:1;"></select>
+          <span style="line-height:28px;">—</span>
+          <select id="popupBloomEndMonth" style="flex:1;"></select>
+        </div>
+        <div id="bloomDatesSection" style="display:none;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span style="font-size:11px;">С:</span>
+            <select id="popupBloomStartMonth2" style="flex:1;"></select>
+            <input type="number" id="popupBloomStartDay" min="1" max="31" placeholder="День" style="width:60px;padding:4px;border:1px solid #ccc;border-radius:4px;">
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span style="font-size:11px;">По:</span>
+            <select id="popupBloomEndMonth2" style="flex:1;"></select>
+            <input type="number" id="popupBloomEndDay" min="1" max="31" placeholder="День" style="width:60px;padding:4px;border:1px solid #ccc;border-radius:4px;">
+          </div>
+        </div>
+      </div>
+      <div class="popup-row" style="border-top:1px solid #eee;padding-top:8px;margin-top:8px;">
+        <button id="plantTasksBtn" onclick="openTasksForObject('planting', null, null)" style="flex:1;padding:6px;background:#4a7c59;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
+          📋 Задачи
+        </button>
+      </div>
+      <div class="popup-buttons">
+        <button class="delete-btn" onclick="deletePlantingFromPopup()">🗑️ Удалить</button>
+        <button class="close-btn" onclick="closePlantPopup()">✖ Закрыть</button>
+      </div>
+    </div>
+
+    <!-- Popup для дерева -->
+    <div class="plant-popup" id="treePopup">
+      <h4>🌳 Настройка дерева</h4>
+      <div class="popup-row">
+        <span>Тип:</span>
+        <span id="treePopupType" style="font-weight:600;"></span>
+      </div>
+      <div class="popup-row">
+        <span>Размер:</span>
+        <input type="range" id="treePopupSize" min="10" max="100" value="24">
+        <span id="treePopupSizeVal" style="width:25px;text-align:right">24</span>
+      </div>
+      <div class="popup-row" style="border-top:1px solid #eee;padding-top:8px;margin-top:8px;">
+        <button id="treeTasksBtn" onclick="openTasksForObject('object', null)" style="flex:1;padding:6px;background:#4a7c59;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
+          📋 Задачи
+        </button>
+      </div>
+      <div class="popup-buttons">
+        <button class="delete-btn" onclick="deleteTreeFromPopup()">🗑️ Удалить</button>
+        <button class="close-btn" onclick="closeTreePopup()">✖ Закрыть</button>
+      </div>
+    </div>
+
+    <!-- Popup для декоративных объектов (водоём) -->
+    <div class="plant-popup" id="decorPopup">
+      <h4 id="decorPopupTitle">⚙️ Настройка объекта</h4>
+      <div class="popup-row">
+        <span>Размер:</span>
+        <input type="range" id="decorPopupSize" min="10" max="100" value="30">
+        <span id="decorPopupSizeVal" style="width:25px;text-align:right">30</span>
+      </div>
+      <div class="popup-row">
+        <span>Цвет:</span>
+        <input type="color" id="decorPopupColor" value="#29b6f6">
+      </div>
+      <div class="popup-buttons">
+        <button class="delete-btn" onclick="deleteDecorFromPopup()">🗑️ Удалить</button>
+        <button class="close-btn" onclick="closeDecorPopup()">✖ Закрыть</button>
+      </div>
+    </div>
+
+    <!-- Popup для мульчи — пустой контейнер, содержимое генерируется динамически -->
+    <div class="plant-popup" id="mulchPopup"></div>
+
+    <!-- Popup для дорожки — пустой контейнер, содержимое генерируется динамически -->
+    <div class="plant-popup" id="pathPopup"></div>
+
+    <!-- Popup для настройки сетки (fixed позиционирование, чтобы не скрывался за sidebar) -->
+    <div class="plant-popup" id="gridPopup" style="position: fixed; z-index: 2000;">
+      <h4>⊞ Настройка сетки</h4>
+      <div class="popup-row">
+        <span>Размер ячейки (м):</span>
+        <input type="number" id="gridSize" min="0.5" max="10" step="0.5" value="1" style="width:70px;padding:4px;border:1px solid #ccc;border-radius:4px;">
+      </div>
+      <div class="popup-row">
+        <span>Цвет линий:</span>
+        <input type="color" id="gridColor" value="#d4cfc0">
+      </div>
+      <div class="popup-row">
+        <span>Прозрачность:</span>
+        <input type="range" id="gridOpacity" min="0.1" max="1" step="0.1" value="0.5" style="width:100px;">
+      </div>
+      <div class="popup-buttons">
+        <button class="close-btn" onclick="closeGridPopup()">✖ Закрыть</button>
+      </div>
+    </div>
+
+    <!-- Панель задач -->
+    <div class="tasks-panel" id="tasksPanel" style="display:none;">
+      <div class="tasks-header">
+        <h4>📋 Задачи</h4>
+        <button onclick="toggleTasksPanel()" style="background:none;border:none;cursor:pointer;font-size:16px;">✖</button>
+      </div>
+      <div class="tasks-filters">
+        <select id="tasksFilterStatus" onchange="renderTasksPanel()">
+          <option value="all">Все</option>
+          <option value="active">Активные</option>
+          <option value="done">Выполненные</option>
+          <option value="overdue">Просроченные</option>
+        </select>
+        <select id="tasksFilterPriority" onchange="renderTasksPanel()">
+          <option value="all">Любой приоритет</option>
+          <option value="urgent">🔴 Срочный</option>
+          <option value="high">🟠 Высокий</option>
+          <option value="medium">🟡 Средний</option>
+          <option value="low">🟢 Низкий</option>
+        </select>
+      </div>
+      <div id="tasksList"></div>
+    </div>
   </div>
 
-  <div class="hint-bar" id="hintBar">💡 Выберите инструмент или объект из панели слева.</div>
+  <aside class="sidebar right">
+    <h3>📋 Секции посадки</h3>
+    <div id="sectionsList">
+      <div class="empty-hint">Нарисуйте клумбу через панель объектов</div>
+    </div>
 
-  <!-- Модалка создания нового растения -->
-  <div class="modal-bg" id="plantModal">
-    <div class="modal">
-      <h2>🌺 Новое растение</h2>
-      <label>Название</label>
-      <input type="text" id="newPlantName" placeholder="Например: Хризантемы" maxlength="20">
-      <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
-      <select id="newPlantShape"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;"
-        onchange="updateShapePreview('new')">
-        <option value="circle">Круг</option>
-        <option value="square">Квадрат</option>
-        <option value="diamond">Ромб</option>
-        <option value="triangle">Треугольник</option>
-        <option value="oval">Овал</option>
-        <option value="star">Звезда</option>
-        <option value="heart">Сердце</option>
-        <option value="flower">Цветок</option>
-        <option value="cross">Крест</option>
-        <option value="moon">Полумесяц</option>
-        <option value="drop">Капля</option>
-        <option value="leaf">Лист</option>
-      </select>
-      <label>Цвет иконки</label>
-      <div class="color-picker-wrap" style="align-items:center;">
-        <input type="color" id="newPlantColor" value="#ff69b4" oninput="updateShapePreview('new')">
-        <div id="newShapePreview" style="width:40px;height:40px;margin-left:12px;"></div>
+    <h3>🌱 Посадки в выбранной секции</h3>
+    <div id="plantingsPanel">
+      <div class="empty-hint">Выберите секцию, чтобы добавить растения</div>
+    </div>
+
+    <h3>📊 Статистика</h3>
+    <div class="stats" id="stats">
+      <div><span>Секций:</span><b id="statSections">0</b></div>
+      <div><span>Площадь:</span><b id="statArea">0 м²</b></div>
+      <div><span>Посадок:</span><b id="statPlants">0</b></div>
+    </div>
+
+    <h3>⚙️ Свойства</h3>
+    <div id="propsPanel">
+      <div class="empty-hint">Выберите объект для редактирования</div>
+    </div>
+  </aside>
+</div>
+
+<div class="hint-bar" id="hintBar">💡 Выберите инструмент или объект из панели слева.</div>
+
+<!-- Модалка создания нового растения -->
+<div class="modal-bg" id="plantModal">
+  <div class="modal">
+    <h2>🌺 Новое растение</h2>
+    <label>Название</label>
+    <input type="text" id="newPlantName" placeholder="Например: Хризантемы" maxlength="20">
+    <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
+    <select id="newPlantShape" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;" onchange="updateShapePreview('new')">
+      <option value="circle">Круг</option>
+      <option value="square">Квадрат</option>
+      <option value="diamond">Ромб</option>
+      <option value="triangle">Треугольник</option>
+      <option value="oval">Овал</option>
+      <option value="star">Звезда</option>
+      <option value="heart">Сердце</option>
+      <option value="flower">Цветок</option>
+      <option value="cross">Крест</option>
+      <option value="moon">Полумесяц</option>
+      <option value="drop">Капля</option>
+      <option value="leaf">Лист</option>
+    </select>
+    <label>Цвет иконки</label>
+    <div class="color-picker-wrap" style="align-items:center;">
+      <input type="color" id="newPlantColor" value="#ff69b4" oninput="updateShapePreview('new')">
+      <div id="newShapePreview" style="width:40px;height:40px;margin-left:12px;"></div>
+    </div>
+    <label style="margin-top:12px;display:block;">Высота растения (см):</label>
+    <input type="number" id="newPlantHeight" value="50" min="5" max="500" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+    <label>Размер цветов:</label>
+    <select id="newPlantFlowerSize" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="small">🔹 Маленькие</option>
+      <option value="medium" selected>🔷 Средние</option>
+      <option value="large">🔶 Большие</option>
+    </select>
+    <label>Количество цветов:</label>
+    <select id="newPlantFlowerCount" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="few">🌸 1-5</option>
+      <option value="medium" selected>🌺 6-15</option>
+      <option value="many">💐 Больше 15</option>
+    </select>
+    <label style="margin-top:12px;display:block;">Время цветения по умолчанию:</label>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="newBloomMode" value="months" checked onchange="toggleNewBloomMode()"> Месяцы</label>
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="newBloomMode" value="dates" onchange="toggleNewBloomMode()"> Точные даты</label>
+    </div>
+    <div id="newBloomMonthsSection" style="display:flex;gap:8px;margin-bottom:12px;">
+      <select id="newPlantBloomStartMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+      <span style="line-height:36px;">—</span>
+      <select id="newPlantBloomEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+    </div>
+    <div id="newBloomDatesSection" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;width:30px;">С:</span>
+        <select id="newPlantBloomStartMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <input type="number" id="newPlantBloomStartDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
       </div>
-      <label style="margin-top:12px;display:block;">Высота растения (см):</label>
-      <input type="number" id="newPlantHeight" value="50" min="5" max="500"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-      <label>Размер цветов:</label>
-      <select id="newPlantFlowerSize"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-        <option value="small">🔹 Маленькие</option>
-        <option value="medium" selected>🔷 Средние</option>
-        <option value="large"> Большие</option>
-      </select>
-      <label>Количество цветов:</label>
-      <select id="newPlantFlowerCount"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-        <option value="few">🌸 1-5</option>
-        <option value="medium" selected>🌺 6-15</option>
-        <option value="many">💐 Больше 15</option>
-      </select>
-      <label style="margin-top:12px;display:block;">Время цветения по умолчанию:</label>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="newBloomMode" value="months" checked
-            onchange="toggleNewBloomMode()"> Месяцы</label>
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="newBloomMode" value="dates"
-            onchange="toggleNewBloomMode()"> Точные даты</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;width:30px;">По:</span>
+        <select id="newPlantBloomEndMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <input type="number" id="newPlantBloomEndDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
       </div>
-      <div id="newBloomMonthsSection" style="display:flex;gap:8px;margin-bottom:12px;">
-        <select id="newPlantBloomStartMonth"
-          style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+    </div>
+    <label>Папка:</label>
+    <select id="newPlantFolder" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="">Без папки</option>
+    </select>
+    <label>Быстрый выбор цвета:</label>
+    <div class="presets" id="colorPresets"></div>
+    <div class="buttons">
+      <button class="secondary" onclick="closePlantModal()">Отмена</button>
+      <button class="primary" onclick="saveNewPlant()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка настроек вида растения -->
+<div class="modal-bg" id="plantSettingsModal">
+  <div class="modal">
+    <h2>⚙️ Настройки вида растения</h2>
+    <label>Название</label>
+    <input type="text" id="settingsPlantName" maxlength="20">
+    <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
+    <select id="settingsPlantShape" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;" onchange="updateShapePreview('settings')">
+      <option value="circle">Круг</option>
+      <option value="square">Квадрат</option>
+      <option value="diamond">Ромб</option>
+      <option value="triangle">Треугольник</option>
+      <option value="oval">Овал</option>
+      <option value="star">Звезда</option>
+      <option value="heart">Сердце</option>
+      <option value="flower">Цветок</option>
+      <option value="cross">Крест</option>
+      <option value="moon">Полумесяц</option>
+      <option value="drop">Капля</option>
+      <option value="leaf">Лист</option>
+    </select>
+    <label>Цвет иконки</label>
+    <div class="color-picker-wrap" style="align-items:center;">
+      <input type="color" id="settingsPlantColor" oninput="updateShapePreview('settings')">
+      <div id="settingsShapePreview" style="width:40px;height:40px;margin-left:12px;"></div>
+    </div>
+    <label style="margin-top:12px;display:block;">Высота растения (см):</label>
+    <input type="number" id="settingsPlantHeight" value="50" min="5" max="500" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+    <label>Размер цветов:</label>
+    <select id="settingsPlantFlowerSize" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="small">🔹 Маленькие</option>
+      <option value="medium">🔷 Средние</option>
+      <option value="large">🔶 Большие</option>
+    </select>
+    <label>Количество цветов:</label>
+    <select id="settingsPlantFlowerCount" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="few">🌸 1-5</option>
+      <option value="medium">🌺 6-15</option>
+      <option value="many">💐 Больше 15</option>
+    </select>
+    <label style="margin-top:12px;display:block;">Время цветения по умолчанию:</label>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="settingsBloomMode" value="months" checked onchange="toggleSettingsBloomMode()"> Месяцы</label>
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="settingsBloomMode" value="dates" onchange="toggleSettingsBloomMode()"> Точные даты</label>
+    </div>
+    <div id="settingsBloomMonthsSection" style="display:flex;gap:8px;margin-bottom:12px;">
+      <select id="settingsBloomStartMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+      <span style="line-height:36px;">—</span>
+      <select id="settingsBloomEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+    </div>
+    <div id="settingsBloomDatesSection" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;width:30px;">С:</span>
+        <select id="settingsBloomStartMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <input type="number" id="settingsBloomStartDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;width:30px;">По:</span>
+        <select id="settingsBloomEndMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <input type="number" id="settingsBloomEndDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
+      </div>
+    </div>
+    <label>Папка:</label>
+    <select id="settingsPlantFolder" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="">Без папки</option>
+    </select>
+    <div class="buttons" style="justify-content:space-between;">
+      <button class="delete-btn" id="settingsDeleteBtn" onclick="deletePlantFromSettings()" style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;display:none;">🗑️ Удалить вид</button>
+      <div style="display:flex;gap:8px;">
+        <button class="secondary" onclick="closePlantSettings()">Отмена</button>
+        <button class="primary" onclick="savePlantSettings()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка создания нового дерева -->
+<div class="modal-bg" id="treeModal">
+  <div class="modal">
+    <h2>🌳 Новое дерево</h2>
+    <label>Название</label>
+    <input type="text" id="newTreeName" placeholder="Например: Дуб" maxlength="20">
+    <label style="margin-top:8px;display:block;">Форма дерева:</label>
+    <select id="newTreeShape" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;" onchange="updateTreeShapePreview('new')">
+      <option value="oak">Дуб</option>
+      <option value="pine">Сосна</option>
+      <option value="birch">Берёза</option>
+      <option value="maple">Клён</option>
+      <option value="willow">Ива</option>
+      <option value="spruce">Ель</option>
+      <option value="palm">Пальма</option>
+      <option value="cherry">Сакура</option>
+    </select>
+    <label>Цвет кроны</label>
+    <div class="color-picker-wrap" style="align-items:center;">
+      <input type="color" id="newTreeColor" value="#2e7d32" oninput="updateTreeShapePreview('new')">
+      <div id="newTreePreview" style="width:40px;height:40px;margin-left:12px;"></div>
+    </div>
+    <label>Папка:</label>
+    <select id="newTreeFolder" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="">Без папки</option>
+    </select>
+    <label>Быстрый выбор цвета:</label>
+    <div class="presets" id="treeColorPresets"></div>
+    <div class="buttons">
+      <button class="secondary" onclick="closeTreeModal()">Отмена</button>
+      <button class="primary" onclick="saveNewTree()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка настроек вида дерева -->
+<div class="modal-bg" id="treeSettingsModal">
+  <div class="modal">
+    <h2>⚙️ Настройки вида дерева</h2>
+    <label>Название</label>
+    <input type="text" id="settingsTreeName" maxlength="20">
+    <label style="margin-top:8px;display:block;">Форма дерева:</label>
+    <select id="settingsTreeShape" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;" onchange="updateTreeShapePreview('settings')">
+      <option value="oak">Дуб</option>
+      <option value="pine">Сосна</option>
+      <option value="birch">Берёза</option>
+      <option value="maple">Клён</option>
+      <option value="willow">Ива</option>
+      <option value="spruce">Ель</option>
+      <option value="palm">Пальма</option>
+      <option value="cherry">Сакура</option>
+    </select>
+    <label>Цвет кроны</label>
+    <div class="color-picker-wrap" style="align-items:center;">
+      <input type="color" id="settingsTreeColor" oninput="updateTreeShapePreview('settings')">
+      <div id="settingsTreePreview" style="width:40px;height:40px;margin-left:12px;"></div>
+    </div>
+    <label>Папка:</label>
+    <select id="settingsTreeFolder" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="">Без папки</option>
+    </select>
+    <div class="buttons" style="justify-content:space-between;">
+      <button class="delete-btn" id="settingsTreeDeleteBtn" onclick="deleteTreeFromSettings()" style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;display:none;">🗑️ Удалить вид</button>
+      <div style="display:flex;gap:8px;">
+        <button class="secondary" onclick="closeTreeSettings()">Отмена</button>
+        <button class="primary" onclick="saveTreeSettings()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка карты цветения -->
+<div class="modal-bg" id="bloomMapModal">
+  <div class="modal" style="width:420px;">
+    <h2>🌸 Карта цветения</h2>
+    <p style="font-size:13px;color:#666;margin-bottom:16px;">Выберите период, чтобы увидеть цветущие растения</p>
+    
+    <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;"><b>Режим выбора:</b></label>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="filterBloomMode" value="months" checked onchange="toggleFilterBloomMode()"> Месяцы</label>
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="filterBloomMode" value="dates" onchange="toggleFilterBloomMode()"> Точные даты</label>
+    </div>
+    
+    <div id="filterBloomMonthsSection" style="margin-bottom:16px;">
+      <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;">Период по месяцам:</label>
+      <div style="display:flex;gap:8px;">
+        <select id="bloomFilterStartMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
         <span style="line-height:36px;">—</span>
-        <select id="newPlantBloomEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+        <select id="bloomFilterEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
       </div>
-      <div id="newBloomDatesSection" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px;">
+    </div>
+    
+    <div id="filterBloomDatesSection" style="display:none;margin-bottom:16px;">
+      <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;">Период по датам:</label>
+      <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;gap:8px;align-items:center;">
           <span style="font-size:12px;width:30px;">С:</span>
-          <select id="newPlantBloomStartMonth2"
-            style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-          <input type="number" id="newPlantBloomStartDay" min="1" max="31" placeholder="День"
-            style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
+          <select id="bloomFilterStartMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+          <input type="number" id="bloomFilterStartDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <span style="font-size:12px;width:30px;">По:</span>
-          <select id="newPlantBloomEndMonth2"
-            style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-          <input type="number" id="newPlantBloomEndDay" min="1" max="31" placeholder="День"
-            style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
-        </div>
-      </div>
-      <label>Папка:</label>
-      <select id="newPlantFolder"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-        <option value="">Без папки</option>
-      </select>
-      <label>Быстрый выбор цвета:</label>
-      <div class="presets" id="colorPresets"></div>
-      <div class="buttons">
-        <button class="secondary" onclick="closePlantModal()">Отмена</button>
-        <button class="primary" onclick="saveNewPlant()">Добавить</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Модалка настроек вида растения -->
-  <div class="modal-bg" id="plantSettingsModal">
-    <div class="modal">
-      <h2>⚙️ Настройки вида растения</h2>
-      <label>Название</label>
-      <input type="text" id="settingsPlantName" maxlength="20">
-      <label style="margin-top:8px;display:block;">Форма цветка по умолчанию:</label>
-      <select id="settingsPlantShape"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;"
-        onchange="updateShapePreview('settings')">
-        <option value="circle">Круг</option>
-        <option value="square">Квадрат</option>
-        <option value="diamond">Ромб</option>
-        <option value="triangle">Треугольник</option>
-        <option value="oval">Овал</option>
-        <option value="star">Звезда</option>
-        <option value="heart">Сердце</option>
-        <option value="flower">Цветок</option>
-        <option value="cross">Крест</option>
-        <option value="moon">Полумесяц</option>
-        <option value="drop">Капля</option>
-        <option value="leaf">Лист</option>
-      </select>
-      <label>Цвет иконки</label>
-      <div class="color-picker-wrap" style="align-items:center;">
-        <input type="color" id="settingsPlantColor" oninput="updateShapePreview('settings')">
-        <div id="settingsShapePreview" style="width:40px;height:40px;margin-left:12px;"></div>
-      </div>
-      <label style="margin-top:12px;display:block;">Высота растения (см):</label>
-      <input type="number" id="settingsPlantHeight" value="50" min="5" max="500"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-      <label>Размер цветов:</label>
-      <select id="settingsPlantFlowerSize"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-        <option value="small">🔹 Маленькие</option>
-        <option value="medium">🔷 Средние</option>
-        <option value="large">🔶 Большие</option>
-      </select>
-      <label>Количество цветов:</label>
-      <select id="settingsPlantFlowerCount"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-        <option value="few">🌸 1-5</option>
-        <option value="medium">🌺 6-15</option>
-        <option value="many">💐 Больше 15</option>
-      </select>
-      <label style="margin-top:12px;display:block;">Время цветения по умолчанию:</label>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="settingsBloomMode" value="months"
-            checked onchange="toggleSettingsBloomMode()"> Месяцы</label>
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="settingsBloomMode" value="dates"
-            onchange="toggleSettingsBloomMode()"> Точные даты</label>
-      </div>
-      <div id="settingsBloomMonthsSection" style="display:flex;gap:8px;margin-bottom:12px;">
-        <select id="settingsBloomStartMonth"
-          style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-        <span style="line-height:36px;">—</span>
-        <select id="settingsBloomEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-      </div>
-      <div id="settingsBloomDatesSection" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px;">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span style="font-size:12px;width:30px;">С:</span>
-          <select id="settingsBloomStartMonth2"
-            style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-          <input type="number" id="settingsBloomStartDay" min="1" max="31" placeholder="День"
-            style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span style="font-size:12px;width:30px;">По:</span>
-          <select id="settingsBloomEndMonth2"
-            style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-          <input type="number" id="settingsBloomEndDay" min="1" max="31" placeholder="День"
-            style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
-        </div>
-      </div>
-      <label>Папка:</label>
-      <select id="settingsPlantFolder"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-        <option value="">Без папки</option>
-      </select>
-      <div class="buttons" style="justify-content:space-between;">
-        <button class="delete-btn" id="settingsDeleteBtn" onclick="deletePlantFromSettings()"
-          style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;display:none;">️
-          Удалить вид</button>
-        <div style="display:flex;gap:8px;">
-          <button class="secondary" onclick="closePlantSettings()">Отмена</button>
-          <button class="primary" onclick="savePlantSettings()">Сохранить</button>
+          <select id="bloomFilterEndMonth2" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
+          <input type="number" id="bloomFilterEndDay" min="1" max="31" placeholder="День" style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Модалка создания нового дерева -->
-  <div class="modal-bg" id="treeModal">
-    <div class="modal">
-      <h2> Новое дерево</h2>
-      <label>Название</label>
-      <input type="text" id="newTreeName" placeholder="Например: Дуб" maxlength="20">
-      <label style="margin-top:8px;display:block;">Форма дерева:</label>
-      <select id="newTreeShape"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;"
-        onchange="updateTreeShapePreview('new')">
-        <option value="oak">Дуб</option>
-        <option value="pine">Сосна</option>
-        <option value="birch">Берёза</option>
-        <option value="maple">Клён</option>
-        <option value="willow">Ива</option>
-        <option value="spruce">Ель</option>
-        <option value="palm">Пальма</option>
-        <option value="cherry">Сакура</option>
-      </select>
-      <label>Цвет кроны</label>
-      <div class="color-picker-wrap" style="align-items:center;">
-        <input type="color" id="newTreeColor" value="#2e7d32" oninput="updateTreeShapePreview('new')">
-        <div id="newTreePreview" style="width:40px;height:40px;margin-left:12px;"></div>
-      </div>
-      <label>Папка:</label>
-      <select id="newTreeFolder"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-        <option value="">Без папки</option>
-      </select>
-      <label>Быстрый выбор цвета:</label>
-      <div class="presets" id="treeColorPresets"></div>
-      <div class="buttons">
-        <button class="secondary" onclick="closeTreeModal()">Отмена</button>
-        <button class="primary" onclick="saveNewTree()">Добавить</button>
+    
+    <div class="buttons" style="justify-content:space-between;">
+      <button class="secondary" onclick="clearBloomFilter()">Сбросить фильтр</button>
+      <div style="display:flex;gap:8px;">
+        <button class="secondary" onclick="closeBloomMap()">Отмена</button>
+        <button class="primary" onclick="applyBloomFilter()">Применить</button>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Модалка настроек вида дерева -->
-  <div class="modal-bg" id="treeSettingsModal">
-    <div class="modal">
-      <h2>⚙️ Настройки вида дерева</h2>
-      <label>Название</label>
-      <input type="text" id="settingsTreeName" maxlength="20">
-      <label style="margin-top:8px;display:block;">Форма дерева:</label>
-      <select id="settingsTreeShape"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;"
-        onchange="updateTreeShapePreview('settings')">
-        <option value="oak">Дуб</option>
-        <option value="pine">Сосна</option>
-        <option value="birch">Берёза</option>
-        <option value="maple">Клён</option>
-        <option value="willow">Ива</option>
-        <option value="spruce">Ель</option>
-        <option value="palm">Пальма</option>
-        <option value="cherry">Сакура</option>
-      </select>
-      <label>Цвет кроны</label>
-      <div class="color-picker-wrap" style="align-items:center;">
-        <input type="color" id="settingsTreeColor" oninput="updateTreeShapePreview('settings')">
-        <div id="settingsTreePreview" style="width:40px;height:40px;margin-left:12px;"></div>
-      </div>
-      <label>Папка:</label>
-      <select id="settingsTreeFolder"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-        <option value="">Без папки</option>
-      </select>
-      <div class="buttons" style="justify-content:space-between;">
-        <button class="delete-btn" id="settingsTreeDeleteBtn" onclick="deleteTreeFromSettings()"
-          style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;display:none;">🗑️
-          Удалить вид</button>
-        <div style="display:flex;gap:8px;">
-          <button class="secondary" onclick="closeTreeSettings()">Отмена</button>
-          <button class="primary" onclick="saveTreeSettings()">Сохранить</button>
-        </div>
+<!-- Модалка задачи -->
+<div class="modal-bg" id="taskModal">
+  <div class="modal" style="width:400px;">
+    <h2 id="taskModalTitle">📝 Новая задача</h2>
+    <label>Описание</label>
+    <textarea id="taskText" placeholder="Например: Обработать розу от тли" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;min-height:60px;font-family:inherit;resize:vertical;"></textarea>
+    
+    <label>Срок выполнения</label>
+    <input type="date" id="taskDeadline" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+    
+    <label>Приоритет</label>
+    <select id="taskPriority" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;" onchange="updateTaskPreview()">
+      <option value="low">🟢 Низкий</option>
+      <option value="medium">🟡 Средний</option>
+      <option value="high">🟠 Высокий</option>
+      <option value="urgent">🔴 Срочный</option>
+    </select>
+    
+    <label>Тип подсветки</label>
+    <select id="taskHighlightType" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
+      <option value="marker">📌 Маркер</option>
+      <option value="glow">✨ Свечение</option>
+      <option value="border">🔲 Рамка</option>
+      <option value="pulse">💓 Пульсация</option>
+      <option value="flag">🚩 Флажок</option>
+    </select>
+    
+    <label>Цвет подсветки (необязательно)</label>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+      <input type="color" id="taskHighlightColor" value="#ff5722" onchange="updateTaskPreview()">
+      <button onclick="document.getElementById('taskHighlightColor').value=''" style="padding:4px 8px;border:1px solid #ccc;border-radius:4px;cursor:pointer;background:white;">Сбросить</button>
+      <div id="taskPreview" style="width:30px;height:30px;border-radius:50%;background:#ff5722;margin-left:auto;border:2px solid #ddd;"></div>
+    </div>
+    
+    <div class="buttons" style="justify-content:space-between;">
+      <button class="delete-btn" id="taskDeleteBtn" onclick="deleteCurrentTask()" style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;display:none;">🗑️ Удалить</button>
+      <div style="display:flex;gap:8px;">
+        <button class="secondary" onclick="closeTaskModal()">Отмена</button>
+        <button class="primary" onclick="saveCurrentTask()">Сохранить</button>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Модалка карты цветения -->
-  <div class="modal-bg" id="bloomMapModal">
-    <div class="modal" style="width:420px;">
-      <h2>🌸 Карта цветения</h2>
-      <p style="font-size:13px;color:#666;margin-bottom:16px;">Выберите период, чтобы увидеть цветущие растения</p>
+<!-- 1. Core: Константы и состояние -->
+<script src="js/core/constants.js"></script>
+<script src="js/core/state.js"></script>
 
-      <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;"><b>Режим выбора:</b></label>
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="filterBloomMode" value="months" checked
-            onchange="toggleFilterBloomMode()"> Месяцы</label>
-        <label style="font-size:12px;cursor:pointer;"><input type="radio" name="filterBloomMode" value="dates"
-            onchange="toggleFilterBloomMode()"> Точные даты</label>
-      </div>
+<!-- 2. Core: Базовые модули -->
+<script src="js/core/geometry.js"></script>
+<script src="js/core/shapes.js"></script>
 
-      <div id="filterBloomMonthsSection" style="margin-bottom:16px;">
-        <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;">Период по месяцам:</label>
-        <div style="display:flex;gap:8px;">
-          <select id="bloomFilterStartMonth"
-            style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-          <span style="line-height:36px;">—</span>
-          <select id="bloomFilterEndMonth" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-        </div>
-      </div>
+<!-- 3. Data: Работа с данными -->
+<script src="js/data/folders.js"></script>
+<script src="js/data/tasks.js"></script>
 
-      <div id="filterBloomDatesSection" style="display:none;margin-bottom:16px;">
-        <label style="font-size:13px;color:#555;margin-bottom:8px;display:block;">Период по датам:</label>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <div style="display:flex;gap:8px;align-items:center;">
-            <span style="font-size:12px;width:30px;">С:</span>
-            <select id="bloomFilterStartMonth2"
-              style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-            <input type="number" id="bloomFilterStartDay" min="1" max="31" placeholder="День"
-              style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <span style="font-size:12px;width:30px;">По:</span>
-            <select id="bloomFilterEndMonth2"
-              style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;"></select>
-            <input type="number" id="bloomFilterEndDay" min="1" max="31" placeholder="День"
-              style="width:80px;padding:8px;border:1px solid #ccc;border-radius:6px;">
-          </div>
-        </div>
-      </div>
+<!-- 4. UI: Интерфейс -->
+<script src="js/ui/plants-ui.js"></script>
+<script src="js/ui/popups.js"></script>
+<script src="js/ui/tasks-ui.js"></script>
+<script src="js/ui/grid.js"></script>
 
-      <div class="buttons" style="justify-content:space-between;">
-        <button class="secondary" onclick="clearBloomFilter()">Сбросить фильтр</button>
-        <div style="display:flex;gap:8px;">
-          <button class="secondary" onclick="closeBloomMap()">Отмена</button>
-          <button class="primary" onclick="applyBloomFilter()">Применить</button>
-        </div>
-      </div>
-    </div>
-  </div>
+<!-- 5. Interaction: Взаимодействие -->
+<script src="js/interaction/interaction.js"></script>
 
-  <!-- Модалка задачи -->
-  <div class="modal-bg" id="taskModal">
-    <div class="modal" style="width:400px;">
-      <h2 id="taskModalTitle">📝 Новая задача</h2>
-      <label>Описание</label>
-      <textarea id="taskText" placeholder="Например: Обработать розу от тли"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;min-height:60px;font-family:inherit;resize:vertical;"></textarea>
+<!-- 6. Render: Отрисовка -->
+<script src="js/render/render.js"></script>
+<script src="js/render/render-mulch.js"></script>
+<script src="js/render/render-path.js"></script>
+<script src="js/render/render-props.js"></script>
 
-      <label>Срок выполнения</label>
-      <input type="date" id="taskDeadline"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-
-      <label>Приоритет</label>
-      <select id="taskPriority"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;"
-        onchange="updateTaskPreview()">
-        <option value="low">🟢 Низкий</option>
-        <option value="medium">🟡 Средний</option>
-        <option value="high"> Высокий</option>
-        <option value="urgent">🔴 Срочный</option>
-      </select>
-
-      <label>Тип подсветки</label>
-      <select id="taskHighlightType"
-        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;margin-bottom:12px;">
-        <option value="marker">📌 Маркер</option>
-        <option value="glow">✨ Свечение</option>
-        <option value="border">🔲 Рамка</option>
-        <option value="pulse">💓 Пульсация</option>
-        <option value="flag">🚩 Флажок</option>
-      </select>
-
-      <label>Цвет подсветки (необязательно)</label>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
-        <input type="color" id="taskHighlightColor" value="#ff5722" onchange="updateTaskPreview()">
-        <button onclick="document.getElementById('taskHighlightColor').value=''"
-          style="padding:4px 8px;border:1px solid #ccc;border-radius:4px;cursor:pointer;background:white;">Сбросить</button>
-        <div id="taskPreview"
-          style="width:30px;height:30px;border-radius:50%;background:#ff5722;margin-left:auto;border:2px solid #ddd;">
-        </div>
-      </div>
-
-      <div class="buttons" style="justify-content:space-between;">
-        <button class="delete-btn" id="taskDeleteBtn" onclick="deleteCurrentTask()"
-          style="background:#d9534f;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;display:none;">🗑️
-          Удалить</button>
-        <div style="display:flex;gap:8px;">
-          <button class="secondary" onclick="closeTaskModal()">Отмена</button>
-          <button class="primary" onclick="saveCurrentTask()">Сохранить</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="data.js"></script>
-  <script src="geometry.js"></script>
-  <script src="shapes.js"></script>
-  <script src="plants.js"></script>
-  <script src="interaction.js"></script>
-  <script src="render.js"></script>
-  <script src="storage.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      initDomRefs();
-      fitCanvasToScreen();
-      resetViewBox();
-      updateSvgViewBox();
-      updateCanvasInfo();
-
-      loadCustomPlants();
-      loadCustomTrees();
-
-      renderPlantList();
-      renderTreeList();
-      render();
-
-      // Инициализация истории после того, как все функции определены
-      initHistory();
-    });
-  </script>
+<!-- 7. Storage: Хранение и инициализация -->
+<script src="js/storage/storage.js"></script>
+<script src="js/storage/init.js"></script>
 </body>
-
 </html>

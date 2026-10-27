@@ -1,8 +1,5 @@
 // ===== ИНСТРУМЕНТЫ И ОБЪЕКТЫ =====
 
-const FIGURE_POINTS_LIMIT = 100;
-const DRAG_THRESHOLD = 5;
-
 // ===== ОБРАБОТЧИК ГОРЯЧИХ КЛАВИШ =====
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
@@ -41,7 +38,6 @@ function setTool(tool) {
   closeDecorPopup();
   closeMulchPopup();
   closePathPopup();
-  closeGridPopup();
   updateHint();
   renderPlantingsPanel();
 
@@ -62,60 +58,6 @@ function toggleMulchTool() {
   } else {
     setTool('mulch');
   }
-}
-
-function toggleGrid() {
-  state.showGrid = !state.showGrid;
-  
-  const btn = document.getElementById('gridBtn');
-  if (btn) {
-    btn.classList.toggle('active', state.showGrid);
-  }
-  
-  if (state.showGrid) {
-    showGridPopup();
-  } else {
-    closeGridPopup();
-  }
-  
-  render();
-}
-
-function showGridPopup() {
-  const popup = document.getElementById('gridPopup');
-  
-  document.getElementById('gridSize').value = state.gridSize;
-  document.getElementById('gridColor').value = state.gridColor;
-  document.getElementById('gridOpacity').value = state.gridOpacity;
-  
-  const gridBtn = document.getElementById('gridBtn');
-  if (gridBtn) {
-    const rect = gridBtn.getBoundingClientRect();
-    popup.style.left = (rect.left) + 'px';
-    popup.style.top = (rect.bottom + 5) + 'px';
-  }
-  
-  popup.classList.add('show');
-  
-  document.getElementById('gridSize').onchange = (e) => {
-    state.gridSize = parseFloat(e.target.value) || 1;
-    render();
-  };
-  
-  document.getElementById('gridColor').oninput = (e) => {
-    state.gridColor = e.target.value;
-    render();
-  };
-  
-  document.getElementById('gridOpacity').oninput = (e) => {
-    state.gridOpacity = parseFloat(e.target.value) || 0.5;
-    render();
-  };
-}
-
-function closeGridPopup() {
-  const popup = document.getElementById('gridPopup');
-  if (popup) popup.classList.remove('show');
 }
 
 function selectPlot() {
@@ -352,7 +294,7 @@ function updateFinishButton() {
 
 function updateHint() {
   const hints = {
-    select: ' Клик — выделить объект или открыть настройки. Зажмите ЛКМ на объекте и тяните — переместить. Колёсико — зум.',
+    select: '💡 Клик — выделить объект или открыть настройки. Зажмите ЛКМ на объекте и тяните — переместить. Колёсико — зум.',
     bed: `💡 Рисование клумбы (${state.bedShape === 'rect' ? 'прямоугольная' : state.bedShape === 'circle' ? 'круглая' : 'фигура'}). ${state.bedShape === 'poly' ? 'Кликайте для точек. Нажмите "✓ Завершить" или Enter для подтверждения.' : 'Зажмите мышь и тяните.'}`,
     path: '🛤️ Рисуйте дорожки. Кликайте для точек. Нажмите "✓ Завершить" или Enter. Достаточно 2 точек для прямой дорожки.',
     tree: '🌳 Выберите дерево в левой панели и кликайте на холст, чтобы посадить. Повторный клик по иконке — отмена.',
@@ -1079,7 +1021,6 @@ function onKeyDown(e) {
     closeDecorPopup();
     closeMulchPopup();
     closePathPopup();
-    closeGridPopup();
     state.pendingDrag = null;
     state.dragging = null;
     svg.style.cursor = 'default';
@@ -1167,17 +1108,6 @@ function deletePlanting(plantingId) {
   if (obj && obj.plants) {
     obj.plants = obj.plants.filter(p => p.id !== plantingId);
     if (state.selectedPlantingId === plantingId) state.selectedPlantingId = null;
-    render();
-  }
-}
-
-function clearPlantings() {
-  saveState();
-  const obj = state.objects.find(o => o.id === state.selectedId);
-  if (obj && obj.plants) {
-    if (!confirm('Удалить все посадки из этой клумбы?')) return;
-    obj.plants = [];
-    state.selectedPlantingId = null;
     render();
   }
 }

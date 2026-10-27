@@ -1,14 +1,15 @@
 // ===== КОНСТАНТЫ =====
+
 const DEFAULT_PLANTS = [
-  { id: 'rose', name: 'Розы', color: '#e91e63', custom: false, bloomStartMonth: 6, bloomEndMonth: 9, defaultShape: 'circle', folderId: null },
-  { id: 'tulip', name: 'Тюльпаны', color: '#ff5722', custom: false, bloomStartMonth: 4, bloomEndMonth: 5, defaultShape: 'drop', folderId: null },
-  { id: 'lavender', name: 'Лаванда', color: '#9c27b0', custom: false, bloomStartMonth: 6, bloomEndMonth: 8, defaultShape: 'oval', folderId: null },
-  { id: 'sunflower', name: 'Подсолнухи', color: '#ffc107', custom: false, bloomStartMonth: 7, bloomEndMonth: 9, defaultShape: 'flower', folderId: null },
-  { id: 'daisy', name: 'Ромашки', color: '#ffffff', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'flower', folderId: null },
-  { id: 'peony', name: 'Пионы', color: '#f06292', custom: false, bloomStartMonth: 5, bloomEndMonth: 6, defaultShape: 'circle', folderId: null },
-  { id: 'hosta', name: 'Хосты', color: '#4caf50', custom: false, bloomStartMonth: 7, bloomEndMonth: 8, defaultShape: 'leaf', folderId: null },
-  { id: 'fern', name: 'Папоротник', color: '#2e7d32', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'leaf', folderId: null },
-  { id: 'grass', name: 'Газон', color: '#8bc34a', custom: false, bloomStartMonth: 4, bloomEndMonth: 10, defaultShape: 'leaf', folderId: null },
+  { id: 'rose', name: 'Розы', color: '#e91e63', custom: false, bloomStartMonth: 6, bloomEndMonth: 9, defaultShape: 'circle', folderId: null, height: 80, flowerSize: 'large', flowerCount: 'medium' },
+  { id: 'tulip', name: 'Тюльпаны', color: '#ff5722', custom: false, bloomStartMonth: 4, bloomEndMonth: 5, defaultShape: 'drop', folderId: null, height: 30, flowerSize: 'medium', flowerCount: 'few' },
+  { id: 'lavender', name: 'Лаванда', color: '#9c27b0', custom: false, bloomStartMonth: 6, bloomEndMonth: 8, defaultShape: 'oval', folderId: null, height: 60, flowerSize: 'small', flowerCount: 'many' },
+  { id: 'sunflower', name: 'Подсолнухи', color: '#ffc107', custom: false, bloomStartMonth: 7, bloomEndMonth: 9, defaultShape: 'flower', folderId: null, height: 150, flowerSize: 'large', flowerCount: 'few' },
+  { id: 'daisy', name: 'Ромашки', color: '#ffffff', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'flower', folderId: null, height: 40, flowerSize: 'small', flowerCount: 'many' },
+  { id: 'peony', name: 'Пионы', color: '#f06292', custom: false, bloomStartMonth: 5, bloomEndMonth: 6, defaultShape: 'circle', folderId: null, height: 70, flowerSize: 'large', flowerCount: 'medium' },
+  { id: 'hosta', name: 'Хосты', color: '#4caf50', custom: false, bloomStartMonth: 7, bloomEndMonth: 8, defaultShape: 'leaf', folderId: null, height: 50, flowerSize: 'small', flowerCount: 'few' },
+  { id: 'fern', name: 'Папоротник', color: '#2e7d32', custom: false, bloomStartMonth: 5, bloomEndMonth: 9, defaultShape: 'leaf', folderId: null, height: 60, flowerSize: 'small', flowerCount: 'few' },
+  { id: 'grass', name: 'Газон', color: '#8bc34a', custom: false, bloomStartMonth: 4, bloomEndMonth: 10, defaultShape: 'leaf', folderId: null, height: 10, flowerSize: 'small', flowerCount: 'many' },
 ];
 
 const DEFAULT_TREES = [
@@ -21,6 +22,22 @@ const DEFAULT_TREES = [
   { id: 'palm', name: 'Пальма', color: '#558b2f', custom: false, defaultShape: 'palm', folderId: null },
   { id: 'cherry', name: 'Сакура', color: '#f48fb1', custom: false, defaultShape: 'cherry', folderId: null },
 ];
+
+// ===== НОВЫЕ КОНСТАНТЫ ДЛЯ РАСТЕНИЙ =====
+
+const FLOWER_SIZES = [
+  { id: 'small', name: 'Маленькие', icon: '🔹' },
+  { id: 'medium', name: 'Средние', icon: '🔷' },
+  { id: 'large', name: 'Большие', icon: '🔶' },
+];
+
+const FLOWER_COUNTS = [
+  { id: 'few', name: '1-5', icon: '🌸' },
+  { id: 'medium', name: '6-15', icon: '🌺' },
+  { id: 'many', name: 'Больше 15', icon: '💐' },
+];
+
+// ===== СКИНЫ МУЛЬЧИ =====
 
 const MULCH_SKINS = [
   { id: 'bark', name: 'Кора (смешанная)', baseColor: '#795548' },
@@ -35,6 +52,8 @@ const MULCH_SKINS = [
   { id: 'gravel', name: 'Гравий', baseColor: '#9e9e9e' },
   { id: 'pine_cones', name: 'Сосновые шишки', baseColor: '#5d4037' },
 ];
+
+// ===== СКИНЫ ДОРОЖЕК =====
 
 const PATH_SKINS = [
   { id: 'gravel', name: 'Гравий' },
@@ -87,6 +106,8 @@ const DAYS_IN_MONTH = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 const CANVAS_PAD_M = 1;
 
+// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+
 let plants = [...DEFAULT_PLANTS];
 let trees = [...DEFAULT_TREES];
 let folders = [];
@@ -117,9 +138,19 @@ const state = {
   bloomFilter: null,
   expandedFolders: new Set(),
   expandedTreeFolders: new Set(),
+  // Размерная сетка
+  showGrid: false,
+  gridSize: 1,
+  gridColor: '#d4cfc0',
+  gridOpacity: 0.5,
+  // История undo/redo
+  history: [],
+  historyIndex: -1,
 };
 
 let svg, objectsLayer, handlesLayer, previewLayer, canvasWrap, plotLayer;
+
+// ===== БАЗОВЫЕ ФУНКЦИИ =====
 
 function initDomRefs() {
   svg = document.getElementById('canvas');
@@ -158,6 +189,8 @@ function fitCanvasToScreen() {
   state.canvasWidthM = sizeM;
   state.canvasHeightM = sizeM;
 }
+
+// ===== УТИЛИТЫ ДАТ =====
 
 function makeDateStr(month, day) {
   if (!month) return null;
@@ -265,9 +298,12 @@ function copyBloomDataFromPlant(plant, planting) {
   planting.bloomStartDate = plant.bloomStartDate || null;
   planting.bloomEndDate = plant.bloomEndDate || null;
   planting.shape = plant.defaultShape || 'circle';
+  planting.height = plant.height || 50;
+  planting.flowerSize = plant.flowerSize || 'medium';
+  planting.flowerCount = plant.flowerCount || 'medium';
 }
 
-// ===== ФУНКЦИИ ДЛЯ РАБОТЫ С ПАПКАМИ =====
+// ===== ФУНКЦИИ ДЛЯ РАБОТЫ С ПАПКАМИ РАСТЕНИЙ =====
 
 function createFolder(name) {
   const folder = { id: nextFolderId++, name: name, color: '#4a7c59' };
@@ -357,20 +393,161 @@ function loadTreeFolders() {
   }
 }
 
-// ===== ДЕТЕРМИНИРОВАННЫЙ ГЕНЕРАТОР ДЛЯ ТЕКСТУР =====
+// ===== СИСТЕМА ЗАДАЧ-НАПОМИНАЛОК =====
 
-function mulchRandom(seed) {
-  let s = seed;
-  return function() {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
+const TASK_PRIORITIES = [
+  { id: 'low', name: '🟢 Низкий', color: '#4caf50', glowColor: 'rgba(76,175,80,0.5)' },
+  { id: 'medium', name: '🟡 Средний', color: '#ff9800', glowColor: 'rgba(255,152,0,0.5)' },
+  { id: 'high', name: '🟠 Высокий', color: '#ff5722', glowColor: 'rgba(255,87,34,0.6)' },
+  { id: 'urgent', name: '🔴 Срочный', color: '#d32f2f', glowColor: 'rgba(211,47,47,0.8)' },
+];
+
+const TASK_HIGHLIGHT_TYPES = [
+  { id: 'marker', name: '📌 Маркер' },
+  { id: 'glow', name: '✨ Свечение' },
+  { id: 'border', name: '🔲 Рамка' },
+  { id: 'pulse', name: '💓 Пульсация' },
+  { id: 'flag', name: '🚩 Флажок' },
+];
+
+let nextTaskId = 1;
+
+function createTask(text, deadline, priority, highlightType, highlightColor) {
+  return {
+    id: nextTaskId++,
+    text: text,
+    deadline: deadline || null,
+    priority: priority || 'medium',
+    highlightType: highlightType || 'marker',
+    highlightColor: highlightColor || null,
+    done: false,
+    createdAt: new Date().toISOString()
   };
 }
 
-function particleRand(seed, index) {
-  let s = seed + index * 7919;
-  return function() {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  };
+function getPriorityData(priorityId) {
+  return TASK_PRIORITIES.find(p => p.id === priorityId) || TASK_PRIORITIES[1];
+}
+
+function getTaskColor(task) {
+  if (task.highlightColor) return task.highlightColor;
+  return getPriorityData(task.priority).color;
+}
+
+function isTaskOverdue(task) {
+  if (!task.deadline || task.done) return false;
+  return new Date(task.deadline) < new Date();
+}
+
+function getTasksCount(obj) {
+  if (!obj.tasks) return { total: 0, active: 0, overdue: 0 };
+  const total = obj.tasks.length;
+  const active = obj.tasks.filter(t => !t.done).length;
+  const overdue = obj.tasks.filter(t => isTaskOverdue(t)).length;
+  return { total, active, overdue };
+}
+
+function getAllTasks() {
+  const all = [];
+  state.objects.forEach(obj => {
+    if (obj.tasks && obj.tasks.length > 0) {
+      obj.tasks.forEach(task => {
+        all.push({ ...task, objectId: obj.id, objectType: obj.type });
+      });
+    }
+    if (obj.plants) {
+      obj.plants.forEach(pl => {
+        if (pl.tasks && pl.tasks.length > 0) {
+          pl.tasks.forEach(task => {
+            all.push({ ...task, objectId: obj.id, plantingId: pl.id, objectType: 'planting' });
+          });
+        }
+      });
+    }
+  });
+  return all;
+}
+
+// ===== СИСТЕМА ИСТОРИИ (UNDO/REDO) =====
+
+const MAX_HISTORY = 50;
+
+function saveState() {
+  const stateSnapshot = JSON.parse(JSON.stringify(state.objects));
+  
+  // Проверяем, не идентично ли последнее состояние текущему
+  if (state.history.length > 0 && state.historyIndex >= 0) {
+    const lastState = JSON.stringify(state.history[state.historyIndex]);
+    const currentState = JSON.stringify(stateSnapshot);
+    if (lastState === currentState) return; // Не сохраняем дубликат
+  }
+  
+  if (state.historyIndex < state.history.length - 1) {
+    state.history = state.history.slice(0, state.historyIndex + 1);
+  }
+  
+  state.history.push(stateSnapshot);
+  
+  if (state.history.length > MAX_HISTORY) {
+    state.history.shift();
+  }
+  
+  state.historyIndex = state.history.length - 1;
+  
+  updateHistoryButtons();
+}
+
+function undo() {
+  if (state.historyIndex > 0) {
+    state.historyIndex--;
+    state.objects = JSON.parse(JSON.stringify(state.history[state.historyIndex]));
+    state.selectedId = null;
+    state.selectedPlantingId = null;
+    closePlantPopup();
+    closeTreePopup();
+    closeDecorPopup();
+    closeMulchPopup();
+    closePathPopup();
+    render();
+    updateHistoryButtons();
+  }
+}
+
+function redo() {
+  if (state.historyIndex < state.history.length - 1) {
+    state.historyIndex++;
+    state.objects = JSON.parse(JSON.stringify(state.history[state.historyIndex]));
+    state.selectedId = null;
+    state.selectedPlantingId = null;
+    closePlantPopup();
+    closeTreePopup();
+    closeDecorPopup();
+    closeMulchPopup();
+    closePathPopup();
+    render();
+    updateHistoryButtons();
+  }
+}
+
+function updateHistoryButtons() {
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
+  
+  if (undoBtn) {
+    undoBtn.style.opacity = state.historyIndex > 0 ? '1' : '0.3';
+    undoBtn.style.cursor = state.historyIndex > 0 ? 'pointer' : 'not-allowed';
+  }
+  
+  if (redoBtn) {
+    redoBtn.style.opacity = state.historyIndex < state.history.length - 1 ? '1' : '0.3';
+    redoBtn.style.cursor = state.historyIndex < state.history.length - 1 ? 'pointer' : 'not-allowed';
+  }
+}
+
+// ===== ИНИЦИАЛИЗАЦИЯ ИСТОРИИ =====
+
+function initHistory() {
+  state.history = [];
+  state.historyIndex = -1;
+  saveState();
 }

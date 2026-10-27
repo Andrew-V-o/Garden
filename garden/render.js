@@ -1,5 +1,84 @@
 // ===== РЕНДЕРИНГ =====
 
+function renderGrid() {
+  if (!state.showGrid) return;
+  
+  const ns = 'http://www.w3.org/2000/svg';
+  const gridSizePx = state.gridSize * state.scale;
+  
+  let gridLayer = document.getElementById('gridLayer');
+  if (!gridLayer) {
+    gridLayer = document.createElementNS(ns, 'g');
+    gridLayer.setAttribute('id', 'gridLayer');
+    gridLayer.setAttribute('pointer-events', 'none');
+    svg.insertBefore(gridLayer, plotLayer);
+  } else {
+    gridLayer.innerHTML = '';
+  }
+  
+  const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
+  
+  const startX = Math.floor(vb.x / gridSizePx) * gridSizePx;
+  const startY = Math.floor(vb.y / gridSizePx) * gridSizePx;
+  const endX = vb.x + vb.w;
+  const endY = vb.y + vb.h;
+  
+  for (let x = startX; x <= endX; x += gridSizePx) {
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', x);
+    line.setAttribute('y1', startY);
+    line.setAttribute('x2', x);
+    line.setAttribute('y2', endY);
+    line.setAttribute('stroke', state.gridColor);
+    line.setAttribute('stroke-width', '0.5');
+    line.setAttribute('opacity', state.gridOpacity);
+    gridLayer.appendChild(line);
+  }
+  
+  for (let y = startY; y <= endY; y += gridSizePx) {
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', startX);
+    line.setAttribute('y1', y);
+    line.setAttribute('x2', endX);
+    line.setAttribute('y2', y);
+    line.setAttribute('stroke', state.gridColor);
+    line.setAttribute('stroke-width', '0.5');
+    line.setAttribute('opacity', state.gridOpacity);
+    gridLayer.appendChild(line);
+  }
+  
+  const labelInterval = gridSizePx < 50 ? 5 : 1;
+  const fontSize = Math.max(8, Math.min(12, gridSizePx / 3));
+  
+  for (let x = startX; x <= endX; x += gridSizePx * labelInterval) {
+    const meters = Math.round(x / state.scale);
+    if (meters >= 0) {
+      const text = document.createElementNS(ns, 'text');
+      text.setAttribute('x', x + 2);
+      text.setAttribute('y', startY + fontSize + 2);
+      text.setAttribute('font-size', fontSize);
+      text.setAttribute('fill', state.gridColor);
+      text.setAttribute('opacity', state.gridOpacity * 0.8);
+      text.textContent = meters + 'м';
+      gridLayer.appendChild(text);
+    }
+  }
+  
+  for (let y = startY; y <= endY; y += gridSizePx * labelInterval) {
+    const meters = Math.round(y / state.scale);
+    if (meters >= 0) {
+      const text = document.createElementNS(ns, 'text');
+      text.setAttribute('x', startX + 2);
+      text.setAttribute('y', y - 2);
+      text.setAttribute('font-size', fontSize);
+      text.setAttribute('fill', state.gridColor);
+      text.setAttribute('opacity', state.gridOpacity * 0.8);
+      text.textContent = meters + 'м';
+      gridLayer.appendChild(text);
+    }
+  }
+}
+
 function renderPlot() {
   plotLayer.innerHTML = '';
   const plot = state.objects.find(o => o.type === 'plot');
@@ -1149,7 +1228,7 @@ function renderMulch(mulch) {
   }
 }
 
-// ===== РЕНДЕР ДОРОЖКИ (ПОЛНОСТЬЮ СЛУЧАЙНОЕ РАСПРЕДЕЛЕНИЕ) =====
+// ===== РЕНДЕР ДОРОЖКИ (по сегментам как прямоугольники) =====
 
 function renderPathTexture(g, pathObj) {
   const ns = 'http://www.w3.org/2000/svg';
@@ -1160,10 +1239,10 @@ function renderPathTexture(g, pathObj) {
   if (pathObj.points.length < 2) return;
   
   const densityMultiplier = pathObj.densityMultiplier != null ? pathObj.densityMultiplier : 1.0;
+  const seed = pathObj.id * 1000 + 99;
   
   let globalParticleIndex = 0;
   
-  // Обрабатываем каждый сегмент дорожки
   for (let segIdx = 0; segIdx < pathObj.points.length - 1; segIdx++) {
     const p1 = pathObj.points[segIdx];
     const p2 = pathObj.points[segIdx + 1];
@@ -1174,24 +1253,19 @@ function renderPathTexture(g, pathObj) {
     
     if (segLength < 1) continue;
     
-    // Перпендикуляр к направлению сегмента
     const nx = -dy / segLength;
     const ny = dx / segLength;
     
-    // Площадь "прямоугольника" сегмента
     const area = segLength * width;
+    const baseDensity = Math.max(10, Math.floor(area / 15));
+    const density = Math.max(3, Math.floor(baseDensity * densityMultiplier));
     
-    // Плотность частиц (как в мульче)
-    const baseDensity = Math.max(20, Math.floor(area / 15));
-    const density = Math.max(5, Math.floor(baseDensity * densityMultiplier));
-    
-    // Генерируем частицы для этого сегмента
     for (let i = 0; i < density; i++) {
-      // ПОЛНОСТЬЮ СЛУЧАЙНАЯ позиция (Math.random)
-      const tAlong = Math.random();  // 0..1 вдоль сегмента
-      const tAcross = Math.random(); // 0..1 поперёк сегмента
+      const pr = particleRand(seed, globalParticleIndex);
       
-      // Мировые координаты
+      const tAlong = pr();
+      const tAcross = pr();
+      
       const alongX = p1[0] + tAlong * dx;
       const alongY = p1[1] + tAlong * dy;
       
@@ -1199,9 +1273,7 @@ function renderPathTexture(g, pathObj) {
       const px = alongX + nx * offset;
       const py = alongY + ny * offset;
       
-      // Детерминированные параметры частицы (размер, цвет, поворот)
-      const seed = pathObj.id * 1000 + 99;
-      const prParticle = particleRand(seed, globalParticleIndex);
+      const prParticle = particleRand(seed, globalParticleIndex * 10000);
       drawPathParticle(g, ns, skin, px, py, prParticle, baseColor);
       
       globalParticleIndex++;
@@ -1396,6 +1468,133 @@ function renderPath(obj) {
   objectsLayer.appendChild(g);
 }
 
+// ===== МАРКЕРЫ ЗАДАЧ =====
+
+function renderTaskMarkers(obj, x, y, size) {
+  if (!obj.tasks || obj.tasks.length === 0) return;
+  
+  const ns = 'http://www.w3.org/2000/svg';
+  const activeTasks = obj.tasks.filter(t => !t.done);
+  if (activeTasks.length === 0) return;
+  
+  const urgentTasks = activeTasks.filter(t => t.priority === 'urgent' || isTaskOverdue(t));
+  const topTask = urgentTasks[0] || activeTasks[0];
+  const color = getTaskColor(topTask);
+  
+  const marker = document.createElementNS(ns, 'g');
+  marker.setAttribute('pointer-events', 'none');
+  
+  const circle = document.createElementNS(ns, 'circle');
+  circle.setAttribute('cx', x);
+  circle.setAttribute('cy', y - size - 4);
+  circle.setAttribute('r', 6);
+  circle.setAttribute('fill', color);
+  circle.setAttribute('stroke', 'white');
+  circle.setAttribute('stroke-width', '1');
+  
+  if (topTask.highlightType === 'pulse') {
+    const anim = document.createElementNS(ns, 'animate');
+    anim.setAttribute('attributeName', 'r');
+    anim.setAttribute('values', '6;8;6');
+    anim.setAttribute('dur', '1.5s');
+    anim.setAttribute('repeatCount', 'indefinite');
+    circle.appendChild(anim);
+    
+    const animOp = document.createElementNS(ns, 'animate');
+    animOp.setAttribute('attributeName', 'opacity');
+    animOp.setAttribute('values', '0.9;0.4;0.9');
+    animOp.setAttribute('dur', '1.5s');
+    animOp.setAttribute('repeatCount', 'indefinite');
+    circle.appendChild(animOp);
+  }
+  
+  marker.appendChild(circle);
+  
+  const text = document.createElementNS(ns, 'text');
+  text.setAttribute('x', x);
+  text.setAttribute('y', y - size - 1);
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('font-size', '8');
+  text.setAttribute('font-weight', 'bold');
+  text.setAttribute('fill', 'white');
+  text.textContent = activeTasks.length;
+  marker.appendChild(text);
+  
+  objectsLayer.appendChild(marker);
+  
+  if (topTask.highlightType === 'glow') {
+    const glow = document.createElementNS(ns, 'circle');
+    glow.setAttribute('cx', x);
+    glow.setAttribute('cy', y);
+    glow.setAttribute('r', size + 4);
+    glow.setAttribute('fill', 'none');
+    glow.setAttribute('stroke', color);
+    glow.setAttribute('stroke-width', '2');
+    glow.setAttribute('opacity', '0.5');
+    glow.setAttribute('pointer-events', 'none');
+    objectsLayer.appendChild(glow);
+  }
+  
+  if (topTask.highlightType === 'border') {
+    const border = document.createElementNS(ns, 'circle');
+    border.setAttribute('cx', x);
+    border.setAttribute('cy', y);
+    border.setAttribute('r', size + 2);
+    border.setAttribute('fill', 'none');
+    border.setAttribute('stroke', color);
+    border.setAttribute('stroke-width', '1.5');
+    border.setAttribute('stroke-dasharray', '3,2');
+    border.setAttribute('pointer-events', 'none');
+    objectsLayer.appendChild(border);
+  }
+}
+
+function renderPlantingTaskMarkers(pl, x, y, r) {
+  if (!pl.tasks || pl.tasks.length === 0) return;
+  
+  const ns = 'http://www.w3.org/2000/svg';
+  const activeTasks = pl.tasks.filter(t => !t.done);
+  if (activeTasks.length === 0) return;
+  
+  const urgentTasks = activeTasks.filter(t => t.priority === 'urgent' || isTaskOverdue(t));
+  const topTask = urgentTasks[0] || activeTasks[0];
+  const color = getTaskColor(topTask);
+  
+  const marker = document.createElementNS(ns, 'g');
+  marker.setAttribute('pointer-events', 'none');
+  
+  const circle = document.createElementNS(ns, 'circle');
+  circle.setAttribute('cx', x);
+  circle.setAttribute('cy', y - r - 10);
+  circle.setAttribute('r', 5);
+  circle.setAttribute('fill', color);
+  circle.setAttribute('stroke', 'white');
+  circle.setAttribute('stroke-width', '1');
+  
+  if (topTask.highlightType === 'pulse') {
+    const anim = document.createElementNS(ns, 'animate');
+    anim.setAttribute('attributeName', 'r');
+    anim.setAttribute('values', '5;7;5');
+    anim.setAttribute('dur', '1.5s');
+    anim.setAttribute('repeatCount', 'indefinite');
+    circle.appendChild(anim);
+  }
+  
+  marker.appendChild(circle);
+  
+  const text = document.createElementNS(ns, 'text');
+  text.setAttribute('x', x);
+  text.setAttribute('y', y - r - 8);
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('font-size', '7');
+  text.setAttribute('font-weight', 'bold');
+  text.setAttribute('fill', 'white');
+  text.textContent = activeTasks.length;
+  marker.appendChild(text);
+  
+  objectsLayer.appendChild(marker);
+}
+
 function renderBedPlants(obj) {
   if (!obj.plants || obj.plants.length === 0) return;
   
@@ -1441,6 +1640,8 @@ function renderBedPlants(obj) {
       text.textContent = plant.name;
       objectsLayer.appendChild(text);
     }
+    
+    renderPlantingTaskMarkers(pl, pl.x, pl.y, r);
   });
 }
 
@@ -1453,6 +1654,8 @@ function renderTree(obj) {
   treeEl.setAttribute('data-id', obj.id);
   treeEl.style.cursor = 'pointer';
   objectsLayer.appendChild(treeEl);
+  
+  renderTaskMarkers(obj, obj.x, obj.y, obj.r);
   
   if (isSelected) {
     const outline = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -1526,6 +1729,7 @@ function render() {
   objectsLayer.innerHTML = '';
   handlesLayer.innerHTML = '';
 
+  renderGrid();
   renderPlot();
   
   state.objects.filter(o => o.type === 'bed').forEach(obj => {
@@ -2012,6 +2216,7 @@ function renderProps() {
     `;
   } else if (obj.type === 'tree') {
     const tree = trees.find(t => t.id === obj.treeId);
+    const taskCount = getTasksCount(obj);
     html += `
       <div class="prop-row">
         <span>Тип дерева:</span>
@@ -2021,9 +2226,14 @@ function renderProps() {
         <span>Размер:</span>
         <input type="number" value="${Math.round(obj.r)}" min="10" max="200" onchange="updateProp(${obj.id}, 'r', +this.value)">
       </div>
+      <div class="prop-row" style="border-top:1px solid #eee;padding-top:8px;margin-top:4px;">
+        <button onclick="openTasksForObject('object', ${obj.id})" style="flex:1;padding:6px;background:#4a7c59;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
+          📋 Задачи (${taskCount.active})
+        </button>
+      </div>
     `;
   } else if (obj.type === 'decor') {
-    const decorNames = { water: '💧 Водоём' };
+    const decorNames = { water: ' Водоём' };
     html += `
       <div class="prop-row">
         <span>Тип:</span>
@@ -2057,6 +2267,28 @@ function renderProps() {
         <input type="color" value="${obj.fill}" onchange="updateProp(${obj.id}, 'fill', this.value)">
       </div>
     `;
+  }
+
+  // Характеристики выбранной посадки растения
+  if (obj.type === 'bed' && state.selectedPlantingId) {
+    const planting = obj.plants.find(p => p.id === state.selectedPlantingId);
+    if (planting) {
+      const plant = plants.find(p => p.id === planting.plantId);
+      if (plant) {
+        const flowerSizeData = FLOWER_SIZES.find(s => s.id === (planting.flowerSize || plant.flowerSize));
+        const flowerCountData = FLOWER_COUNTS.find(c => c.id === (planting.flowerCount || plant.flowerCount));
+        const height = planting.height || plant.height || 50;
+        
+        html += `
+          <div class="prop-row" style="font-size:11px;color:#777;flex-direction:column;align-items:flex-start;gap:4px;border-top:1px solid #eee;padding-top:8px;margin-top:4px;">
+            <span><b>🌱 Характеристики растения:</b></span>
+            <span>📏 Высота: ${height} см</span>
+            <span>${flowerSizeData ? flowerSizeData.icon : '🔷'} Размер цветов: ${flowerSizeData ? flowerSizeData.name : 'Средние'}</span>
+            <span>${flowerCountData ? flowerCountData.icon : '🌺'} Количество: ${flowerCountData ? flowerCountData.name : '6-15'}</span>
+          </div>
+        `;
+      }
+    }
   }
 
   panel.innerHTML = html;

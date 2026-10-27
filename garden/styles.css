@@ -859,3 +859,140 @@ input[type="number"]::-webkit-inner-spin-button {
 .obj-btn[data-obj="water"] .icon { color: #29b6f6; }
 .obj-btn[data-obj="stone"] .icon { color: #757575; }
 .obj-btn[data-obj="mulch"] .icon { color: #795548; }
+
+/* Панель задач */
+.tasks-panel {
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  width: 320px;
+  max-height: 70vh;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  z-index: 50;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.tasks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e8e3d8;
+}
+
+.tasks-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #2d3a2e;
+}
+
+.tasks-filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.tasks-filters select {
+  flex: 1;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.task-item {
+  background: #f9f7f2;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  transition: all 0.15s;
+}
+
+.task-item:hover {
+  background: #f0ede4;
+}
+
+.task-item.done {
+  opacity: 0.6;
+}
+
+.task-item.overdue {
+  background: #fff3f3;
+}
+
+.task-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.task-header input[type="checkbox"] {
+  margin-top: 3px;
+  cursor: pointer;
+}
+
+.task-text {
+  flex: 1;
+  font-size: 13px;
+  color: #2d3a2e;
+  line-height: 1.4;
+}
+
+.task-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: #7a8a7c;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.task-label {
+  font-weight: 600;
+}
+
+.task-deadline {
+  color: #7a8a7c;
+}
+
+.task-deadline.overdue {
+  color: #d32f2f;
+  font-weight: 600;
+}
+
+.task-priority {
+  font-weight: 600;
+}
+
+.task-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.task-actions button {
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.task-actions button:hover {
+  background: #e8e3d8;
+}
+
+/* Кнопка сетки */
+#gridBtn.active {
+  background: #4a7c59;
+  color: white;
+}
+
+#gridBtn.active .icon {
+  filter: brightness(0) invert(1);
+}

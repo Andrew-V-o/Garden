@@ -3,6 +3,21 @@
 const FIGURE_POINTS_LIMIT = 100;
 const DRAG_THRESHOLD = 5;
 
+// ===== ОБРАБОТЧИК ГОРЯЧИХ КЛАВИШ =====
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'z' || e.key === 'Z') {
+      e.preventDefault();
+      undo();
+    } else if (e.key === 'y' || e.key === 'Y') {
+      e.preventDefault();
+      redo();
+    }
+  }
+});
+
 function setTool(tool) {
   if (state.drawing && (state.drawing.type === 'poly' || state.drawing.type === 'path')) {
     finishPolyOrPath();
@@ -26,6 +41,7 @@ function setTool(tool) {
   closeDecorPopup();
   closeMulchPopup();
   closePathPopup();
+  closeGridPopup();
   updateHint();
   renderPlantingsPanel();
 
@@ -46,6 +62,60 @@ function toggleMulchTool() {
   } else {
     setTool('mulch');
   }
+}
+
+function toggleGrid() {
+  state.showGrid = !state.showGrid;
+  
+  const btn = document.getElementById('gridBtn');
+  if (btn) {
+    btn.classList.toggle('active', state.showGrid);
+  }
+  
+  if (state.showGrid) {
+    showGridPopup();
+  } else {
+    closeGridPopup();
+  }
+  
+  render();
+}
+
+function showGridPopup() {
+  const popup = document.getElementById('gridPopup');
+  
+  document.getElementById('gridSize').value = state.gridSize;
+  document.getElementById('gridColor').value = state.gridColor;
+  document.getElementById('gridOpacity').value = state.gridOpacity;
+  
+  const gridBtn = document.getElementById('gridBtn');
+  if (gridBtn) {
+    const rect = gridBtn.getBoundingClientRect();
+    popup.style.left = (rect.left) + 'px';
+    popup.style.top = (rect.bottom + 5) + 'px';
+  }
+  
+  popup.classList.add('show');
+  
+  document.getElementById('gridSize').onchange = (e) => {
+    state.gridSize = parseFloat(e.target.value) || 1;
+    render();
+  };
+  
+  document.getElementById('gridColor').oninput = (e) => {
+    state.gridColor = e.target.value;
+    render();
+  };
+  
+  document.getElementById('gridOpacity').oninput = (e) => {
+    state.gridOpacity = parseFloat(e.target.value) || 0.5;
+    render();
+  };
+}
+
+function closeGridPopup() {
+  const popup = document.getElementById('gridPopup');
+  if (popup) popup.classList.remove('show');
 }
 
 function selectPlot() {
@@ -71,17 +141,17 @@ function selectPlot() {
 
 function toggleBedSubmenu(e) {
   e.stopPropagation();
-
+  
   if (state.drawing && (state.drawing.type === 'poly' || state.drawing.type === 'path')) {
     finishPolyOrPath();
   }
-
+  
   state.bedSubmenuOpen = !state.bedSubmenuOpen;
   const submenu = document.getElementById('bedSubmenu');
   const btn = document.querySelector('.obj-btn[data-obj="bed"]');
   submenu.classList.toggle('open', state.bedSubmenuOpen);
   btn.classList.toggle('open', state.bedSubmenuOpen);
-
+  
   if (state.bedSubmenuOpen) {
     setBedShape('rect');
   }
@@ -117,6 +187,7 @@ function setCanvasSizeMeters(wM, hM) {
 
   const plot = state.objects.find(o => o.type === 'plot');
   if (plot) {
+    saveState();
     const pad = getCanvasPadding();
     const w = wM * state.scale;
     const h = hM * state.scale;
@@ -137,11 +208,12 @@ function fitPlotToCanvas() {
   const plot = state.objects.find(o => o.type === 'plot');
   if (!plot) return;
 
+  saveState();
   const pad = getCanvasPadding();
   const w = state.canvasWidthM * state.scale;
   const h = state.canvasHeightM * state.scale;
   const newPoints = generateRectPoints(pad, pad, w, h);
-
+  
   plot.points = newPoints;
   plot.basePoints = newPoints.map(p => p.slice());
   plot.morphModified = false;
@@ -207,28 +279,29 @@ function resetZoomOnDblClick(e) {
 function setMorphPoints(objId, numPoints) {
   const obj = state.objects.find(o => o.id === objId);
   if (!obj || !obj.points) return;
-
+  
   const currentCount = obj.points.length;
-
+  
   if (obj.originalPointCount !== undefined) {
     const base = obj.originalPointCount;
-
+    
     if (numPoints % base !== 0) return;
-
+    
     const multiplier = numPoints / base;
-
+    
     if (multiplier < 1) {
       alert(`Нельзя уменьшить ниже исходного количества точек (${base}).`);
       return;
     }
-
+    
     if (numPoints > FIGURE_POINTS_LIMIT) {
       alert(`Превышен лимит в ${FIGURE_POINTS_LIMIT} точек морфологии.\nМаксимальный множитель: ×${Math.floor(FIGURE_POINTS_LIMIT / base)}`);
       return;
     }
-
+    
     if (numPoints === currentCount) return;
-
+    
+    saveState();
     if (numPoints > currentCount) {
       const interpMultiplier = numPoints / currentCount;
       obj.points = interpolateFigurePoints(obj.points, interpMultiplier);
@@ -239,13 +312,14 @@ function setMorphPoints(objId, numPoints) {
   } else {
     numPoints = Math.max(3, Math.min(64, numPoints));
     if (numPoints === currentCount) return;
-
+    
     if (!obj.basePoints) {
       obj.basePoints = obj.points.map(p => p.slice());
     }
-
+    
     const basePoints = obj.basePoints;
-
+    
+    saveState();
     if (numPoints < basePoints.length) {
       obj.points = thinPoints(basePoints, numPoints);
     } else if (numPoints > basePoints.length) {
@@ -254,19 +328,19 @@ function setMorphPoints(objId, numPoints) {
       obj.points = basePoints.map(p => p.slice());
     }
   }
-
+  
   render();
 }
 
 function updateFinishButton() {
   const btn = document.getElementById('finishBtn');
   if (!btn) return;
-
+  
   if (!state.drawing) {
     btn.style.display = 'none';
     return;
   }
-
+  
   if (state.drawing.type === 'poly' && state.drawing.points.length >= 3) {
     btn.style.display = 'block';
   } else if (state.drawing.type === 'path' && state.drawing.points.length >= 2) {
@@ -278,7 +352,7 @@ function updateFinishButton() {
 
 function updateHint() {
   const hints = {
-    select: '💡 Клик — выделить объект или открыть настройки. Зажмите ЛКМ на объекте и тяните — переместить. Колёсико — зум.',
+    select: ' Клик — выделить объект или открыть настройки. Зажмите ЛКМ на объекте и тяните — переместить. Колёсико — зум.',
     bed: `💡 Рисование клумбы (${state.bedShape === 'rect' ? 'прямоугольная' : state.bedShape === 'circle' ? 'круглая' : 'фигура'}). ${state.bedShape === 'poly' ? 'Кликайте для точек. Нажмите "✓ Завершить" или Enter для подтверждения.' : 'Зажмите мышь и тяните.'}`,
     path: '🛤️ Рисуйте дорожки. Кликайте для точек. Нажмите "✓ Завершить" или Enter. Достаточно 2 точек для прямой дорожки.',
     tree: '🌳 Выберите дерево в левой панели и кликайте на холст, чтобы посадить. Повторный клик по иконке — отмена.',
@@ -288,7 +362,7 @@ function updateHint() {
   let hint = hints[state.tool] || '';
   if (state.plantingMode && state.selectedPlant) {
     const p = plants.find(x => x.id === state.selectedPlant);
-    hint = ` Режим посадки: кликайте внутри клумбы, чтобы разместить "${p ? p.name : ''}"`;
+    hint = `🌱 Режим посадки: кликайте внутри клумбы, чтобы разместить "${p ? p.name : ''}"`;
   } else if (state.plantingMode) {
     hint = '🌱 Выберите растение в левой панели';
   }
@@ -338,6 +412,7 @@ function onMouseDown(e) {
   if (state.tool === 'select' && state.plantingMode && state.selectedId && state.selectedPlant) {
     const obj = state.objects.find(o => o.id === state.selectedId);
     if (obj && obj.type === 'bed' && pointInObject(obj, pos.x, pos.y)) {
+      saveState();
       obj.plants = obj.plants || [];
       const plant = plants.find(p => p.id === state.selectedPlant);
       const planting = {
@@ -350,6 +425,9 @@ function onMouseDown(e) {
         bloomEndMonth: plant?.bloomEndMonth || null,
         bloomStartDate: plant?.bloomStartDate || null,
         bloomEndDate: plant?.bloomEndDate || null,
+        height: plant?.height || 50,
+        flowerSize: plant?.flowerSize || 'medium',
+        flowerCount: plant?.flowerCount || 'medium',
       };
       obj.plants.push(planting);
       state.selectedPlantingId = planting.id;
@@ -362,6 +440,7 @@ function onMouseDown(e) {
   if (state.tool === 'tree' && state.selectedTree) {
     const tree = trees.find(t => t.id === state.selectedTree);
     if (tree) {
+      saveState();
       addObject({
         type: 'tree',
         treeId: tree.id,
@@ -378,6 +457,7 @@ function onMouseDown(e) {
 
   if (state.tool === 'water') {
     const d = { name: 'Водоём', fill: '#29b6f6', w: state.scale * 3, h: state.scale * 2 };
+    saveState();
     addObject({
       type: 'decor',
       decorType: 'water',
@@ -394,6 +474,7 @@ function onMouseDown(e) {
   if (state.tool === 'mulch') {
     const bed = findBedAtPoint(pos.x, pos.y);
     if (bed) {
+      saveState();
       const initialSize = state.scale * 2;
       addObject({
         type: 'mulch',
@@ -463,7 +544,7 @@ function onMouseDown(e) {
       const obj = state.objects[i];
       if (obj.type === 'path' && obj.points && obj.points.length >= 2) {
         for (let j = 0; j < obj.points.length - 1; j++) {
-          const p = closestPointOnSegment(pos.x, pos.y, obj.points[j], obj.points[j + 1]);
+          const p = closestPointOnSegment(pos.x, pos.y, obj.points[j], obj.points[j+1]);
           const d = Math.hypot(p.x - pos.x, p.y - pos.y);
           if (d < 15) {
             state.pendingDrag = {
@@ -506,8 +587,8 @@ function onMouseDown(e) {
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (obj.type === 'decor') {
-        if (pos.x >= obj.x - obj.w / 2 && pos.x <= obj.x + obj.w / 2 &&
-          pos.y >= obj.y - obj.h / 2 && pos.y <= obj.y + obj.h / 2) {
+        if (pos.x >= obj.x - obj.w/2 && pos.x <= obj.x + obj.w/2 &&
+            pos.y >= obj.y - obj.h/2 && pos.y <= obj.y + obj.h/2) {
           state.pendingDrag = {
             type: 'object',
             objId: obj.id,
@@ -527,11 +608,10 @@ function onMouseDown(e) {
       const obj = state.objects[i];
       if (pointInObject(obj, pos.x, pos.y)) {
         if (obj.type === 'plot' || (obj.type === 'bed' && obj.points)) {
-          // Сохраняем начальные позиции мульч, привязанных к этой клумбе
           const startMulches = state.objects
             .filter(o => o.type === 'mulch' && o.bedId === obj.id)
             .map(o => ({ id: o.id, x: o.x, y: o.y }));
-
+          
           state.pendingDrag = {
             type: 'object',
             objId: obj.id,
@@ -594,17 +674,19 @@ function onMouseMove(e) {
     const dx = pos.x - state.pendingDrag.startX;
     const dy = pos.y - state.pendingDrag.startY;
     const dist = Math.sqrt(dx * dx + dy * dy);
-
+    
     if (!state.pendingDrag.hasMoved && dist < DRAG_THRESHOLD) {
       return;
     }
-
+    
     if (!state.pendingDrag.hasMoved) {
+      // Сохраняем состояние ДО начала перемещения — для undo
+      saveState();
       state.pendingDrag.hasMoved = true;
       state.dragging = { ...state.pendingDrag };
       state.pendingDrag = null;
     }
-
+    
     const d = state.dragging;
     if (d.type === 'planting') {
       const obj = state.objects.find(o => o.id === d.objId);
@@ -621,7 +703,7 @@ function onMouseMove(e) {
       if (obj) {
         const moveDx = pos.x - d.startX;
         const moveDy = pos.y - d.startY;
-
+        
         if (obj.type === 'tree' && d.startPos) {
           obj.x = d.startPos.x + moveDx;
           obj.y = d.startPos.y + moveDy;
@@ -681,7 +763,7 @@ function onMouseMove(e) {
         if (obj.type === 'plot') {
           const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
           const bbox = d.startBBox;
-
+          
           let newX = bbox.x + dx;
           let newY = bbox.y + dy;
 
@@ -764,31 +846,39 @@ function onMouseMove(e) {
         render();
       }
     } else if (d.type === 'resize') {
+      if (!d.saved) {
+        saveState();
+        d.saved = true;
+      }
       const obj = state.objects.find(o => o.id === state.selectedId);
       if (obj) {
         let newBBox = computeNewBBox(d.startBBox, d.handle, pos.x - d.startX, pos.y - d.startY);
-
+        
         if (obj.type === 'plot') {
           const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
-
+          
           newBBox.w = Math.min(newBBox.w, vb.w);
           newBBox.h = Math.min(newBBox.h, vb.h);
-
+          
           if (newBBox.x < vb.x) newBBox.x = vb.x;
           if (newBBox.y < vb.y) newBBox.y = vb.y;
           if (newBBox.x + newBBox.w > vb.x + vb.w) newBBox.x = vb.x + vb.w - newBBox.w;
           if (newBBox.y + newBBox.h > vb.y + vb.h) newBBox.y = vb.y + vb.h - newBBox.h;
         }
-
+        
         resizeObjToBBox(obj, newBBox);
         render();
       }
     } else if (d.type === 'morph') {
+      if (!d.saved) {
+        saveState();
+        d.saved = true;
+      }
       const obj = state.objects.find(o => o.id === state.selectedId);
       if (obj && obj.points) {
         let targetX = pos.x;
         let targetY = pos.y;
-
+        
         if (obj.type === 'plot') {
           const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
           targetX = Math.max(vb.x, Math.min(pos.x, vb.x + vb.w));
@@ -796,22 +886,22 @@ function onMouseMove(e) {
         }
 
         obj.points[d.idx] = [targetX, targetY];
-
+        
         if (!obj.basePoints) {
           obj.basePoints = obj.points.map(p => p.slice());
         }
-
+        
         if (obj.basePoints.length === obj.points.length) {
           obj.basePoints[d.idx] = [targetX, targetY];
         } else {
           obj.basePoints = obj.points.map(p => p.slice());
         }
-
+        
         obj.morphModified = true;
         if (!obj.originalPointCount) {
           obj.originalPointCount = obj.basePoints.length;
         }
-
+        
         render();
       }
     }
@@ -831,13 +921,13 @@ function onMouseMove(e) {
 
 function onMouseUp(e) {
   const pos = getMousePos(e);
-
+  
   // Если было потенциальное перетаскивание, но не сдвинулись — обрабатываем как клик
   if (state.pendingDrag && state.tool === 'select') {
     const d = state.pendingDrag;
     state.pendingDrag = null;
     svg.style.cursor = 'default';
-
+    
     if (d.type === 'planting') {
       const obj = state.objects.find(o => o.id === d.objId);
       if (obj && obj.plants) {
@@ -876,7 +966,7 @@ function onMouseUp(e) {
       }
     }
   }
-
+  
   state.pendingDrag = null;
   svg.style.cursor = 'default';
 
@@ -894,6 +984,7 @@ function onMouseUp(e) {
       const w = Math.abs(state.drawing.x2 - state.drawing.x1);
       const h = Math.abs(state.drawing.y2 - state.drawing.y1);
       if (w > 5 && h > 5) {
+        saveState();
         let points;
         if (state.drawing.type === 'rect') {
           points = generateRectPoints(x, y, w, h);
@@ -927,7 +1018,7 @@ function onDblClick(e) {
         alert(`Достигнут лимит в ${FIGURE_POINTS_LIMIT} точек морфологии.`);
         return;
       }
-
+      
       const pos = getMousePos(e);
       let minDist = Infinity, bestIdx = -1, bestPoint = null;
       for (let i = 0; i < obj.points.length; i++) {
@@ -941,6 +1032,7 @@ function onDblClick(e) {
         }
       }
       if (minDist < 30) {
+        saveState();
         obj.points.splice(bestIdx + 1, 0, [bestPoint.x, bestPoint.y]);
         if (obj.basePoints) {
           if (obj.basePoints.length === obj.points.length - 1) {
@@ -987,6 +1079,7 @@ function onKeyDown(e) {
     closeDecorPopup();
     closeMulchPopup();
     closePathPopup();
+    closeGridPopup();
     state.pendingDrag = null;
     state.dragging = null;
     svg.style.cursor = 'default';
@@ -1007,16 +1100,18 @@ function finishPolyOrPath() {
     updateFinishButton();
     return;
   }
-
+  
   const minPoints = state.drawing.type === 'path' ? 2 : 3;
-
+  
   if (state.drawing.points.length < minPoints) {
     state.drawing = null;
     previewLayer.innerHTML = '';
     updateFinishButton();
     return;
   }
-
+  
+  saveState();
+  
   if (state.drawing.type === 'poly') {
     const points = state.drawing.points;
     addObject({
@@ -1037,7 +1132,7 @@ function finishPolyOrPath() {
       densityMultiplier: 1.0
     });
   }
-
+  
   state.drawing = null;
   previewLayer.innerHTML = '';
   updateFinishButton();
@@ -1056,6 +1151,7 @@ function addObject(obj) {
 }
 
 function deleteObject(id) {
+  saveState();
   const obj = state.objects.find(o => o.id === id);
   if (obj && obj.type === 'bed') {
     state.objects = state.objects.filter(o => !(o.type === 'mulch' && o.bedId === id));
@@ -1066,10 +1162,22 @@ function deleteObject(id) {
 }
 
 function deletePlanting(plantingId) {
+  saveState();
   const obj = state.objects.find(o => o.id === state.selectedId);
   if (obj && obj.plants) {
     obj.plants = obj.plants.filter(p => p.id !== plantingId);
     if (state.selectedPlantingId === plantingId) state.selectedPlantingId = null;
+    render();
+  }
+}
+
+function clearPlantings() {
+  saveState();
+  const obj = state.objects.find(o => o.id === state.selectedId);
+  if (obj && obj.plants) {
+    if (!confirm('Удалить все посадки из этой клумбы?')) return;
+    obj.plants = [];
+    state.selectedPlantingId = null;
     render();
   }
 }

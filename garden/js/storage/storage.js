@@ -155,6 +155,7 @@ function createDefaultPlot() {
   const plot = {
     id: state.nextId++,
     type: 'plot',
+    // Участок со сдвигом на величину отступа — подписи сетки не обрезаются
     points: generateRectPoints(pad, pad, w, h),
     fill: '#c8e6a0',
     name: 'Участок',
@@ -163,16 +164,36 @@ function createDefaultPlot() {
 }
 
 function clearAll() {
-  if (!confirm('Удалить все объекты? Участок будет восстановлен.')) return;
+  if (!confirm('Удалить все объекты? Участок будет восстановлен.\n\nОчистить также сохранение в браузере?')) {
+    // Если пользователь нажал "Отмена" — спрашиваем про только объекты
+    if (!confirm('Тогда удалить только текущие объекты (без очистки сохранения)?')) {
+      return;
+    }
+    // Очищаем только объекты, сохранение остаётся
+    state.nextId = 1;
+    state.nextPlantingId = 1;
+    state.objects = [];
+    state.selectedId = null;
+    state.selectedPlantingId = null;
+    createDefaultPlot();
+    updateSvgViewBox();
+    updateCanvasInfo();
+    render();
+    return;
+  }
+  
+  // Полная очистка: объекты + localStorage
   state.nextId = 1;
   state.nextPlantingId = 1;
   state.objects = [];
   state.selectedId = null;
   state.selectedPlantingId = null;
   createDefaultPlot();
+  localStorage.removeItem('gardenProject');
   updateSvgViewBox();
   updateCanvasInfo();
   render();
+  alert('✅ Проект и сохранение очищены!');
 }
 
 function exportPNG() {

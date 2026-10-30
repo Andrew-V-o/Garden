@@ -3,15 +3,16 @@
 function initApp() {
   initDomRefs();
   loadCustomPlants();
+  loadCustomTrees(); // <--- Добавлено для загрузки деревьев
   fitCanvasToScreen();
   createDefaultPlot();
   updateSvgViewBox();
   renderPlantList();
+  renderTreeList();  // <--- Добавлено для отрисовки списка деревьев
   render();
   updateHint();
   updateCanvasInfo();
-
-  // Привязка обработчиков событий
+  
   svg.addEventListener('mousedown', onMouseDown);
   svg.addEventListener('mousemove', onMouseMove);
   svg.addEventListener('mouseup', onMouseUp);
@@ -25,17 +26,14 @@ function initApp() {
       document.querySelector('.obj-btn[data-obj="bed"]').classList.remove('open');
     }
   });
-
-  // Загрузка сохранённого проекта
+  
   const saved = localStorage.getItem('gardenProject');
   if (saved) {
     try {
       const raw = JSON.parse(saved);
-      
-      // Проверяем, есть ли реальные данные (не пустой проект)
       const hasData = Array.isArray(raw) 
         ? raw.length > 0 
-        : (raw.objects && raw.objects.length > 1); // >1 потому что участок всегда есть
+        : (raw.objects && raw.objects.length > 1);
       
       if (hasData) {
         if (confirm('Найден сохранённый проект. Загрузить?\n\n[OK] — загрузить\n[Отмена] — начать с чистого листа')) {
@@ -45,16 +43,12 @@ function initApp() {
             state.objects = raw.objects || [];
             state.nextId = raw.nextId || 1;
             state.nextPlantingId = raw.nextPlantingId || 1;
-            
             if (raw.canvasWidthM) state.canvasWidthM = raw.canvasWidthM;
             if (raw.canvasHeightM) state.canvasHeightM = raw.canvasHeightM;
             if (raw.scale) state.scale = raw.scale;
-            
             if (!state.objects.find(o => o.type === 'plot')) {
               createDefaultPlot();
             }
-            
-            // Миграция старых посадок
             state.objects.forEach(o => {
               if (o.plants) {
                 o.plants.forEach(pl => {
@@ -66,23 +60,21 @@ function initApp() {
                   }
                 });
               }
-              // Миграция старых типов объектов
               if (o.type === 'rect' || o.type === 'circle' || o.type === 'poly' || o.type === 'morph') {
                 migrateObjToBed(o);
               }
             });
-            
             if (raw.plants) {
               plants = [...DEFAULT_PLANTS, ...raw.plants];
               saveCustomPlants();
               renderPlantList();
+              renderTreeList(); // <--- Добавлено
             }
           }
           updateSvgViewBox();
           updateCanvasInfo();
           render();
         } else {
-          // Пользователь отказался — очищаем localStorage, чтобы не спрашивать снова
           if (confirm('Очистить сохранение, чтобы не спрашивать при следующей загрузке?')) {
             localStorage.removeItem('gardenProject');
           }
@@ -93,7 +85,6 @@ function initApp() {
     }
   }
   
-  // Инициализация истории undo/redo
   initHistory();
 }
 

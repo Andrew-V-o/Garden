@@ -1,6 +1,6 @@
-// ===== ОСНОВНАЯ ОТРИСОВКА =====
+// ===== РЕНДЕРИНГ =====
 
-// Вспомогательные функции для текстур
+// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ТЕКСТУР =====
 function adjustColor(hex, amount) {
   hex = hex.replace('#', '');
   if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
@@ -29,13 +29,122 @@ function particleRand(seed, index) {
   };
 }
 
+// ===== SNAP-НАПРАВЛЯЮЩИЕ =====
+function renderSnapGuides(guides) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const old = document.getElementById('snapGuidesLayer');
+  if (old) old.remove();
+  if (!guides || guides.length === 0) return;
+  
+  const layer = document.createElementNS(ns, 'g');
+  layer.setAttribute('id', 'snapGuidesLayer');
+  layer.setAttribute('pointer-events', 'none');
+  
+  const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
+  guides.forEach(g => {
+    const line = document.createElementNS(ns, 'line');
+    if (g.type === 'v') {
+      line.setAttribute('x1', g.x);
+      line.setAttribute('y1', vb.y);
+      line.setAttribute('x2', g.x);
+      line.setAttribute('y2', vb.y + vb.h);
+    } else {
+      line.setAttribute('x1', vb.x);
+      line.setAttribute('y1', g.y);
+      line.setAttribute('x2', vb.x + vb.w);
+      line.setAttribute('y2', g.y);
+    }
+    line.setAttribute('stroke', '#ff0000');
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('stroke-dasharray', '4,3');
+    line.setAttribute('opacity', '0.7');
+    layer.appendChild(line);
+  });
+  objectsLayer.appendChild(layer);
+}
+
+function clearSnapGuides() {
+  const old = document.getElementById('snapGuidesLayer');
+  if (old) old.remove();
+}
+
+// ===== РАЗМЕРНАЯ СЕТКА =====
+function renderGrid() {
+  if (!state.showGrid) {
+    const gridLayer = document.getElementById('gridLayer');
+    if (gridLayer) gridLayer.remove();
+    return;
+  }
+  const ns = 'http://www.w3.org/2000/svg';
+  const gridSizePx = state.gridSize * state.scale;
+  let gridLayer = document.getElementById('gridLayer');
+  if (!gridLayer) {
+    gridLayer = document.createElementNS(ns, 'g');
+    gridLayer.setAttribute('id', 'gridLayer');
+    gridLayer.setAttribute('pointer-events', 'none');
+    svg.insertBefore(gridLayer, plotLayer);
+  } else {
+    gridLayer.innerHTML = '';
+  }
+  const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
+  const startX = Math.floor(vb.x / gridSizePx) * gridSizePx;
+  const startY = Math.floor(vb.y / gridSizePx) * gridSizePx;
+  const endX = vb.x + vb.w;
+  const endY = vb.y + vb.h;
+  for (let x = startX; x <= endX; x += gridSizePx) {
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', x); line.setAttribute('y1', startY);
+    line.setAttribute('x2', x); line.setAttribute('y2', endY);
+    line.setAttribute('stroke', state.gridColor);
+    line.setAttribute('stroke-width', '0.5');
+    line.setAttribute('opacity', state.gridOpacity);
+    gridLayer.appendChild(line);
+  }
+  for (let y = startY; y <= endY; y += gridSizePx) {
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', startX); line.setAttribute('y1', y);
+    line.setAttribute('x2', endX); line.setAttribute('y2', y);
+    line.setAttribute('stroke', state.gridColor);
+    line.setAttribute('stroke-width', '0.5');
+    line.setAttribute('opacity', state.gridOpacity);
+    gridLayer.appendChild(line);
+  }
+  const labelInterval = gridSizePx < 50 ? 5 : 1;
+  const fontSize = Math.max(8, Math.min(12, gridSizePx / 3));
+  for (let x = startX; x <= endX; x += gridSizePx * labelInterval) {
+    const meters = Math.round(x / state.scale);
+    if (meters >= 0) {
+      const text = document.createElementNS(ns, 'text');
+      text.setAttribute('x', x + 2);
+      text.setAttribute('y', startY + fontSize + 2);
+      text.setAttribute('font-size', fontSize);
+      text.setAttribute('fill', state.gridColor);
+      text.setAttribute('opacity', state.gridOpacity * 0.8);
+      text.textContent = meters + 'м';
+      gridLayer.appendChild(text);
+    }
+  }
+  for (let y = startY; y <= endY; y += gridSizePx * labelInterval) {
+    const meters = Math.round(y / state.scale);
+    if (meters >= 0) {
+      const text = document.createElementNS(ns, 'text');
+      text.setAttribute('x', startX + 2);
+      text.setAttribute('y', y - 2);
+      text.setAttribute('font-size', fontSize);
+      text.setAttribute('fill', state.gridColor);
+      text.setAttribute('opacity', state.gridOpacity * 0.8);
+      text.textContent = meters + 'м';
+      gridLayer.appendChild(text);
+    }
+  }
+}
+
+// ===== УЧАСТОК =====
 function renderPlot() {
   plotLayer.innerHTML = '';
   const plot = state.objects.find(o => o.type === 'plot');
   if (!plot) return;
-
   const isSelected = state.selectedId === plot.id;
-
   const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
   poly.setAttribute('points', plot.points.map(p => p.join(',')).join(' '));
   poly.setAttribute('fill', plot.fill || '#c8e6a0');
@@ -44,61 +153,50 @@ function renderPlot() {
   poly.setAttribute('data-id', plot.id);
   poly.style.cursor = 'pointer';
   plotLayer.appendChild(poly);
-
   const bbox = getObjBBox(plot);
   if (!bbox) return;
-
   const outerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   outerGroup.setAttribute('pointer-events', 'none');
-
   const startX = Math.floor(bbox.x / state.scale) * state.scale;
   const startY = Math.floor(bbox.y / state.scale) * state.scale;
-
   for (let x = startX; x <= bbox.x + bbox.w + 0.1; x += state.scale) {
     const m = Math.round((x - bbox.x) / state.scale);
     const textTop = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textTop.setAttribute('x', x);
-    textTop.setAttribute('y', bbox.y - 4);
+    textTop.setAttribute('x', x); textTop.setAttribute('y', bbox.y - 4);
     textTop.setAttribute('text-anchor', 'middle');
     textTop.setAttribute('font-size', '10');
     textTop.setAttribute('fill', '#5d4037');
     textTop.textContent = m + 'м';
     outerGroup.appendChild(textTop);
-
     const textBottom = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textBottom.setAttribute('x', x);
-    textBottom.setAttribute('y', bbox.y + bbox.h + 12);
+    textBottom.setAttribute('x', x); textBottom.setAttribute('y', bbox.y + bbox.h + 12);
     textBottom.setAttribute('text-anchor', 'middle');
     textBottom.setAttribute('font-size', '10');
     textBottom.setAttribute('fill', '#5d4037');
     textBottom.textContent = m + 'м';
     outerGroup.appendChild(textBottom);
   }
-
   for (let y = startY; y <= bbox.y + bbox.h + 0.1; y += state.scale) {
     const m = Math.round((y - bbox.y) / state.scale);
     const textLeft = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textLeft.setAttribute('x', bbox.x - 4);
-    textLeft.setAttribute('y', y + 4);
+    textLeft.setAttribute('x', bbox.x - 4); textLeft.setAttribute('y', y + 4);
     textLeft.setAttribute('text-anchor', 'end');
     textLeft.setAttribute('font-size', '10');
     textLeft.setAttribute('fill', '#5d4037');
     textLeft.textContent = m + 'м';
     outerGroup.appendChild(textLeft);
-
     const textRight = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textRight.setAttribute('x', bbox.x + bbox.w + 4);
-    textRight.setAttribute('y', y + 4);
+    textRight.setAttribute('x', bbox.x + bbox.w + 4); textRight.setAttribute('y', y + 4);
     textRight.setAttribute('text-anchor', 'start');
     textRight.setAttribute('font-size', '10');
     textRight.setAttribute('fill', '#5d4037');
     textRight.textContent = m + 'м';
     outerGroup.appendChild(textRight);
   }
-
   plotLayer.appendChild(outerGroup);
 }
 
+// ===== КЛУМБЫ =====
 function renderBedPolygon(obj) {
   const isSelected = obj.id === state.selectedId;
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
@@ -113,21 +211,18 @@ function renderBedPolygon(obj) {
 
 function renderBedPlants(obj) {
   if (!obj.plants || obj.plants.length === 0) return;
-  
   obj.plants.forEach(pl => {
     const plant = plants.find(p => p.id === pl.plantId);
     const color = plant ? plant.color : '#999';
     const shape = pl.shape || 'circle';
     const r = pl.r || state.scale * 0.4;
     const isSelectedPlanting = pl.id === state.selectedPlantingId;
-    
     const isBlooming = isPlantBlooming(pl, state.bloomFilter);
-
     const shapeEl = createShapeElement(shape, pl.x, pl.y, r, color);
     if (shapeEl.tagName === 'g') {
       shapeEl.setAttribute('stroke', isSelectedPlanting ? '#ff6b00' : 'white');
       shapeEl.setAttribute('stroke-width', isSelectedPlanting ? 2 : 1.5);
-      shapeEl.style.cursor = state.tool === 'move' ? 'grab' : 'pointer';
+      shapeEl.style.cursor = 'pointer';
       shapeEl.setAttribute('data-planting-id', pl.id);
       if (state.bloomFilter) {
         shapeEl.classList.add(isBlooming ? 'planting-blooming' : 'planting-not-blooming');
@@ -136,14 +231,13 @@ function renderBedPlants(obj) {
     } else {
       shapeEl.setAttribute('stroke', isSelectedPlanting ? '#ff6b00' : 'white');
       shapeEl.setAttribute('stroke-width', isSelectedPlanting ? 2 : 1.5);
-      shapeEl.style.cursor = state.tool === 'move' ? 'grab' : 'pointer';
+      shapeEl.style.cursor = 'pointer';
       shapeEl.setAttribute('data-planting-id', pl.id);
       if (state.bloomFilter) {
         shapeEl.classList.add(isBlooming ? 'planting-blooming' : 'planting-not-blooming');
       }
       objectsLayer.appendChild(shapeEl);
     }
-
     if (plant) {
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', pl.x);
@@ -156,23 +250,20 @@ function renderBedPlants(obj) {
       text.textContent = plant.name;
       objectsLayer.appendChild(text);
     }
-    
     renderPlantingTaskMarkers(pl, pl.x, pl.y, r);
   });
 }
 
+// ===== ДЕРЕВЬЯ =====
 function renderTree(obj) {
   const isSelected = obj.id === state.selectedId;
   const shape = obj.shape || 'oak';
   const color = obj.fill || '#2e7d32';
-  
   const treeEl = createShapeElement(shape, obj.x, obj.y, obj.r, color);
   treeEl.setAttribute('data-id', obj.id);
   treeEl.style.cursor = 'pointer';
   objectsLayer.appendChild(treeEl);
-  
   renderTaskMarkers(obj, obj.x, obj.y, obj.r);
-  
   if (isSelected) {
     const outline = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     outline.setAttribute('cx', obj.x);
@@ -186,18 +277,15 @@ function renderTree(obj) {
   }
 }
 
+// ===== ДЕКОРАТИВНЫЕ ОБЪЕКТЫ =====
 function renderDecorObject(obj) {
   const ns = 'http://www.w3.org/2000/svg';
   const isSelected = obj.id === state.selectedId;
   const g = document.createElementNS(ns, 'g');
   g.setAttribute('data-id', obj.id);
   g.style.cursor = 'pointer';
-  
-  const x = obj.x - obj.w / 2;
-  const y = obj.y - obj.h / 2;
-  const w = obj.w;
-  const h = obj.h;
-  
+  const x = obj.x - obj.w / 2, y = obj.y - obj.h / 2;
+  const w = obj.w, h = obj.h;
   if (obj.decorType === 'water') {
     const ellipse = document.createElementNS(ns, 'ellipse');
     ellipse.setAttribute('cx', obj.x);
@@ -208,7 +296,6 @@ function renderDecorObject(obj) {
     ellipse.setAttribute('stroke', isSelected ? '#ff6b00' : '#0277bd');
     ellipse.setAttribute('stroke-width', isSelected ? 3 : 1.5);
     g.appendChild(ellipse);
-    
     const waveCount = Math.max(2, Math.floor(h / 15));
     for (let i = 1; i < waveCount; i++) {
       const waveY = y + (h / waveCount) * i;
@@ -226,7 +313,6 @@ function renderDecorObject(obj) {
       g.appendChild(wave);
     }
   }
-  
   const text = document.createElementNS(ns, 'text');
   text.setAttribute('x', obj.x);
   text.setAttribute('y', obj.y + h / 2 + 14);
@@ -237,59 +323,36 @@ function renderDecorObject(obj) {
   text.setAttribute('pointer-events', 'none');
   text.textContent = obj.name;
   g.appendChild(text);
-  
   objectsLayer.appendChild(g);
 }
 
+// ===== ГЛАВНЫЙ ЦИКЛ ОТРИСОВКИ =====
 function render() {
   objectsLayer.innerHTML = '';
   handlesLayer.innerHTML = '';
-
+  clearSnapGuides();
   renderGrid();
   renderPlot();
-  
-  state.objects.filter(o => o.type === 'bed').forEach(obj => {
-    renderBedPolygon(obj);
-  });
-  
-  state.objects.filter(o => o.type === 'mulch').forEach(obj => {
-    renderMulch(obj);
-  });
-  
-  state.objects.filter(o => o.type === 'bed').forEach(obj => {
-    renderBedPlants(obj);
-  });
-  
-  state.objects.filter(o => o.type === 'tree').forEach(obj => {
-    renderTree(obj);
-  });
-  
-  state.objects.filter(o => o.type === 'path').forEach(obj => {
-    renderPath(obj);
-  });
-  
-  state.objects.filter(o => o.type === 'decor').forEach(obj => {
-    renderDecorObject(obj);
-  });
-  
+  state.objects.filter(o => o.type === 'bed').forEach(obj => renderBedPolygon(obj));
+  state.objects.filter(o => o.type === 'mulch').forEach(obj => renderMulch(obj));
+  state.objects.filter(o => o.type === 'bed').forEach(obj => renderBedPlants(obj));
+  state.objects.filter(o => o.type === 'tree').forEach(obj => renderTree(obj));
+  state.objects.filter(o => o.type === 'path').forEach(obj => renderPath(obj));
+  state.objects.filter(o => o.type === 'decor').forEach(obj => renderDecorObject(obj));
   if (state.selectedId && state.tool === 'select') {
     const obj = state.objects.find(o => o.id === state.selectedId);
     if (obj) {
-      if (obj.type !== 'path') {
-        drawResizeHandles(obj);
-      }
-      if (obj.points && obj.type !== 'path' && obj.type !== 'mulch') {
-        drawMorphHandles(obj);
-      }
+      if (obj.type !== 'path') drawResizeHandles(obj);
+      if (obj.points && obj.type !== 'path' && obj.type !== 'mulch') drawMorphHandles(obj);
     }
   }
-
-  renderSectionsList();
-  renderPlantingsPanel();
-  renderProps();
-  renderStats();
+  renderSectionsList();   // из render-props.js
+  renderPlantingsPanel(); // из render-props.js
+  renderProps();          // из render-props.js
+  renderStats();          // из render-props.js
 }
 
+// ===== HANDLES =====
 function drawResizeHandles(obj) {
   const bbox = getObjBBox(obj);
   if (!bbox) return;
@@ -344,13 +407,11 @@ function getCursorForHandle(h) {
 function renderPreview() {
   previewLayer.innerHTML = '';
   if (!state.drawing) return;
-
   if ((state.drawing.type === 'rect' || state.drawing.type === 'circle') && state.drawing.x2 !== undefined) {
     const x = Math.min(state.drawing.x1, state.drawing.x2);
     const y = Math.min(state.drawing.y1, state.drawing.y2);
     const w = Math.abs(state.drawing.x2 - state.drawing.x1);
     const h = Math.abs(state.drawing.y2 - state.drawing.y1);
-
     if (state.drawing.type === 'rect') {
       const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       r.setAttribute('x', x); r.setAttribute('y', y);
@@ -405,4 +466,111 @@ function renderPreview() {
       previewLayer.appendChild(c);
     });
   }
+}
+
+// ===== МАРКЕРЫ ЗАДАЧ =====
+function renderTaskMarkers(obj, x, y, size) {
+  if (!obj.tasks || obj.tasks.length === 0) return;
+  const ns = 'http://www.w3.org/2000/svg';
+  const activeTasks = obj.tasks.filter(t => !t.done);
+  if (activeTasks.length === 0) return;
+  const urgentTasks = activeTasks.filter(t => t.priority === 'urgent' || isTaskOverdue(t));
+  const topTask = urgentTasks[0] || activeTasks[0];
+  const color = getTaskColor(topTask);
+  const marker = document.createElementNS(ns, 'g');
+  marker.setAttribute('pointer-events', 'none');
+  const circle = document.createElementNS(ns, 'circle');
+  circle.setAttribute('cx', x);
+  circle.setAttribute('cy', y - size - 4);
+  circle.setAttribute('r', 6);
+  circle.setAttribute('fill', color);
+  circle.setAttribute('stroke', 'white');
+  circle.setAttribute('stroke-width', '1');
+  if (topTask.highlightType === 'pulse') {
+    const anim = document.createElementNS(ns, 'animate');
+    anim.setAttribute('attributeName', 'r');
+    anim.setAttribute('values', '6;8;6');
+    anim.setAttribute('dur', '1.5s');
+    anim.setAttribute('repeatCount', 'indefinite');
+    circle.appendChild(anim);
+    const animOp = document.createElementNS(ns, 'animate');
+    animOp.setAttribute('attributeName', 'opacity');
+    animOp.setAttribute('values', '0.9;0.4;0.9');
+    animOp.setAttribute('dur', '1.5s');
+    animOp.setAttribute('repeatCount', 'indefinite');
+    circle.appendChild(animOp);
+  }
+  marker.appendChild(circle);
+  const text = document.createElementNS(ns, 'text');
+  text.setAttribute('x', x);
+  text.setAttribute('y', y - size - 1);
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('font-size', '8');
+  text.setAttribute('font-weight', 'bold');
+  text.setAttribute('fill', 'white');
+  text.textContent = activeTasks.length;
+  marker.appendChild(text);
+  objectsLayer.appendChild(marker);
+  if (topTask.highlightType === 'glow') {
+    const glow = document.createElementNS(ns, 'circle');
+    glow.setAttribute('cx', x);
+    glow.setAttribute('cy', y);
+    glow.setAttribute('r', size + 4);
+    glow.setAttribute('fill', 'none');
+    glow.setAttribute('stroke', color);
+    glow.setAttribute('stroke-width', '2');
+    glow.setAttribute('opacity', '0.5');
+    glow.setAttribute('pointer-events', 'none');
+    objectsLayer.appendChild(glow);
+  }
+  if (topTask.highlightType === 'border') {
+    const border = document.createElementNS(ns, 'circle');
+    border.setAttribute('cx', x);
+    border.setAttribute('cy', y);
+    border.setAttribute('r', size + 2);
+    border.setAttribute('fill', 'none');
+    border.setAttribute('stroke', color);
+    border.setAttribute('stroke-width', '1.5');
+    border.setAttribute('stroke-dasharray', '3,2');
+    border.setAttribute('pointer-events', 'none');
+    objectsLayer.appendChild(border);
+  }
+}
+
+function renderPlantingTaskMarkers(pl, x, y, r) {
+  if (!pl.tasks || pl.tasks.length === 0) return;
+  const ns = 'http://www.w3.org/2000/svg';
+  const activeTasks = pl.tasks.filter(t => !t.done);
+  if (activeTasks.length === 0) return;
+  const urgentTasks = activeTasks.filter(t => t.priority === 'urgent' || isTaskOverdue(t));
+  const topTask = urgentTasks[0] || activeTasks[0];
+  const color = getTaskColor(topTask);
+  const marker = document.createElementNS(ns, 'g');
+  marker.setAttribute('pointer-events', 'none');
+  const circle = document.createElementNS(ns, 'circle');
+  circle.setAttribute('cx', x);
+  circle.setAttribute('cy', y - r - 10);
+  circle.setAttribute('r', 5);
+  circle.setAttribute('fill', color);
+  circle.setAttribute('stroke', 'white');
+  circle.setAttribute('stroke-width', '1');
+  if (topTask.highlightType === 'pulse') {
+    const anim = document.createElementNS(ns, 'animate');
+    anim.setAttribute('attributeName', 'r');
+    anim.setAttribute('values', '5;7;5');
+    anim.setAttribute('dur', '1.5s');
+    anim.setAttribute('repeatCount', 'indefinite');
+    circle.appendChild(anim);
+  }
+  marker.appendChild(circle);
+  const text = document.createElementNS(ns, 'text');
+  text.setAttribute('x', x);
+  text.setAttribute('y', y - r - 8);
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('font-size', '7');
+  text.setAttribute('font-weight', 'bold');
+  text.setAttribute('fill', 'white');
+  text.textContent = activeTasks.length;
+  marker.appendChild(text);
+  objectsLayer.appendChild(marker);
 }

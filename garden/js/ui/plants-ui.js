@@ -1,6 +1,6 @@
 // ===== UI РАСТЕНИЙ И ДЕРЕВЬЕВ =====
-// Содержит: списки в sidebar, модалки создания/настройки, карта цветения
-// НЕ содержит: popup'ы объектов, систему задач (они в popups.js и tasks-ui.js)
+// Содержит ТОЛЬКО: списки в sidebar, модалки создания/настройки, карта цветения
+// НЕ содержит: popup'ы объектов (в popups.js), систему задач (в tasks-ui.js), правую панель (в render-props.js)
 
 let currentSettingsPlantId = null;
 let currentTreeSettingsId = null;
@@ -8,17 +8,14 @@ let currentContextMenu = null;
 let currentTreeContextMenu = null;
 
 // ===== УТИЛИТЫ =====
-
 function getRelativeScreenPos(svg, objX, objY, canvasWrap) {
   const pt = svg.createSVGPoint();
   pt.x = objX;
   pt.y = objY;
   const ctm = svg.getScreenCTM();
   if (!ctm) return { x: 0, y: 0 };
-  
   const screenPt = pt.matrixTransform(ctm);
   const wrapRect = canvasWrap.getBoundingClientRect();
-  
   return {
     x: screenPt.x - wrapRect.left + canvasWrap.scrollLeft,
     y: screenPt.y - wrapRect.top + canvasWrap.scrollTop
@@ -29,7 +26,6 @@ function toggleSection(section) {
   state.collapsedSections[section] = !state.collapsedSections[section];
   const content = document.getElementById(section === 'plants' ? 'plantsSection' : 'treesSection');
   const arrow = document.getElementById(section === 'plants' ? 'plantsArrow' : 'treesArrow');
-  
   if (state.collapsedSections[section]) {
     content.style.display = 'none';
     arrow.textContent = '▶';
@@ -37,6 +33,18 @@ function toggleSection(section) {
     content.style.display = 'block';
     arrow.textContent = '▼';
   }
+}
+
+function toggleBloomMode() {
+  const modeElement = document.querySelector('input[name="bloomMode"]:checked');
+  if (!modeElement) return;
+  const mode = modeElement.value;
+  
+  const monthsSection = document.getElementById('bloomMonthsSection');
+  const datesSection = document.getElementById('bloomDatesSection');
+  
+  if (monthsSection) monthsSection.style.display = mode === 'months' ? 'flex' : 'none';
+  if (datesSection) datesSection.style.display = mode === 'dates' ? 'flex' : 'none';
 }
 
 function fillMonthSelect(selectEl, includeNoneOption = false, selectedMonth = null) {
@@ -54,21 +62,17 @@ function fillMonthSelect(selectEl, includeNoneOption = false, selectedMonth = nu
 function updateEndMonthSelect(startSelect, endSelect, includeNoneOption = false) {
   const startMonth = startSelect.value ? parseInt(startSelect.value) : null;
   const currentEndMonth = endSelect.value ? parseInt(endSelect.value) : null;
-  
   let html = '';
   if (includeNoneOption) {
     html += `<option value="">Не цветёт</option>`;
   }
-  
   MONTHS.forEach((m, i) => {
     const val = i + 1;
     if (!startMonth || val >= startMonth) {
       html += `<option value="${val}" ${currentEndMonth === val ? 'selected' : ''}>${m}</option>`;
     }
   });
-  
   endSelect.innerHTML = html;
-  
   if (currentEndMonth && startMonth && currentEndMonth < startMonth) {
     const firstOption = endSelect.querySelector('option[value]');
     if (firstOption) {
@@ -81,7 +85,6 @@ function updateShapePreview(context) {
   const shape = document.getElementById(`${context}PlantShape`).value;
   const color = document.getElementById(`${context}PlantColor`).value;
   const previewEl = document.getElementById(`${context}ShapePreview`);
-  
   if (previewEl) {
     previewEl.innerHTML = `<svg viewBox="0 0 16 16" style="width:40px;height:40px;">${getShapeSVGMini(shape, color)}</svg>`;
   }
@@ -91,21 +94,17 @@ function updateTreeShapePreview(context) {
   const shape = document.getElementById(`${context}TreeShape`).value;
   const color = document.getElementById(`${context}TreeColor`).value;
   const previewEl = document.getElementById(`${context}TreePreview`);
-  
   if (previewEl) {
     previewEl.innerHTML = `<svg viewBox="0 0 16 16" style="width:40px;height:40px;">${getShapeSVGMini(shape, color)}</svg>`;
   }
 }
 
 // ===== РАСТЕНИЯ =====
-
 function createPlantItem(p) {
   const el = document.createElement('div');
   el.className = 'plant-item' + (state.selectedPlant === p.id ? ' selected' : '');
   el.dataset.id = p.id;
-  
   const shape = p.defaultShape || 'circle';
-  
   el.innerHTML = `
     <button class="plant-settings-btn" title="Настройки вида" data-settings="${p.id}">⚙</button>
     <svg class="plant-shape-icon" viewBox="0 0 16 16" style="width:24px;height:24px;margin:0 auto 4px;display:block;">
@@ -133,7 +132,6 @@ function createPlantItem(p) {
 function renderPlantList() {
   const list = document.getElementById('plantList');
   list.innerHTML = '';
-  
   const addFolderBtn = document.createElement('div');
   addFolderBtn.className = 'add-folder-btn';
   addFolderBtn.textContent = '📁 Новая папка';
@@ -144,20 +142,16 @@ function renderPlantList() {
     }
   };
   list.appendChild(addFolderBtn);
-  
   if (folders.length > 0) {
     const foldersSectionHeader = document.createElement('div');
     foldersSectionHeader.className = 'section-header';
     foldersSectionHeader.textContent = '📁 Папки';
     list.appendChild(foldersSectionHeader);
-    
     folders.forEach(folder => {
       const folderPlants = plants.filter(p => p.folderId === folder.id);
       const isExpanded = state.expandedFolders.has(folder.id);
-      
       const folderEl = document.createElement('div');
       folderEl.className = 'folder-container';
-      
       const folderHeader = document.createElement('div');
       folderHeader.className = 'folder-header';
       folderHeader.innerHTML = `
@@ -167,7 +161,6 @@ function renderPlantList() {
         <span class="folder-count">(${folderPlants.length})</span>
         <button class="folder-delete-btn" title="Удалить папку">×</button>
       `;
-      
       folderHeader.onclick = (e) => {
         if (e.target.classList.contains('folder-delete-btn')) {
           e.stopPropagation();
@@ -176,19 +169,15 @@ function renderPlantList() {
           toggleFolder(folder.id);
         }
       };
-      
       folderHeader.oncontextmenu = (e) => {
         e.preventDefault();
         e.stopPropagation();
         showFolderContextMenu(e, folder.id);
       };
-      
       folderEl.appendChild(folderHeader);
-      
       if (isExpanded) {
         const folderContent = document.createElement('div');
         folderContent.className = 'folder-content';
-        
         if (folderPlants.length === 0) {
           const emptyMsg = document.createElement('div');
           emptyMsg.style.cssText = 'font-size:11px;color:#999;padding:8px;text-align:center;grid-column:span 2;';
@@ -199,7 +188,6 @@ function renderPlantList() {
             folderContent.appendChild(createPlantItem(p));
           });
         }
-        
         const addPlantBtn = document.createElement('div');
         addPlantBtn.className = 'add-plant-btn folder-add-btn';
         addPlantBtn.textContent = '➕ Добавить цветок';
@@ -208,32 +196,26 @@ function renderPlantList() {
           openPlantModalInFolder(folder.id);
         };
         folderContent.appendChild(addPlantBtn);
-        
         folderEl.appendChild(folderContent);
       }
-      
       list.appendChild(folderEl);
     });
   }
-  
   const noFolderPlants = plants.filter(p => !p.folderId);
   if (noFolderPlants.length > 0) {
     const plantsSectionHeader = document.createElement('div');
     plantsSectionHeader.className = 'section-header';
     plantsSectionHeader.textContent = '🌸 Отдельные растения';
     list.appendChild(plantsSectionHeader);
-    
     noFolderPlants.forEach(p => {
       list.appendChild(createPlantItem(p));
     });
   }
-  
   const addBtn = document.createElement('div');
   addBtn.className = 'add-plant-btn';
   addBtn.textContent = '➕ Свой цветок';
   addBtn.onclick = openPlantModal;
   list.appendChild(addBtn);
-  
   document.addEventListener('click', () => {
     hideContextMenu();
   });
@@ -241,20 +223,16 @@ function renderPlantList() {
 
 function showFolderContextMenu(e, folderId) {
   hideContextMenu();
-  
   const folder = folders.find(f => f.id === folderId);
   if (!folder) return;
-  
   const menu = document.createElement('div');
   menu.className = 'context-menu';
   menu.style.left = e.pageX + 'px';
   menu.style.top = e.pageY + 'px';
-  
   menu.innerHTML = `
     <div class="context-menu-item" data-action="rename">✏️ Переименовать</div>
     <div class="context-menu-item" data-action="delete">🗑️ Удалить папку</div>
   `;
-  
   menu.onclick = (ev) => {
     const action = ev.target.dataset.action;
     if (action === 'rename') {
@@ -267,7 +245,6 @@ function showFolderContextMenu(e, folderId) {
     }
     hideContextMenu();
   };
-  
   document.body.appendChild(menu);
   currentContextMenu = menu;
 }
@@ -291,7 +268,6 @@ function selectPlant(id) {
     el.classList.toggle('selected', el.dataset.id === id);
   });
   document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('selected'));
-  
   if (state.selectedId) {
     const obj = state.objects.find(o => o.id === state.selectedId);
     if (obj && obj.type === 'bed') {
@@ -306,7 +282,6 @@ function deletePlant(id) {
   const plant = plants.find(p => p.id === id);
   if (!plant) return;
   if (!confirm(`Удалить "${plant.name}"? Все посадки этого типа будут удалены.`)) return;
-
   plants = plants.filter(p => p.id !== id);
   state.objects.forEach(obj => {
     if (obj.plants) {
@@ -322,30 +297,24 @@ function deletePlant(id) {
 function openPlantSettings(plantId) {
   const plant = plants.find(p => p.id === plantId);
   if (!plant) return;
-  
   currentSettingsPlantId = plantId;
-  
   document.getElementById('settingsPlantName').value = plant.name;
   document.getElementById('settingsPlantColor').value = plant.color;
   document.getElementById('settingsPlantShape').value = plant.defaultShape || 'circle';
   document.getElementById('settingsPlantHeight').value = plant.height || 50;
   document.getElementById('settingsPlantFlowerSize').value = plant.flowerSize || 'medium';
   document.getElementById('settingsPlantFlowerCount').value = plant.flowerCount || 'medium';
-  
   const folderSelect = document.getElementById('settingsPlantFolder');
   folderSelect.innerHTML = '<option value="">Без папки</option>';
   folders.forEach(f => {
     folderSelect.innerHTML += `<option value="${f.id}" ${plant.folderId === f.id ? 'selected' : ''}>${f.name}</option>`;
   });
-  
   const startSelect = document.getElementById('settingsBloomStartMonth');
   const endSelect = document.getElementById('settingsBloomEndMonth');
-  
   fillMonthSelect(startSelect, true, plant.bloomStartMonth);
   fillMonthSelect(endSelect, true, plant.bloomEndMonth);
   fillMonthSelect(document.getElementById('settingsBloomStartMonth2'), false, plant.bloomStartMonth);
   fillMonthSelect(document.getElementById('settingsBloomEndMonth2'), false, plant.bloomEndMonth);
-  
   if (plant.bloomStartDate) {
     document.getElementById('settingsBloomStartDay').value = getDayFromStr(plant.bloomStartDate);
   } else {
@@ -356,7 +325,6 @@ function openPlantSettings(plantId) {
   } else {
     document.getElementById('settingsBloomEndDay').value = '';
   }
-  
   if (plant.bloomStartMonth || plant.bloomEndMonth) {
     document.querySelector('input[name="settingsBloomMode"][value="months"]').checked = true;
   } else if (plant.bloomStartDate || plant.bloomEndDate) {
@@ -364,14 +332,10 @@ function openPlantSettings(plantId) {
   } else {
     document.querySelector('input[name="settingsBloomMode"][value="months"]').checked = true;
   }
-  
   toggleSettingsBloomMode();
-  
   const deleteBtn = document.getElementById('settingsDeleteBtn');
   deleteBtn.style.display = plant.custom ? 'block' : 'none';
-  
   document.getElementById('plantSettingsModal').classList.add('show');
-  
   updateShapePreview('settings');
 }
 
@@ -384,13 +348,10 @@ function toggleSettingsBloomMode() {
   const mode = document.querySelector('input[name="settingsBloomMode"]:checked').value;
   document.getElementById('settingsBloomMonthsSection').style.display = mode === 'months' ? 'flex' : 'none';
   document.getElementById('settingsBloomDatesSection').style.display = mode === 'dates' ? 'flex' : 'none';
-  
   const plant = plants.find(p => p.id === currentSettingsPlantId);
   if (!plant) return;
-  
   const startSelect = document.getElementById('settingsBloomStartMonth');
   const endSelect = document.getElementById('settingsBloomEndMonth');
-  
   if (mode === 'months') {
     if (plant.bloomStartDate) {
       plant.bloomStartMonth = getMonthFromStr(plant.bloomStartDate);
@@ -400,7 +361,6 @@ function toggleSettingsBloomMode() {
       plant.bloomEndMonth = getMonthFromStr(plant.bloomEndDate);
       plant.bloomEndDate = null;
     }
-    
     startSelect.value = plant.bloomStartMonth || '';
     updateEndMonthSelect(startSelect, endSelect, true);
     endSelect.value = plant.bloomEndMonth || '';
@@ -413,7 +373,6 @@ function toggleSettingsBloomMode() {
       plant.bloomEndDate = monthToEndDate(plant.bloomEndMonth);
       plant.bloomEndMonth = null;
     }
-    
     if (plant.bloomStartDate) {
       document.getElementById('settingsBloomStartMonth2').value = getMonthFromStr(plant.bloomStartDate);
       document.getElementById('settingsBloomStartDay').value = getDayFromStr(plant.bloomStartDate);
@@ -428,7 +387,6 @@ function toggleSettingsBloomMode() {
 function savePlantSettings() {
   const plant = plants.find(p => p.id === currentSettingsPlantId);
   if (!plant) return;
-  
   const name = document.getElementById('settingsPlantName').value.trim();
   const color = document.getElementById('settingsPlantColor').value;
   const mode = document.querySelector('input[name="settingsBloomMode"]:checked').value;
@@ -437,9 +395,7 @@ function savePlantSettings() {
   const height = parseInt(document.getElementById('settingsPlantHeight').value) || 50;
   const flowerSize = document.getElementById('settingsPlantFlowerSize').value;
   const flowerCount = document.getElementById('settingsPlantFlowerCount').value;
-  
   if (!name) { alert('Введите название'); return; }
-  
   plant.name = name;
   plant.color = color;
   plant.defaultShape = shape;
@@ -447,7 +403,6 @@ function savePlantSettings() {
   plant.height = height;
   plant.flowerSize = flowerSize;
   plant.flowerCount = flowerCount;
-  
   if (mode === 'months') {
     plant.bloomStartMonth = document.getElementById('settingsBloomStartMonth').value ? parseInt(document.getElementById('settingsBloomStartMonth').value) : null;
     plant.bloomEndMonth = document.getElementById('settingsBloomEndMonth').value ? parseInt(document.getElementById('settingsBloomEndMonth').value) : null;
@@ -458,13 +413,11 @@ function savePlantSettings() {
     const sd = document.getElementById('settingsBloomStartDay').value ? parseInt(document.getElementById('settingsBloomStartDay').value) : 1;
     const em = document.getElementById('settingsBloomEndMonth2').value ? parseInt(document.getElementById('settingsBloomEndMonth2').value) : null;
     const ed = document.getElementById('settingsBloomEndDay').value ? parseInt(document.getElementById('settingsBloomEndDay').value) : null;
-    
     plant.bloomStartDate = sm ? makeDateStr(sm, sd) : null;
     plant.bloomEndDate = em ? makeDateStr(em, ed || (DAYS_IN_MONTH[em] || 31)) : null;
     plant.bloomStartMonth = null;
     plant.bloomEndMonth = null;
   }
-  
   saveCustomPlants();
   renderPlantList();
   closePlantSettings();
@@ -477,52 +430,6 @@ function deletePlantFromSettings() {
   closePlantSettings();
 }
 
-function toggleBloomMode() {
-  const mode = document.querySelector('input[name="bloomMode"]:checked').value;
-  document.getElementById('bloomMonthsSection').style.display = mode === 'months' ? 'flex' : 'none';
-  document.getElementById('bloomDatesSection').style.display = mode === 'dates' ? 'flex' : 'none';
-  
-  const obj = state.objects.find(o => o.id === state.selectedId);
-  const planting = obj?.plants?.find(p => p.id === state.selectedPlantingId);
-  if (!planting) return;
-  
-  const bloomStartMonthSelect = document.getElementById('popupBloomStartMonth');
-  const bloomEndMonthSelect = document.getElementById('popupBloomEndMonth');
-  
-  if (mode === 'months') {
-    if (planting.bloomStartDate) {
-      planting.bloomStartMonth = getMonthFromStr(planting.bloomStartDate);
-      planting.bloomStartDate = null;
-    }
-    if (planting.bloomEndDate) {
-      planting.bloomEndMonth = getMonthFromStr(planting.bloomEndDate);
-      planting.bloomEndDate = null;
-    }
-    
-    bloomStartMonthSelect.value = planting.bloomStartMonth || '';
-    updateEndMonthSelect(bloomStartMonthSelect, bloomEndMonthSelect, true);
-    bloomEndMonthSelect.value = planting.bloomEndMonth || '';
-  } else {
-    if (planting.bloomStartMonth) {
-      planting.bloomStartDate = monthToStartDate(planting.bloomStartMonth);
-      planting.bloomStartMonth = null;
-    }
-    if (planting.bloomEndMonth) {
-      planting.bloomEndDate = monthToEndDate(planting.bloomEndMonth);
-      planting.bloomEndMonth = null;
-    }
-    
-    if (planting.bloomStartDate) {
-      document.getElementById('popupBloomStartMonth2').value = getMonthFromStr(planting.bloomStartDate);
-      document.getElementById('popupBloomStartDay').value = getDayFromStr(planting.bloomStartDate);
-    }
-    if (planting.bloomEndDate) {
-      document.getElementById('popupBloomEndMonth2').value = getMonthFromStr(planting.bloomEndDate);
-      document.getElementById('popupBloomEndDay').value = getDayFromStr(planting.bloomEndDate);
-    }
-  }
-}
-
 function toggleNewBloomMode() {
   const mode = document.querySelector('input[name="newBloomMode"]:checked').value;
   document.getElementById('newBloomMonthsSection').style.display = mode === 'months' ? 'flex' : 'none';
@@ -533,31 +440,25 @@ function toggleFilterBloomMode() {
   const mode = document.querySelector('input[name="filterBloomMode"]:checked').value;
   document.getElementById('filterBloomMonthsSection').style.display = mode === 'months' ? 'block' : 'none';
   document.getElementById('filterBloomDatesSection').style.display = mode === 'dates' ? 'block' : 'none';
-  
   const startMonthSelect = document.getElementById('bloomFilterStartMonth');
   const endMonthSelect = document.getElementById('bloomFilterEndMonth');
   const startMonthSelect2 = document.getElementById('bloomFilterStartMonth2');
   const startDayInput = document.getElementById('bloomFilterStartDay');
   const endMonthSelect2 = document.getElementById('bloomFilterEndMonth2');
   const endDayInput = document.getElementById('bloomFilterEndDay');
-  
   if (mode === 'months') {
     const sm = startMonthSelect2.value ? parseInt(startMonthSelect2.value) : null;
     const em = endMonthSelect2.value ? parseInt(endMonthSelect2.value) : null;
-    
     if (sm) startMonthSelect.value = sm;
     if (em) endMonthSelect.value = em;
-    
     startMonthSelect.onchange = () => {
       updateEndMonthSelect(startMonthSelect, endMonthSelect, true);
     };
-    
     startDayInput.value = '';
     endDayInput.value = '';
   } else {
     const sm = startMonthSelect.value ? parseInt(startMonthSelect.value) : null;
     const em = endMonthSelect.value ? parseInt(endMonthSelect.value) : null;
-    
     if (sm) {
       startMonthSelect2.value = sm;
       startDayInput.value = 1;
@@ -581,29 +482,22 @@ function openPlantModal() {
   document.getElementById('newPlantShape').value = 'circle';
   document.getElementById('newPlantName').focus();
   renderColorPresets();
-  
   const folderSelect = document.getElementById('newPlantFolder');
   folderSelect.innerHTML = '<option value="">Без папки</option>';
   folders.forEach(f => {
     folderSelect.innerHTML += `<option value="${f.id}">${f.name}</option>`;
   });
-  
   const startSelect = document.getElementById('newPlantBloomStartMonth');
   const endSelect = document.getElementById('newPlantBloomEndMonth');
-  
   fillMonthSelect(startSelect, true, 5);
   fillMonthSelect(endSelect, true, 9);
-  
   startSelect.onchange = () => {
     updateEndMonthSelect(startSelect, endSelect, true);
   };
-  
   fillMonthSelect(document.getElementById('newPlantBloomStartMonth2'), false, 5);
   fillMonthSelect(document.getElementById('newPlantBloomEndMonth2'), false, 9);
-  
   document.querySelector('input[name="newBloomMode"][value="months"]').checked = true;
   toggleNewBloomMode();
-  
   updateShapePreview('new');
 }
 
@@ -645,10 +539,8 @@ function saveNewPlant() {
   const height = parseInt(document.getElementById('newPlantHeight').value) || 50;
   const flowerSize = document.getElementById('newPlantFlowerSize').value;
   const flowerCount = document.getElementById('newPlantFlowerCount').value;
-  
   if (!name) { alert('Введите название'); return; }
-  
-  const plant = { 
+  const plant = {
     id: 'custom_' + (customPlantCounter++),
     name, color, custom: true,
     defaultShape: shape,
@@ -657,7 +549,6 @@ function saveNewPlant() {
     flowerSize: flowerSize,
     flowerCount: flowerCount
   };
-  
   if (mode === 'months') {
     plant.bloomStartMonth = document.getElementById('newPlantBloomStartMonth').value ? parseInt(document.getElementById('newPlantBloomStartMonth').value) : null;
     plant.bloomEndMonth = document.getElementById('newPlantBloomEndMonth').value ? parseInt(document.getElementById('newPlantBloomEndMonth').value) : null;
@@ -668,13 +559,11 @@ function saveNewPlant() {
     const sd = document.getElementById('newPlantBloomStartDay').value ? parseInt(document.getElementById('newPlantBloomStartDay').value) : 1;
     const em = document.getElementById('newPlantBloomEndMonth2').value ? parseInt(document.getElementById('newPlantBloomEndMonth2').value) : null;
     const ed = document.getElementById('newPlantBloomEndDay').value ? parseInt(document.getElementById('newPlantBloomEndDay').value) : null;
-    
     plant.bloomStartDate = sm ? makeDateStr(sm, sd) : null;
     plant.bloomEndDate = em ? makeDateStr(em, ed || (DAYS_IN_MONTH[em] || 31)) : null;
     plant.bloomStartMonth = null;
     plant.bloomEndMonth = null;
   }
-  
   plants.push(plant);
   saveCustomPlants();
   renderPlantList();
@@ -693,14 +582,11 @@ function openPlantModalInFolder(folderId) {
 }
 
 // ===== ДЕРЕВЬЯ =====
-
 function createTreeItem(t) {
   const el = document.createElement('div');
   el.className = 'tree-item' + (state.selectedTree === t.id ? ' selected' : '');
   el.dataset.id = t.id;
-  
   const shape = t.defaultShape || 'oak';
-  
   el.innerHTML = `
     <button class="tree-settings-btn" title="Настройки вида" data-settings="${t.id}">⚙</button>
     <svg class="tree-shape-icon" viewBox="0 0 16 16" style="width:24px;height:24px;margin:0 auto 4px;display:block;">
@@ -728,7 +614,6 @@ function createTreeItem(t) {
 function renderTreeList() {
   const list = document.getElementById('treeList');
   list.innerHTML = '';
-  
   const addFolderBtn = document.createElement('div');
   addFolderBtn.className = 'add-folder-btn';
   addFolderBtn.textContent = '📁 Новая папка';
@@ -739,20 +624,16 @@ function renderTreeList() {
     }
   };
   list.appendChild(addFolderBtn);
-  
   if (treeFolders.length > 0) {
     const foldersSectionHeader = document.createElement('div');
     foldersSectionHeader.className = 'section-header';
     foldersSectionHeader.textContent = '📁 Папки';
     list.appendChild(foldersSectionHeader);
-    
     treeFolders.forEach(folder => {
       const folderTrees = trees.filter(t => t.folderId === folder.id);
       const isExpanded = state.expandedTreeFolders.has(folder.id);
-      
       const folderEl = document.createElement('div');
       folderEl.className = 'folder-container';
-      
       const folderHeader = document.createElement('div');
       folderHeader.className = 'folder-header';
       folderHeader.innerHTML = `
@@ -762,7 +643,6 @@ function renderTreeList() {
         <span class="folder-count">(${folderTrees.length})</span>
         <button class="folder-delete-btn" title="Удалить папку">×</button>
       `;
-      
       folderHeader.onclick = (e) => {
         if (e.target.classList.contains('folder-delete-btn')) {
           e.stopPropagation();
@@ -771,19 +651,15 @@ function renderTreeList() {
           toggleTreeFolder(folder.id);
         }
       };
-      
       folderHeader.oncontextmenu = (e) => {
         e.preventDefault();
         e.stopPropagation();
         showTreeFolderContextMenu(e, folder.id);
       };
-      
       folderEl.appendChild(folderHeader);
-      
       if (isExpanded) {
         const folderContent = document.createElement('div');
         folderContent.className = 'folder-content';
-        
         if (folderTrees.length === 0) {
           const emptyMsg = document.createElement('div');
           emptyMsg.style.cssText = 'font-size:11px;color:#999;padding:8px;text-align:center;grid-column:span 2;';
@@ -794,7 +670,6 @@ function renderTreeList() {
             folderContent.appendChild(createTreeItem(t));
           });
         }
-        
         const addTreeBtn = document.createElement('div');
         addTreeBtn.className = 'add-tree-btn folder-add-btn';
         addTreeBtn.textContent = '➕ Добавить дерево';
@@ -803,32 +678,26 @@ function renderTreeList() {
           openTreeModalInFolder(folder.id);
         };
         folderContent.appendChild(addTreeBtn);
-        
         folderEl.appendChild(folderContent);
       }
-      
       list.appendChild(folderEl);
     });
   }
-  
   const noFolderTrees = trees.filter(t => !t.folderId);
   if (noFolderTrees.length > 0) {
     const treesSectionHeader = document.createElement('div');
     treesSectionHeader.className = 'section-header';
     treesSectionHeader.textContent = '🌳 Отдельные деревья';
     list.appendChild(treesSectionHeader);
-    
     noFolderTrees.forEach(t => {
       list.appendChild(createTreeItem(t));
     });
   }
-  
   const addBtn = document.createElement('div');
   addBtn.className = 'add-tree-btn';
   addBtn.textContent = '➕ Свое дерево';
   addBtn.onclick = openTreeModal;
   list.appendChild(addBtn);
-  
   document.addEventListener('click', () => {
     hideTreeContextMenu();
   });
@@ -836,20 +705,16 @@ function renderTreeList() {
 
 function showTreeFolderContextMenu(e, folderId) {
   hideTreeContextMenu();
-  
   const folder = treeFolders.find(f => f.id === folderId);
   if (!folder) return;
-  
   const menu = document.createElement('div');
   menu.className = 'context-menu';
   menu.style.left = e.pageX + 'px';
   menu.style.top = e.pageY + 'px';
-  
   menu.innerHTML = `
     <div class="context-menu-item" data-action="rename">✏️ Переименовать</div>
     <div class="context-menu-item" data-action="delete">🗑️ Удалить папку</div>
   `;
-  
   menu.onclick = (ev) => {
     const action = ev.target.dataset.action;
     if (action === 'rename') {
@@ -862,7 +727,6 @@ function showTreeFolderContextMenu(e, folderId) {
     }
     hideTreeContextMenu();
   };
-  
   document.body.appendChild(menu);
   currentTreeContextMenu = menu;
 }
@@ -885,14 +749,12 @@ function selectTree(id) {
     updateHint();
     return;
   }
-  
   state.selectedTree = id;
   state.selectedPlant = null;
   document.querySelectorAll('.tree-item').forEach(el => {
     el.classList.toggle('selected', el.dataset.id === id);
   });
   document.querySelectorAll('.plant-item').forEach(el => el.classList.remove('selected'));
-  
   state.tool = 'tree';
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
   updateHint();
@@ -902,7 +764,6 @@ function deleteTree(id) {
   const tree = trees.find(t => t.id === id);
   if (!tree) return;
   if (!confirm(`Удалить "${tree.name}"? Все посаженные деревья этого типа будут удалены.`)) return;
-
   trees = trees.filter(t => t.id !== id);
   state.objects = state.objects.filter(o => !(o.type === 'tree' && o.treeId === id));
   if (state.selectedTree === id) state.selectedTree = null;
@@ -918,13 +779,11 @@ function openTreeModal() {
   document.getElementById('newTreeShape').value = 'oak';
   document.getElementById('newTreeName').focus();
   renderTreeColorPresets();
-  
   const folderSelect = document.getElementById('newTreeFolder');
   folderSelect.innerHTML = '<option value="">Без папки</option>';
   treeFolders.forEach(f => {
     folderSelect.innerHTML += `<option value="${f.id}">${f.name}</option>`;
   });
-  
   updateTreeShapePreview('new');
 }
 
@@ -953,16 +812,13 @@ function saveNewTree() {
   const color = document.getElementById('newTreeColor').value;
   const shape = document.getElementById('newTreeShape').value;
   const folderId = document.getElementById('newTreeFolder').value ? parseInt(document.getElementById('newTreeFolder').value) : null;
-  
   if (!name) { alert('Введите название'); return; }
-  
-  const tree = { 
+  const tree = {
     id: 'custom_tree_' + (customTreeCounter++),
     name, color, custom: true,
     defaultShape: shape,
     folderId: folderId
   };
-  
   trees.push(tree);
   saveCustomTrees();
   renderTreeList();
@@ -983,24 +839,18 @@ function openTreeModalInFolder(folderId) {
 function openTreeSettings(treeId) {
   const tree = trees.find(t => t.id === treeId);
   if (!tree) return;
-  
   currentTreeSettingsId = treeId;
-  
   document.getElementById('settingsTreeName').value = tree.name;
   document.getElementById('settingsTreeColor').value = tree.color;
   document.getElementById('settingsTreeShape').value = tree.defaultShape || 'oak';
-  
   const folderSelect = document.getElementById('settingsTreeFolder');
   folderSelect.innerHTML = '<option value="">Без папки</option>';
   treeFolders.forEach(f => {
     folderSelect.innerHTML += `<option value="${f.id}" ${tree.folderId === f.id ? 'selected' : ''}>${f.name}</option>`;
   });
-  
   const deleteBtn = document.getElementById('settingsTreeDeleteBtn');
   deleteBtn.style.display = tree.custom ? 'block' : 'none';
-  
   document.getElementById('treeSettingsModal').classList.add('show');
-  
   updateTreeShapePreview('settings');
 }
 
@@ -1012,19 +862,15 @@ function closeTreeSettings() {
 function saveTreeSettings() {
   const tree = trees.find(t => t.id === currentTreeSettingsId);
   if (!tree) return;
-  
   const name = document.getElementById('settingsTreeName').value.trim();
   const color = document.getElementById('settingsTreeColor').value;
   const shape = document.getElementById('settingsTreeShape').value;
   const folderId = document.getElementById('settingsTreeFolder').value ? parseInt(document.getElementById('settingsTreeFolder').value) : null;
-  
   if (!name) { alert('Введите название'); return; }
-  
   tree.name = name;
   tree.color = color;
   tree.defaultShape = shape;
   tree.folderId = folderId;
-  
   saveCustomTrees();
   renderTreeList();
   closeTreeSettings();
@@ -1038,22 +884,18 @@ function deleteTreeFromSettings() {
 }
 
 // ===== КАРТА ЦВЕТЕНИЯ =====
-
 function openBloomMap() {
   document.getElementById('bloomMapModal').classList.add('show');
-  
   const startMonthSelect = document.getElementById('bloomFilterStartMonth');
   const endMonthSelect = document.getElementById('bloomFilterEndMonth');
   const startMonthSelect2 = document.getElementById('bloomFilterStartMonth2');
   const startDayInput = document.getElementById('bloomFilterStartDay');
   const endMonthSelect2 = document.getElementById('bloomFilterEndMonth2');
   const endDayInput = document.getElementById('bloomFilterEndDay');
-  
   fillMonthSelect(startMonthSelect, true);
   fillMonthSelect(endMonthSelect, true);
   fillMonthSelect(startMonthSelect2, false);
   fillMonthSelect(endMonthSelect2, false);
-  
   if (state.bloomFilter) {
     if (state.bloomFilter.start.month) {
       document.querySelector('input[name="filterBloomMode"][value="months"]').checked = true;
@@ -1081,7 +923,6 @@ function openBloomMap() {
     endMonthSelect2.value = '';
     endDayInput.value = '';
   }
-  
   toggleFilterBloomMode();
 }
 
@@ -1097,11 +938,9 @@ function clearBloomFilter() {
 
 function applyBloomFilter() {
   const mode = document.querySelector('input[name="filterBloomMode"]:checked').value;
-  
   if (mode === 'months') {
     const startMonth = document.getElementById('bloomFilterStartMonth').value ? parseInt(document.getElementById('bloomFilterStartMonth').value) : null;
     const endMonth = document.getElementById('bloomFilterEndMonth').value ? parseInt(document.getElementById('bloomFilterEndMonth').value) : null;
-    
     if (!startMonth && !endMonth) {
       state.bloomFilter = null;
     } else {
@@ -1115,10 +954,8 @@ function applyBloomFilter() {
     const sd = document.getElementById('bloomFilterStartDay').value ? parseInt(document.getElementById('bloomFilterStartDay').value) : 1;
     const em = document.getElementById('bloomFilterEndMonth2').value ? parseInt(document.getElementById('bloomFilterEndMonth2').value) : null;
     const ed = document.getElementById('bloomFilterEndDay').value ? parseInt(document.getElementById('bloomFilterEndDay').value) : null;
-    
     const startDate = sm ? makeDateStr(sm, sd) : null;
     const endDate = em ? makeDateStr(em, ed || (DAYS_IN_MONTH[em] || 31)) : null;
-    
     if (!startDate && !endDate) {
       state.bloomFilter = null;
     } else {
@@ -1128,7 +965,6 @@ function applyBloomFilter() {
       };
     }
   }
-  
   closeBloomMap();
   render();
 }

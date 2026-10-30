@@ -1,12 +1,6 @@
-// ===== ИНСТРУМЕНТЫ И ОБЪЕКТЫ =====
-
-const FIGURE_POINTS_LIMIT = 100;
-const DRAG_THRESHOLD = 10; // Порог в пикселях для начала перетаскивания и snap-направляющих
-
 // ===== ОБРАБОТЧИК ГОРЯЧИХ КЛАВИШ =====
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
-  
   if (e.ctrlKey || e.metaKey) {
     if (e.key === 'z' || e.key === 'Z') {
       e.preventDefault();
@@ -22,18 +16,14 @@ function setTool(tool) {
   if (state.drawing && (state.drawing.type === 'poly' || state.drawing.type === 'path')) {
     finishPolyOrPath();
   }
-
   state.tool = tool;
   state.plantingMode = false;
-
   document.querySelectorAll('.tool-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.tool === tool);
   });
   document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
-
   const objBtn = document.querySelector(`.obj-btn[data-obj="${tool}"]`);
   if (objBtn) objBtn.classList.add('active');
-
   state.drawing = null;
   previewLayer.innerHTML = '';
   closePlantPopup();
@@ -44,7 +34,6 @@ function setTool(tool) {
   closeGridPopup();
   updateHint();
   renderPlantingsPanel();
-
   svg.style.cursor = 'default';
 }
 
@@ -64,58 +53,10 @@ function toggleMulchTool() {
   }
 }
 
-function toggleGrid() {
-  state.showGrid = !state.showGrid;
-  const btn = document.getElementById('gridBtn');
-  if (btn) {
-    btn.classList.toggle('active', state.showGrid);
-  }
-  if (state.showGrid) {
-    showGridPopup();
-  } else {
-    closeGridPopup();
-  }
-  render();
-}
-
-function showGridPopup() {
-  const popup = document.getElementById('gridPopup');
-  document.getElementById('gridSize').value = state.gridSize;
-  document.getElementById('gridColor').value = state.gridColor;
-  document.getElementById('gridOpacity').value = state.gridOpacity;
-  
-  const gridBtn = document.getElementById('gridBtn');
-  if (gridBtn) {
-    const rect = gridBtn.getBoundingClientRect();
-    popup.style.left = rect.left + 'px';
-    popup.style.top = (rect.bottom + 5) + 'px';
-  }
-  popup.classList.add('show');
-  
-  document.getElementById('gridSize').onchange = (e) => {
-    state.gridSize = parseFloat(e.target.value) || 1;
-    render();
-  };
-  document.getElementById('gridColor').oninput = (e) => {
-    state.gridColor = e.target.value;
-    render();
-  };
-  document.getElementById('gridOpacity').oninput = (e) => {
-    state.gridOpacity = parseFloat(e.target.value) || 0.5;
-    render();
-  };
-}
-
-function closeGridPopup() {
-  const popup = document.getElementById('gridPopup');
-  if (popup) popup.classList.remove('show');
-}
-
 function selectPlot() {
   if (state.drawing && (state.drawing.type === 'poly' || state.drawing.type === 'path')) {
     finishPolyOrPath();
   }
-
   const plot = state.objects.find(o => o.type === 'plot');
   if (plot) {
     state.selectedId = plot.id;
@@ -134,17 +75,14 @@ function selectPlot() {
 
 function toggleBedSubmenu(e) {
   e.stopPropagation();
-  
   if (state.drawing && (state.drawing.type === 'poly' || state.drawing.type === 'path')) {
     finishPolyOrPath();
   }
-  
   state.bedSubmenuOpen = !state.bedSubmenuOpen;
   const submenu = document.getElementById('bedSubmenu');
   const btn = document.querySelector('.obj-btn[data-obj="bed"]');
   submenu.classList.toggle('open', state.bedSubmenuOpen);
   btn.classList.toggle('open', state.bedSubmenuOpen);
-  
   if (state.bedSubmenuOpen) {
     setBedShape('rect');
   }
@@ -158,14 +96,12 @@ function setBedShape(shape) {
   previewLayer.innerHTML = '';
   closePlantPopup();
   updateFinishButton();
-
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
   document.querySelector('.obj-btn[data-obj="bed"]').classList.add('active');
   document.querySelectorAll('.submenu-item').forEach(b => {
     b.classList.toggle('active', b.dataset.bed === shape);
   });
-
   svg.style.cursor = 'crosshair';
   updateHint();
   renderPlantingsPanel();
@@ -174,10 +110,8 @@ function setBedShape(shape) {
 function setCanvasSizeMeters(wM, hM) {
   wM = Math.max(5, Math.min(500, Math.round(wM)));
   hM = Math.max(5, Math.min(500, Math.round(hM)));
-
   state.canvasWidthM = wM;
   state.canvasHeightM = hM;
-
   const plot = state.objects.find(o => o.type === 'plot');
   if (plot) {
     saveState();
@@ -190,7 +124,6 @@ function setCanvasSizeMeters(wM, hM) {
     plot.morphModified = false;
     plot.originalPointCount = undefined;
   }
-
   resetViewBox();
   updateSvgViewBox();
   updateCanvasInfo();
@@ -200,18 +133,15 @@ function setCanvasSizeMeters(wM, hM) {
 function fitPlotToCanvas() {
   const plot = state.objects.find(o => o.type === 'plot');
   if (!plot) return;
-
   saveState();
   const pad = getCanvasPadding();
   const w = state.canvasWidthM * state.scale;
   const h = state.canvasHeightM * state.scale;
   const newPoints = generateRectPoints(pad, pad, w, h);
-  
   plot.points = newPoints;
   plot.basePoints = newPoints.map(p => p.slice());
   plot.morphModified = false;
   plot.originalPointCount = undefined;
-
   resetViewBox();
   updateSvgViewBox();
   render();
@@ -236,28 +166,22 @@ function updateCanvasInfo() {
 function onWheel(e) {
   e.preventDefault();
   if (!state.viewBox) return;
-
   const pos = getMousePos(e);
   const zoomFactor = e.deltaY > 0 ? 1.15 : 1 / 1.15;
-
   const vb = state.viewBox;
   const newW = vb.w * zoomFactor;
   const newH = vb.h * zoomFactor;
-
   const minSize = 200;
   const maxSize = getSvgInternalSize().w * 4;
   if (newW < minSize || newW > maxSize) return;
-
   const ratioX = (pos.x - vb.x) / vb.w;
   const ratioY = (pos.y - vb.y) / vb.h;
-
   state.viewBox = {
     x: pos.x - ratioX * newW,
     y: pos.y - ratioY * newH,
     w: newW,
     h: newH
   };
-
   svg.setAttribute('viewBox', `${state.viewBox.x} ${state.viewBox.y} ${state.viewBox.w} ${state.viewBox.h}`);
 }
 
@@ -272,28 +196,20 @@ function resetZoomOnDblClick(e) {
 function setMorphPoints(objId, numPoints) {
   const obj = state.objects.find(o => o.id === objId);
   if (!obj || !obj.points) return;
-  
   const currentCount = obj.points.length;
-  
   if (obj.originalPointCount !== undefined) {
     const base = obj.originalPointCount;
-    
     if (numPoints % base !== 0) return;
-    
     const multiplier = numPoints / base;
-    
     if (multiplier < 1) {
       alert(`Нельзя уменьшить ниже исходного количества точек (${base}).`);
       return;
     }
-    
     if (numPoints > FIGURE_POINTS_LIMIT) {
       alert(`Превышен лимит в ${FIGURE_POINTS_LIMIT} точек морфологии.\nМаксимальный множитель: ×${Math.floor(FIGURE_POINTS_LIMIT / base)}`);
       return;
     }
-    
     if (numPoints === currentCount) return;
-    
     saveState();
     if (numPoints > currentCount) {
       const interpMultiplier = numPoints / currentCount;
@@ -305,13 +221,10 @@ function setMorphPoints(objId, numPoints) {
   } else {
     numPoints = Math.max(3, Math.min(64, numPoints));
     if (numPoints === currentCount) return;
-    
     if (!obj.basePoints) {
       obj.basePoints = obj.points.map(p => p.slice());
     }
-    
     const basePoints = obj.basePoints;
-    
     saveState();
     if (numPoints < basePoints.length) {
       obj.points = thinPoints(basePoints, numPoints);
@@ -321,19 +234,16 @@ function setMorphPoints(objId, numPoints) {
       obj.points = basePoints.map(p => p.slice());
     }
   }
-  
   render();
 }
 
 function updateFinishButton() {
   const btn = document.getElementById('finishBtn');
   if (!btn) return;
-  
   if (!state.drawing) {
     btn.style.display = 'none';
     return;
   }
-  
   if (state.drawing.type === 'poly' && state.drawing.points.length >= 3) {
     btn.style.display = 'block';
   } else if (state.drawing.type === 'path' && state.drawing.points.length >= 2) {
@@ -401,7 +311,7 @@ function onMouseDown(e) {
     }
   }
 
-  // ===== ПРИОРИТЕТ 1: Посадка растений (внутри клумбы) =====
+  // ПРИОРИТЕТ 1: Посадка растений
   if (state.tool === 'select' && state.plantingMode && state.selectedId && state.selectedPlant) {
     const obj = state.objects.find(o => o.id === state.selectedId);
     if (obj && obj.type === 'bed' && pointInObject(obj, pos.x, pos.y)) {
@@ -429,7 +339,7 @@ function onMouseDown(e) {
     }
   }
 
-  // ===== ПРИОРИТЕТ 2: Размещение объектов (дерево, водоём, мульча) =====
+  // ПРИОРИТЕТ 2: Размещение объектов
   if (state.tool === 'tree' && state.selectedTree) {
     const tree = trees.find(t => t.id === state.selectedTree);
     if (tree) {
@@ -447,7 +357,6 @@ function onMouseDown(e) {
       return;
     }
   }
-
   if (state.tool === 'water') {
     const d = { name: 'Водоём', fill: '#29b6f6', w: state.scale * 3, h: state.scale * 2 };
     saveState();
@@ -463,7 +372,6 @@ function onMouseDown(e) {
     });
     return;
   }
-
   if (state.tool === 'mulch') {
     const bed = findBedAtPoint(pos.x, pos.y);
     if (bed) {
@@ -486,9 +394,8 @@ function onMouseDown(e) {
     return;
   }
 
-  // ===== ПРИОРИТЕТ 3: Режим select — перетаскивание/клик =====
+  // ПРИОРИТЕТ 3: Режим select — перетаскивание/клик
   if (state.tool === 'select') {
-    // Проверяем посадки растений
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (obj.plants) {
@@ -512,8 +419,6 @@ function onMouseDown(e) {
         }
       }
     }
-
-    // Проверяем мульчу
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (obj.type === 'mulch') {
@@ -531,8 +436,6 @@ function onMouseDown(e) {
         }
       }
     }
-
-    // Проверяем дорожки
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (obj.type === 'path' && obj.points && obj.points.length >= 2) {
@@ -555,8 +458,6 @@ function onMouseDown(e) {
         }
       }
     }
-
-    // Проверяем деревья
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (obj.type === 'tree') {
@@ -575,8 +476,6 @@ function onMouseDown(e) {
         }
       }
     }
-
-    // Проверяем декоративные объекты
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (obj.type === 'decor') {
@@ -595,8 +494,6 @@ function onMouseDown(e) {
         }
       }
     }
-
-    // Проверяем клумбы и участок — с сохранением мульч
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const obj = state.objects[i];
       if (pointInObject(obj, pos.x, pos.y)) {
@@ -604,7 +501,6 @@ function onMouseDown(e) {
           const startMulches = state.objects
             .filter(o => o.type === 'mulch' && o.bedId === obj.id)
             .map(o => ({ id: o.id, x: o.x, y: o.y }));
-          
           state.pendingDrag = {
             type: 'object',
             objId: obj.id,
@@ -622,13 +518,11 @@ function onMouseDown(e) {
         }
       }
     }
-
-    // Ничего не нашли
     state.pendingDrag = null;
     return;
   }
 
-  // ===== ПРИОРИТЕТ 4: Рисование =====
+  // ПРИОРИТЕТ 4: Рисование
   if (state.tool === 'bed') {
     if (state.bedShape === 'rect' || state.bedShape === 'circle') {
       state.drawing = {
@@ -646,7 +540,6 @@ function onMouseDown(e) {
     }
     return;
   }
-
   if (state.tool === 'path') {
     if (!state.drawing) {
       state.drawing = { type: 'path', points: [[pos.x, pos.y]] };
@@ -662,7 +555,6 @@ function onMouseDown(e) {
 function onMouseMove(e) {
   const pos = getMousePos(e);
 
-  // Обработка потенциального перетаскивания в режиме select
   if (state.pendingDrag && state.tool === 'select') {
     const dx = pos.x - state.pendingDrag.startX;
     const dy = pos.y - state.pendingDrag.startY;
@@ -673,7 +565,7 @@ function onMouseMove(e) {
     }
     
     if (!state.pendingDrag.hasMoved) {
-      saveState(); // Сохраняем состояние ДО начала перемещения
+      saveState();
       state.pendingDrag.hasMoved = true;
       state.dragging = { ...state.pendingDrag };
       state.pendingDrag = null;
@@ -685,8 +577,12 @@ function onMouseMove(e) {
       if (obj && obj.plants) {
         const pl = obj.plants.find(p => p.id === d.plantingId);
         if (pl) {
-          pl.x = pos.x - d.offsetX;
-          pl.y = pos.y - d.offsetY;
+          const newX = pos.x - d.offsetX;
+          const newY = pos.y - d.offsetY;
+          if (pointInObject(obj, newX, newY)) {
+            pl.x = newX;
+            pl.y = newY;
+          }
           render();
         }
       }
@@ -706,24 +602,19 @@ function onMouseMove(e) {
           obj.x = d.startPos.x + moveDx;
           obj.y = d.startPos.y + moveDy;
         } else if (obj.points && d.startPoints && (obj.type === 'bed' || obj.type === 'plot')) {
-          // ===== SNAP + ЗАПРЕТ НАЛОЖЕНИЯ ДЛЯ КЛУМБ =====
           let newPoints = d.startPoints.map(p => [p[0] + moveDx, p[1] + moveDy]);
           const movingBBox = getPolygonBBox(newPoints);
-          
           let bestSnapDx = 0, bestSnapDy = 0;
           let hasSnapX = false, hasSnapY = false;
           let activeGuides = [];
-
           state.objects.forEach(other => {
             if (other.id === obj.id) return;
-            if (other.type !== 'bed' && other.type !== 'plot') return;
+            if (other.type !== 'bed') return;
             if (!other.points || other.points.length < 3) return;
-            
             const otherBBox = getPolygonBBox(other.points);
             const guides = computeSnapGuides(movingBBox, otherBBox);
             const vGuide = guides.find(g => g.type === 'v');
             const hGuide = guides.find(g => g.type === 'h');
-            
             if (vGuide && (!hasSnapX || Math.abs(vGuide.offset) < Math.abs(bestSnapDx))) {
               bestSnapDx = vGuide.offset;
               hasSnapX = true;
@@ -734,15 +625,12 @@ function onMouseMove(e) {
             }
             activeGuides = activeGuides.concat(guides);
           });
-          
           let finalDx = moveDx;
           let finalDy = moveDy;
-          
           if (hasSnapX || hasSnapY) {
             finalDx += hasSnapX ? bestSnapDx : 0;
             finalDy += hasSnapY ? bestSnapDy : 0;
             newPoints = d.startPoints.map(p => [p[0] + finalDx, p[1] + finalDy]);
-            
             const filteredGuides = activeGuides.filter(g => 
               (g.type === 'v' && hasSnapX && Math.abs(g.offset - bestSnapDx) < 0.5) ||
               (g.type === 'h' && hasSnapY && Math.abs(g.offset - bestSnapDy) < 0.5)
@@ -751,17 +639,15 @@ function onMouseMove(e) {
           } else {
             clearSnapGuides();
           }
-          
           let hasIntersection = false;
           state.objects.forEach(other => {
             if (other.id === obj.id) return;
-            if (other.type !== 'bed' && other.type !== 'plot') return;
+            if (other.type !== 'bed') return;
             if (!other.points || other.points.length < 3) return;
             if (polygonsIntersect(newPoints, other.points)) {
               hasIntersection = true;
             }
           });
-          
           if (!hasIntersection) {
             obj.points = newPoints;
             if (obj.basePoints && d.startBasePoints) {
@@ -814,8 +700,12 @@ function onMouseMove(e) {
       if (obj && obj.plants) {
         const pl = obj.plants.find(p => p.id === d.plantingId);
         if (pl) {
-          pl.x = pos.x - d.offsetX;
-          pl.y = pos.y - d.offsetY;
+          const newX = pos.x - d.offsetX;
+          const newY = pos.y - d.offsetY;
+          if (pointInObject(obj, newX, newY)) {
+            pl.x = newX;
+            pl.y = newY;
+          }
           render();
         }
       }
@@ -824,14 +714,11 @@ function onMouseMove(e) {
       if (obj) {
         const dx = pos.x - d.startX;
         const dy = pos.y - d.startY;
-
         if (obj.type === 'plot') {
           const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
           const bbox = d.startBBox;
-          
           let newX = bbox.x + dx;
           let newY = bbox.y + dy;
-
           if (bbox.w <= vb.w) {
             if (newX < vb.x) newX = vb.x;
             if (newX + bbox.w > vb.x + vb.w) newX = vb.x + vb.w - bbox.w;
@@ -841,7 +728,6 @@ function onMouseMove(e) {
             if (newX > maxX) newX = maxX;
             if (newX < minX) newX = minX;
           }
-
           if (bbox.h <= vb.h) {
             if (newY < vb.y) newY = vb.y;
             if (newY + bbox.h > vb.y + vb.h) newY = vb.y + vb.h - bbox.h;
@@ -851,10 +737,8 @@ function onMouseMove(e) {
             if (newY > maxY) newY = maxY;
             if (newY < minY) newY = minY;
           }
-
           const clampDx = newX - bbox.x;
           const clampDy = newY - bbox.y;
-
           obj.points = d.startPoints.map(p => [p[0] + clampDx, p[1] + clampDy]);
           if (obj.basePoints && d.startBasePoints) {
             obj.basePoints = d.startBasePoints.map(p => [p[0] + clampDx, p[1] + clampDy]);
@@ -885,24 +769,19 @@ function onMouseMove(e) {
           obj.x = d.startPos.x + dx;
           obj.y = d.startPos.y + dy;
         } else if (obj.points && d.startPoints && (obj.type === 'bed' || obj.type === 'plot')) {
-          // ===== SNAP + ЗАПРЕТ НАЛОЖЕНИЯ ДЛЯ КЛУМБ (дублируем логику для активного dragging) =====
           let newPoints = d.startPoints.map(p => [p[0] + dx, p[1] + dy]);
           const movingBBox = getPolygonBBox(newPoints);
-          
           let bestSnapDx = 0, bestSnapDy = 0;
           let hasSnapX = false, hasSnapY = false;
           let activeGuides = [];
-
           state.objects.forEach(other => {
             if (other.id === obj.id) return;
-            if (other.type !== 'bed' && other.type !== 'plot') return;
+            if (other.type !== 'bed') return;
             if (!other.points || other.points.length < 3) return;
-            
             const otherBBox = getPolygonBBox(other.points);
             const guides = computeSnapGuides(movingBBox, otherBBox);
             const vGuide = guides.find(g => g.type === 'v');
             const hGuide = guides.find(g => g.type === 'h');
-            
             if (vGuide && (!hasSnapX || Math.abs(vGuide.offset) < Math.abs(bestSnapDx))) {
               bestSnapDx = vGuide.offset;
               hasSnapX = true;
@@ -913,15 +792,12 @@ function onMouseMove(e) {
             }
             activeGuides = activeGuides.concat(guides);
           });
-          
           let finalDx = dx;
           let finalDy = dy;
-          
           if (hasSnapX || hasSnapY) {
             finalDx += hasSnapX ? bestSnapDx : 0;
             finalDy += hasSnapY ? bestSnapDy : 0;
             newPoints = d.startPoints.map(p => [p[0] + finalDx, p[1] + finalDy]);
-            
             const filteredGuides = activeGuides.filter(g => 
               (g.type === 'v' && hasSnapX && Math.abs(g.offset - bestSnapDx) < 0.5) ||
               (g.type === 'h' && hasSnapY && Math.abs(g.offset - bestSnapDy) < 0.5)
@@ -930,17 +806,15 @@ function onMouseMove(e) {
           } else {
             clearSnapGuides();
           }
-          
           let hasIntersection = false;
           state.objects.forEach(other => {
             if (other.id === obj.id) return;
-            if (other.type !== 'bed' && other.type !== 'plot') return;
+            if (other.type !== 'bed') return;
             if (!other.points || other.points.length < 3) return;
             if (polygonsIntersect(newPoints, other.points)) {
               hasIntersection = true;
             }
           });
-          
           if (!hasIntersection) {
             obj.points = newPoints;
             if (obj.basePoints && d.startBasePoints) {
@@ -983,54 +857,52 @@ function onMouseMove(e) {
         render();
       }
     } else if (d.type === 'resize') {
+      if (!d.saved) {
+        saveState();
+        d.saved = true;
+      }
       const obj = state.objects.find(o => o.id === state.selectedId);
       if (obj) {
         let newBBox = computeNewBBox(d.startBBox, d.handle, pos.x - d.startX, pos.y - d.startY);
-        
         if (obj.type === 'plot') {
           const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
-          
           newBBox.w = Math.min(newBBox.w, vb.w);
           newBBox.h = Math.min(newBBox.h, vb.h);
-          
           if (newBBox.x < vb.x) newBBox.x = vb.x;
           if (newBBox.y < vb.y) newBBox.y = vb.y;
           if (newBBox.x + newBBox.w > vb.x + vb.w) newBBox.x = vb.x + vb.w - newBBox.w;
           if (newBBox.y + newBBox.h > vb.y + vb.h) newBBox.y = vb.y + vb.h - newBBox.h;
         }
-        
         resizeObjToBBox(obj, newBBox);
         render();
       }
     } else if (d.type === 'morph') {
+      if (!d.saved) {
+        saveState();
+        d.saved = true;
+      }
       const obj = state.objects.find(o => o.id === state.selectedId);
       if (obj && obj.points) {
         let targetX = pos.x;
         let targetY = pos.y;
-        
         if (obj.type === 'plot') {
           const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
           targetX = Math.max(vb.x, Math.min(pos.x, vb.x + vb.w));
           targetY = Math.max(vb.y, Math.min(pos.y, vb.y + vb.h));
         }
-
         obj.points[d.idx] = [targetX, targetY];
-        
         if (!obj.basePoints) {
           obj.basePoints = obj.points.map(p => p.slice());
         }
-        
         if (obj.basePoints.length === obj.points.length) {
           obj.basePoints[d.idx] = [targetX, targetY];
         } else {
           obj.basePoints = obj.points.map(p => p.slice());
         }
-        
         obj.morphModified = true;
         if (!obj.originalPointCount) {
           obj.originalPointCount = obj.basePoints.length;
         }
-        
         render();
       }
     }
@@ -1038,7 +910,6 @@ function onMouseMove(e) {
   }
 
   if (!state.drawing) return;
-
   if ((state.drawing.type === 'rect' || state.drawing.type === 'circle') && state.drawing.x1 !== undefined) {
     state.drawing.x2 = snapToGrid(pos.x);
     state.drawing.y2 = snapToGrid(pos.y);
@@ -1050,20 +921,21 @@ function onMouseMove(e) {
 
 function onMouseUp(e) {
   const pos = getMousePos(e);
-  
-  // Если было потенциальное перетаскивание, но не сдвинулись — обрабатываем как клик
   if (state.pendingDrag && state.tool === 'select') {
     const d = state.pendingDrag;
     state.pendingDrag = null;
     clearSnapGuides();
     svg.style.cursor = 'default';
-    
     if (d.type === 'planting') {
       const obj = state.objects.find(o => o.id === d.objId);
       if (obj && obj.plants) {
         const pl = obj.plants.find(p => p.id === d.plantingId);
         if (pl) {
-          showPlantPopup(pl, obj);
+          state.selectedId = obj.id;
+          state.selectedPlantingId = pl.id;
+          state.plantingMode = true;
+          render();
+          showPlantPopup(pl, obj); // Вызов модального окна настроек цветка
           return;
         }
       }
@@ -1096,17 +968,16 @@ function onMouseUp(e) {
       }
     }
   }
-  
   state.pendingDrag = null;
   clearSnapGuides();
   svg.style.cursor = 'default';
-
   if (state.dragging) {
     state.dragging = null;
+    clearSnapGuides();
+    render();
     return;
   }
   if (!state.drawing) return;
-
   if (state.tool === 'bed') {
     if (state.drawing.type === 'rect' || state.drawing.type === 'circle') {
       if (state.drawing.x2 === undefined) { state.drawing = null; return; }
@@ -1141,7 +1012,6 @@ function onMouseUp(e) {
 
 function onDblClick(e) {
   resetZoomOnDblClick(e);
-
   if (state.selectedId && state.tool === 'select') {
     const obj = state.objects.find(o => o.id === state.selectedId);
     if (obj && obj.points && obj.type !== 'path') {
@@ -1149,7 +1019,6 @@ function onDblClick(e) {
         alert(`Достигнут лимит в ${FIGURE_POINTS_LIMIT} точек морфологии.`);
         return;
       }
-      
       const pos = getMousePos(e);
       let minDist = Infinity, bestIdx = -1, bestPoint = null;
       for (let i = 0; i < obj.points.length; i++) {
@@ -1181,7 +1050,6 @@ function onDblClick(e) {
       }
     }
   }
-
   if (state.drawing && (state.drawing.type === 'poly' || state.drawing.type === 'path')) {
     finishPolyOrPath();
   }
@@ -1215,6 +1083,7 @@ function onKeyDown(e) {
     state.dragging = null;
     clearSnapGuides();
     svg.style.cursor = 'default';
+    render();
   }
   if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedPlantingId) {
     deletePlanting(state.selectedPlantingId);
@@ -1232,18 +1101,14 @@ function finishPolyOrPath() {
     updateFinishButton();
     return;
   }
-  
   const minPoints = state.drawing.type === 'path' ? 2 : 3;
-  
   if (state.drawing.points.length < minPoints) {
     state.drawing = null;
     previewLayer.innerHTML = '';
     updateFinishButton();
     return;
   }
-  
   saveState();
-  
   if (state.drawing.type === 'poly') {
     const points = state.drawing.points;
     addObject({
@@ -1264,7 +1129,6 @@ function finishPolyOrPath() {
       densityMultiplier: 1.0
     });
   }
-  
   state.drawing = null;
   previewLayer.innerHTML = '';
   updateFinishButton();
@@ -1299,6 +1163,17 @@ function deletePlanting(plantingId) {
   if (obj && obj.plants) {
     obj.plants = obj.plants.filter(p => p.id !== plantingId);
     if (state.selectedPlantingId === plantingId) state.selectedPlantingId = null;
+    render();
+  }
+}
+
+function clearPlantings() {
+  saveState();
+  const obj = state.objects.find(o => o.id === state.selectedId);
+  if (obj && obj.plants) {
+    if (!confirm('Удалить все посадки из этой клумбы?')) return;
+    obj.plants = [];
+    state.selectedPlantingId = null;
     render();
   }
 }

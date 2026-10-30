@@ -1,4 +1,4 @@
-// ===== СОХРАНЕНИЕ / ЗАГРУЗКА ПРОЕКТА =====
+// ===== СОХРАНЕНИЕ / ЗАГРУЗКА =====
 
 function saveProject() {
   const data = {
@@ -13,7 +13,6 @@ function saveProject() {
     bloomFilter: state.bloomFilter,
     version: 7,
   };
-  
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -21,7 +20,6 @@ function saveProject() {
   a.download = 'garden-project.json';
   a.click();
   URL.revokeObjectURL(url);
-  
   localStorage.setItem('gardenProject', JSON.stringify(data));
   alert('✅ Проект сохранён!');
 }
@@ -33,28 +31,22 @@ function loadProject() {
   input.onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const raw = JSON.parse(ev.target.result);
-        
         if (Array.isArray(raw)) {
           migrateOldProject(raw);
         } else {
           state.objects = raw.objects || [];
           state.nextId = raw.nextId || 1;
           state.nextPlantingId = raw.nextPlantingId || 1;
-          
           if (raw.canvasWidthM) state.canvasWidthM = raw.canvasWidthM;
           if (raw.canvasHeightM) state.canvasHeightM = raw.canvasHeightM;
           if (raw.scale) state.scale = raw.scale;
-          
           if (!state.objects.find(o => o.type === 'plot')) {
             createDefaultPlot();
           }
-          
-          // Миграция: если у посадки нет своих дат — копируем из вида
           state.objects.forEach(o => {
             if (o.plants) {
               o.plants.forEach(pl => {
@@ -62,25 +54,22 @@ function loadProject() {
                 if (!pl.r) pl.r = state.scale * 0.4;
                 if (pl.bloomStartMonth === undefined && pl.bloomStartDate === undefined) {
                   const plant = plants.find(p => p.id === pl.plantId);
-                  if (plant) {
-                    copyBloomDataFromPlant(plant, pl);
-                  }
+                  if (plant) copyBloomDataFromPlant(plant, pl);
                 }
               });
             }
           });
-          
           if (raw.plants) {
             plants = [...DEFAULT_PLANTS, ...raw.plants];
             saveCustomPlants();
           }
         }
-        
         state.selectedId = null;
         state.selectedPlantingId = null;
         updateSvgViewBox();
         updateCanvasInfo();
         renderPlantList();
+        renderTreeList(); // <--- Добавлено для обновления деревьев при загрузке
         render();
       } catch (err) {
         alert('❌ Ошибка: ' + err.message);
@@ -103,7 +92,6 @@ function migrateObjToBed(o) {
   }
   o.type = 'bed';
   if (!o.plants) o.plants = [];
-  
   if (o._oldPlant) {
     let cx, cy;
     if (o.points.length > 0) {
@@ -127,7 +115,6 @@ function migrateOldProject(objects) {
   state.nextId = 1;
   state.nextPlantingId = 1;
   createDefaultPlot();
-  
   objects.forEach(o => {
     const newObj = { ...o };
     if (o.plant && o.type !== 'path' && o.type !== 'tree') {
@@ -155,7 +142,6 @@ function createDefaultPlot() {
   const plot = {
     id: state.nextId++,
     type: 'plot',
-    // Участок со сдвигом на величину отступа — подписи сетки не обрезаются
     points: generateRectPoints(pad, pad, w, h),
     fill: '#c8e6a0',
     name: 'Участок',
@@ -165,11 +151,9 @@ function createDefaultPlot() {
 
 function clearAll() {
   if (!confirm('Удалить все объекты? Участок будет восстановлен.\n\nОчистить также сохранение в браузере?')) {
-    // Если пользователь нажал "Отмена" — спрашиваем про только объекты
     if (!confirm('Тогда удалить только текущие объекты (без очистки сохранения)?')) {
       return;
     }
-    // Очищаем только объекты, сохранение остаётся
     state.nextId = 1;
     state.nextPlantingId = 1;
     state.objects = [];
@@ -181,8 +165,6 @@ function clearAll() {
     render();
     return;
   }
-  
-  // Полная очистка: объекты + localStorage
   state.nextId = 1;
   state.nextPlantingId = 1;
   state.objects = [];
@@ -201,16 +183,13 @@ function exportPNG() {
   const size = getSvgInternalSize();
   clone.setAttribute('width', size.w);
   clone.setAttribute('height', size.h);
-  
   const prev = clone.querySelector('#preview');
   const hnd = clone.querySelector('#handles');
   if (prev) prev.innerHTML = '';
   if (hnd) hnd.innerHTML = '';
-  
   const xml = new XMLSerializer().serializeToString(clone);
   const svg64 = btoa(unescape(encodeURIComponent(xml)));
   const img = new Image();
-  
   img.onload = () => {
     const canvas = document.createElement('canvas');
     canvas.width = size.w;

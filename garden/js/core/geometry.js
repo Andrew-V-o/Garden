@@ -287,3 +287,81 @@ function interpolateToCount(points, targetCount) {
   
   return redistributePointsAlongPolygon(points, targetCount);
 }
+
+// ===== ПРОВЕРКА ПЕРЕСЕЧЕНИЯ ПОЛИГОНОВ =====
+
+function segmentsIntersect(a, b, c, d) {
+  const denom = (b[0] - a[0]) * (d[1] - c[1]) - (b[1] - a[1]) * (d[0] - c[0]);
+  if (denom === 0) return false;
+  const t = ((c[0] - a[0]) * (d[1] - c[1]) - (c[1] - a[1]) * (d[0] - c[0])) / denom;
+  const u = -((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / denom;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+}
+
+function polygonsIntersect(poly1, poly2) {
+  // Проверяем, есть ли точка одного полигона внутри другого
+  for (let i = 0; i < poly1.length; i++) {
+    if (pointInPolygon(poly1[i][0], poly1[i][1], poly2)) return true;
+  }
+  for (let i = 0; i < poly2.length; i++) {
+    if (pointInPolygon(poly2[i][0], poly2[i][1], poly1)) return true;
+  }
+  // Проверяем пересечение рёбер (на случай крестообразного пересечения)
+  for (let i = 0; i < poly1.length; i++) {
+    const a1 = poly1[i];
+    const a2 = poly1[(i + 1) % poly1.length];
+    for (let j = 0; j < poly2.length; j++) {
+      const b1 = poly2[j];
+      const b2 = poly2[(j + 1) % poly2.length];
+      if (segmentsIntersect(a1, a2, b1, b2)) return true;
+    }
+  }
+  return false;
+}
+
+function getPolygonBBox(points) {
+  const xs = points.map(p => p[0]);
+  const ys = points.map(p => p[1]);
+  return {
+    left: Math.min(...xs),
+    right: Math.max(...xs),
+    top: Math.min(...ys),
+    bottom: Math.max(...ys)
+  };
+}
+
+// ===== SNAP-НАПРАВЛЯЮЩИЕ =====
+
+const SNAP_THRESHOLD = 10;
+
+function computeSnapGuides(movingBBox, otherBBox) {
+  const guides = [];
+  const dx = {
+    leftLeft: Math.abs(movingBBox.left - otherBBox.left),
+    rightRight: Math.abs(movingBBox.right - otherBBox.right),
+    leftRight: Math.abs(movingBBox.left - otherBBox.right),
+    rightLeft: Math.abs(movingBBox.right - otherBBox.left),
+    centerX: Math.abs((movingBBox.left + movingBBox.right) / 2 - (otherBBox.left + otherBBox.right) / 2)
+  };
+  const dy = {
+    topTop: Math.abs(movingBBox.top - otherBBox.top),
+    bottomBottom: Math.abs(movingBBox.bottom - otherBBox.bottom),
+    topBottom: Math.abs(movingBBox.top - otherBBox.bottom),
+    bottomTop: Math.abs(movingBBox.bottom - otherBBox.top),
+    centerY: Math.abs((movingBBox.top + movingBBox.bottom) / 2 - (otherBBox.top + otherBBox.bottom) / 2)
+  };
+  
+  if (dx.leftLeft < SNAP_THRESHOLD) guides.push({ type: 'v', x: otherBBox.left, offset: otherBBox.left - movingBBox.left });
+  if (dx.rightRight < SNAP_THRESHOLD) guides.push({ type: 'v', x: otherBBox.right, offset: otherBBox.right - movingBBox.right });
+  if (dx.leftRight < SNAP_THRESHOLD) guides.push({ type: 'v', x: otherBBox.right, offset: otherBBox.right - movingBBox.left });
+  if (dx.rightLeft < SNAP_THRESHOLD) guides.push({ type: 'v', x: otherBBox.left, offset: otherBBox.left - movingBBox.right });
+  if (dx.centerX < SNAP_THRESHOLD) guides.push({ type: 'v', x: (otherBBox.left + otherBBox.right) / 2, offset: (otherBBox.left + otherBBox.right) / 2 - (movingBBox.left + movingBBox.right) / 2 });
+  
+  if (dy.topTop < SNAP_THRESHOLD) guides.push({ type: 'h', y: otherBBox.top, offset: otherBBox.top - movingBBox.top });
+  if (dy.bottomBottom < SNAP_THRESHOLD) guides.push({ type: 'h', y: otherBBox.bottom, offset: otherBBox.bottom - movingBBox.bottom });
+  if (dy.topBottom < SNAP_THRESHOLD) guides.push({ type: 'h', y: otherBBox.bottom, offset: otherBBox.bottom - movingBBox.top });
+  if (dy.bottomTop < SNAP_THRESHOLD) guides.push({ type: 'h', y: otherBBox.top, offset: otherBBox.top - movingBBox.bottom });
+  if (dy.centerY < SNAP_THRESHOLD) guides.push({ type: 'h', y: (otherBBox.top + otherBBox.bottom) / 2, offset: (otherBBox.top + otherBBox.bottom) / 2 - (movingBBox.top + movingBBox.bottom) / 2 });
+  
+  return guides;
+}

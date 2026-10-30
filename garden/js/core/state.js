@@ -1,5 +1,4 @@
 // ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
-
 let plants = [...DEFAULT_PLANTS];
 let trees = [...DEFAULT_TREES];
 let folders = [];
@@ -41,12 +40,17 @@ const state = {
   // История undo/redo
   history: [],
   historyIndex: -1,
+  // ↓↓↓ ДОБАВИТЬ ЭТИ ДВА ПОЛЯ ↓↓↓
+  terrainBlocks: {
+    gridSize: 3,
+    blocks: []
+  },
+  viewMode: '2d' // '2d' или '3d'
 };
 
 let svg, objectsLayer, handlesLayer, previewLayer, canvasWrap, plotLayer;
 
 // ===== БАЗОВЫЕ ФУНКЦИИ =====
-
 function initDomRefs() {
   svg = document.getElementById('canvas');
   objectsLayer = document.getElementById('objects');
@@ -76,17 +80,14 @@ function fitCanvasToScreen() {
   const wrapRect = canvasWrap.getBoundingClientRect();
   const availW = wrapRect.width - 20;
   const availH = wrapRect.height - 20;
-
   const maxWM = Math.floor(availW / state.scale) - CANVAS_PAD_M * 2;
   const maxHM = Math.floor(availH / state.scale) - CANVAS_PAD_M * 2;
-
   const sizeM = Math.max(10, Math.min(maxWM, maxHM));
   state.canvasWidthM = sizeM;
   state.canvasHeightM = sizeM;
 }
 
 // ===== УТИЛИТЫ ДАТ =====
-
 function makeDateStr(month, day) {
   if (!month) return null;
   const d = Math.max(1, Math.min(day || 1, DAYS_IN_MONTH[month] || 31));
@@ -123,66 +124,44 @@ function monthToEndDate(month) {
 function isPlantBlooming(bloomObj, filter) {
   if (!filter) return true;
   if (!bloomObj) return false;
-  
   const hasMonths = bloomObj.bloomStartMonth && bloomObj.bloomEndMonth;
   const hasDates = bloomObj.bloomStartDate && bloomObj.bloomEndDate;
   if (!hasMonths && !hasDates) return false;
-  
   const filterByMonths = filter.start.month && !filter.start.date;
   const filterByDates = filter.start.date && !filter.start.month;
-  
   if (filterByMonths && hasMonths) {
     const fStart = filter.start.month;
     const fEnd = filter.end.month || fStart;
     const pStart = bloomObj.bloomStartMonth;
     const pEnd = bloomObj.bloomEndMonth;
-    
-    if (fStart <= fEnd) {
-      return pStart <= fEnd && pEnd >= fStart;
-    } else {
-      return pStart >= fStart || pEnd <= fEnd;
-    }
+    if (fStart <= fEnd) return pStart <= fEnd && pEnd >= fStart;
+    else return pStart >= fStart || pEnd <= fEnd;
   }
-  
   if (filterByDates && hasDates) {
     const fStart = filter.start.date;
     const fEnd = filter.end.date || fStart;
     const pStart = bloomObj.bloomStartDate;
     const pEnd = bloomObj.bloomEndDate;
-    
     return compareDates(pStart, fEnd) <= 0 && compareDates(pEnd, fStart) >= 0;
   }
-  
   if (filterByMonths && hasDates) {
     const fStart = filter.start.month;
     const fEnd = filter.end.month || fStart;
     const pStartMonth = getMonthFromStr(bloomObj.bloomStartDate);
     const pEndMonth = getMonthFromStr(bloomObj.bloomEndDate);
-    
     if (!pStartMonth || !pEndMonth) return false;
-    
-    if (fStart <= fEnd) {
-      return pStartMonth <= fEnd && pEndMonth >= fStart;
-    } else {
-      return pStartMonth >= fStart || pEndMonth <= fEnd;
-    }
+    if (fStart <= fEnd) return pStartMonth <= fEnd && pEndMonth >= fStart;
+    else return pStartMonth >= fStart || pEndMonth <= fEnd;
   }
-  
   if (filterByDates && hasMonths) {
     const fStartMonth = getMonthFromStr(filter.start.date);
     const fEndMonth = getMonthFromStr(filter.end.date || filter.start.date);
     const pStart = bloomObj.bloomStartMonth;
     const pEnd = bloomObj.bloomEndMonth;
-    
     if (!fStartMonth || !fEndMonth) return false;
-    
-    if (fStartMonth <= fEndMonth) {
-      return pStart <= fEndMonth && pEnd >= fStartMonth;
-    } else {
-      return pStart >= fStartMonth || pEnd <= fEndMonth;
-    }
+    if (fStartMonth <= fEndMonth) return pStart <= fEndMonth && pEnd >= fStartMonth;
+    else return pStart >= fStartMonth || pEnd <= fEndMonth;
   }
-  
   return false;
 }
 

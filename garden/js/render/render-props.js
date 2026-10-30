@@ -75,7 +75,16 @@ function renderPlantingsPanel() {
         deletePlanting(parseInt(e.target.dataset.del));
         return;
       }
-      state.selectedPlantingId = parseInt(row.dataset.pid);
+      const pid = parseInt(row.dataset.pid);
+      state.selectedPlantingId = pid;
+      
+      // ← Добавлен вызов popup при клике по строке в правой панели
+      const currentObj = state.objects.find(o => o.id === state.selectedId);
+      const planting = currentObj?.plants?.find(p => p.id === pid);
+      if (planting && currentObj) {
+        showPlantPopup(planting, currentObj);
+      }
+      
       render();
     };
   });

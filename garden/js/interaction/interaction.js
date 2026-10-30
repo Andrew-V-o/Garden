@@ -1,11 +1,20 @@
 // ===== ОБРАБОТЧИК ГОРЯЧИХ КЛАВИШ =====
 document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  
   if (e.ctrlKey || e.metaKey) {
-    if (e.key === 'z' || e.key === 'Z') {
+    // ★ ИСПРАВЛЕНО: используем e.code вместо e.key
+    // e.code возвращает физическую клавишу (всегда 'KeyZ'), 
+    // а e.key зависит от раскладки ('z' на английской, 'я' на русской)
+    if (e.code === 'KeyZ') {
       e.preventDefault();
-      undo();
-    } else if (e.key === 'y' || e.key === 'Y') {
+      if (e.shiftKey) {
+        // Ctrl+Shift+Z = Redo (альтернатива Ctrl+Y)
+        redo();
+      } else {
+        undo();
+      }
+    } else if (e.code === 'KeyY') {
       e.preventDefault();
       redo();
     }
@@ -921,11 +930,14 @@ function onMouseMove(e) {
 
 function onMouseUp(e) {
   const pos = getMousePos(e);
+  
+  // Если было потенциальное перетаскивание, но не сдвинулись — обрабатываем как клик
   if (state.pendingDrag && state.tool === 'select') {
     const d = state.pendingDrag;
     state.pendingDrag = null;
     clearSnapGuides();
     svg.style.cursor = 'default';
+    
     if (d.type === 'planting') {
       const obj = state.objects.find(o => o.id === d.objId);
       if (obj && obj.plants) {
@@ -935,7 +947,7 @@ function onMouseUp(e) {
           state.selectedPlantingId = pl.id;
           state.plantingMode = true;
           render();
-          showPlantPopup(pl, obj); // Вызов модального окна настроек цветка
+          showPlantPopup(pl, obj);
           return;
         }
       }
@@ -968,16 +980,22 @@ function onMouseUp(e) {
       }
     }
   }
+  
   state.pendingDrag = null;
   clearSnapGuides();
   svg.style.cursor = 'default';
+
+  // ★ ИСПРАВЛЕНИЕ: сохраняем состояние ПОСЛЕ завершения перемещения
   if (state.dragging) {
+    saveState(); // ← ДОБАВЛЕНО
     state.dragging = null;
     clearSnapGuides();
     render();
     return;
   }
+  
   if (!state.drawing) return;
+
   if (state.tool === 'bed') {
     if (state.drawing.type === 'rect' || state.drawing.type === 'circle') {
       if (state.drawing.x2 === undefined) { state.drawing = null; return; }

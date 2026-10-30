@@ -263,9 +263,33 @@
 <body>
 
 <header>
-  <h1>🌿 Планировщик сада</h1>
-  <div class="actions">
-    <button onclick="openBloomMap()">🌸 Карта цветения</button>
+  <div class="header-left">
+    <h1>🌿 Планировщик сада</h1>
+    
+    <!-- Переключатель 2D/3D (внутри header) -->
+    <div class="view-mode-switch">
+      <button class="view-mode-btn active" id="btn2d" onclick="switchTo2D()">📐 2D</button>
+      <button class="view-mode-btn" id="btn3d" onclick="switchTo3D()">🌄 3D</button>
+    </div>
+    
+    <!-- Dropdown "Карты" -->
+    <div class="dropdown" id="mapsDropdown">
+      <button class="dropdown-toggle" onclick="toggleDropdown('mapsDropdown')">
+        🗺️ Карты <span class="dropdown-arrow">▾</span>
+      </button>
+      <div class="dropdown-menu">
+        <div class="dropdown-item" onclick="openBloomMap(); closeAllDropdowns();">
+          🌸 Карта цветения
+        </div>
+        <div class="dropdown-item" onclick="toggleTaskHighlight(); closeAllDropdowns();">
+          📋 Карта задач
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="header-actions">
+    <!-- УБРАЛИ отсюда кнопку "Карта цветения" -->
     <button onclick="toggleTasksPanel()">📋 Задачи</button>
     <button onclick="clearAll()">🗑️ Очистить</button>
     <button onclick="saveProject()">💾 Сохранить</button>
@@ -273,12 +297,6 @@
     <button onclick="exportPNG()">🖼️ PNG</button>
   </div>
 </header>
-
-<!-- Кнопки переключения 2D/3D -->
-<div class="view-mode-buttons">
-  <button class="view-mode-btn active" id="btn2d" onclick="switchTo2D()">📐 2D</button>
-  <button class="view-mode-btn" id="btn3d" onclick="switchTo3D()">🌄 3D</button>
-</div>
 
 <!-- Кнопки отмены/повтора -->
 <div class="history-buttons">

@@ -10,6 +10,7 @@ let nextTreeFolderId = 1;
 let nextTaskId = 1;
 
 const state = {
+  taskHighlightMode: false,
   tool: 'select',
   bedShape: 'rect',
   bedSubmenuOpen: false,

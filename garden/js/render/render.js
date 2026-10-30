@@ -218,6 +218,7 @@ function renderBedPlants(obj) {
     const r = pl.r || state.scale * 0.4;
     const isSelectedPlanting = pl.id === state.selectedPlantingId;
     const isBlooming = isPlantBlooming(pl, state.bloomFilter);
+
     const shapeEl = createShapeElement(shape, pl.x, pl.y, r, color);
     if (shapeEl.tagName === 'g') {
       shapeEl.setAttribute('stroke', isSelectedPlanting ? '#ff6b00' : 'white');
@@ -226,6 +227,18 @@ function renderBedPlants(obj) {
       shapeEl.setAttribute('data-planting-id', pl.id);
       if (state.bloomFilter) {
         shapeEl.classList.add(isBlooming ? 'planting-blooming' : 'planting-not-blooming');
+      }
+      // ★ НОВОЕ: Подсветка задач
+      if (state.taskHighlightMode) {
+        const taskCount = getTasksCount(pl);
+        if (taskCount.active > 0) {
+          shapeEl.classList.add('planting-has-tasks');
+          if (taskCount.overdue > 0) {
+            shapeEl.classList.add('planting-task-urgent');
+          }
+        } else {
+          shapeEl.classList.add('planting-no-tasks');
+        }
       }
       objectsLayer.appendChild(shapeEl);
     } else {
@@ -236,8 +249,21 @@ function renderBedPlants(obj) {
       if (state.bloomFilter) {
         shapeEl.classList.add(isBlooming ? 'planting-blooming' : 'planting-not-blooming');
       }
+      // ★ НОВОЕ: Подсветка задач
+      if (state.taskHighlightMode) {
+        const taskCount = getTasksCount(pl);
+        if (taskCount.active > 0) {
+          shapeEl.classList.add('planting-has-tasks');
+          if (taskCount.overdue > 0) {
+            shapeEl.classList.add('planting-task-urgent');
+          }
+        } else {
+          shapeEl.classList.add('planting-no-tasks');
+        }
+      }
       objectsLayer.appendChild(shapeEl);
     }
+
     if (plant) {
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', pl.x);

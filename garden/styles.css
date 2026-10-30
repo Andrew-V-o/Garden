@@ -10,20 +10,37 @@ body {
   flex-direction: column;
 }
 
+/* ===== HEADER ===== */
 header {
   background: linear-gradient(135deg, #4a7c59, #6b9b7a);
   color: white;
   padding: 10px 20px;
   display: flex;
   align-items: center;
-  gap: 15px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
   z-index: 10;
   flex-shrink: 0;
 }
 
-header h1 { font-size: 20px; font-weight: 600; }
-header .actions { margin-left: auto; display: flex; gap: 8px; }
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+header .actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
 
 header button {
   background: rgba(255,255,255,0.2);
@@ -34,10 +51,121 @@ header button {
   cursor: pointer;
   font-size: 13px;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
-header button:hover { background: rgba(255,255,255,0.35); }
+header button:hover {
+  background: rgba(255,255,255,0.35);
+  transform: translateY(-1px);
+}
 
+header button:active {
+  transform: translateY(0);
+}
+
+/* ===== ПЕРЕКЛЮЧАТЕЛЬ 2D/3D (внутри header) ===== */
+.view-mode-switch {
+  display: flex;
+  background: rgba(255,255,255,0.15);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.view-mode-btn {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.8);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.view-mode-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.view-mode-btn.active {
+  background: white;
+  color: #4a7c59;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* ===== DROPDOWN "КАРТЫ" ===== */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-toggle {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.dropdown-toggle:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.dropdown.open .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  min-width: 220px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.dropdown.open .dropdown-menu {
+  display: block;
+}
+
+.dropdown-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #2d3a2e;
+  transition: background 0.15s;
+  border-bottom: 1px solid #f0ede4;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background: #f4f1ea;
+  color: #4a7c59;
+}
+
+/* ===== MAIN LAYOUT ===== */
 .main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
 
 .sidebar {
@@ -67,6 +195,7 @@ header button:hover { background: rgba(255,255,255,0.35); }
 
 .sidebar h3:first-child { margin-top: 0; }
 
+/* ===== TOOLS ===== */
 .tool-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -94,6 +223,7 @@ header button:hover { background: rgba(255,255,255,0.35); }
 
 .tool-btn .icon { font-size: 20px; display: block; margin-bottom: 3px; }
 
+/* ===== OBJECTS PANEL ===== */
 .objects-panel {
   display: flex;
   flex-direction: column;
@@ -169,7 +299,7 @@ header button:hover { background: rgba(255,255,255,0.35); }
 
 .submenu-item .icon { font-size: 16px; }
 
-/* Списки растений и деревьев */
+/* ===== PLANT/TREE LISTS ===== */
 .plant-list, .tree-list {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -218,7 +348,7 @@ header button:hover { background: rgba(255,255,255,0.35); }
   box-shadow: inset 0 -2px 4px rgba(0,0,0,0.2);
 }
 
-/* Иконки форм и шестеренки */
+/* ===== SETTINGS BUTTONS ===== */
 .plant-item .plant-settings-btn, .tree-item .tree-settings-btn {
   position: absolute;
   top: 2px;
@@ -255,7 +385,7 @@ header button:hover { background: rgba(255,255,255,0.35); }
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
 }
 
-/* Кнопки добавления */
+/* ===== ADD BUTTONS ===== */
 .add-plant-btn, .add-tree-btn {
   grid-column: span 2;
   background: #e8f5e9;
@@ -279,7 +409,7 @@ header button:hover { background: rgba(255,255,255,0.35); }
   font-size: 11px;
 }
 
-/* Холст */
+/* ===== CANVAS ===== */
 .canvas-wrap {
   flex: 1;
   position: relative;
@@ -334,7 +464,7 @@ header button:hover { background: rgba(255,255,255,0.35); }
   transform: translateX(-50%) scale(1.05);
 }
 
-/* Правая панель */
+/* ===== RIGHT PANEL ===== */
 .section-item {
   background: #f4f1ea;
   border-radius: 8px;
@@ -442,8 +572,18 @@ header button:hover { background: rgba(255,255,255,0.35); }
   color: #8a6d00;
   border-top: 1px solid #e0c97a;
   flex-shrink: 0;
+  transition: all 0.3s;
 }
 
+/* ===== HINT BAR — режим карты задач ===== */
+.hint-bar.task-highlight-active {
+  background: #ffe0b2;
+  border-top-color: #ff9800;
+  color: #e65100;
+  font-weight: 500;
+}
+
+/* ===== PLANTINGS LIST ===== */
 .planting-list {
   background: #f4f1ea;
   border-radius: 8px;
@@ -500,7 +640,7 @@ header button:hover { background: rgba(255,255,255,0.35); }
 
 .planting-actions button:hover { background: #3a6347; }
 
-/* Модальные окна */
+/* ===== MODALS ===== */
 .modal-bg {
   position: fixed;
   inset: 0;
@@ -588,7 +728,7 @@ header button:hover { background: rgba(255,255,255,0.35); }
 .modal .buttons .primary { background: #4a7c59; color: white; }
 .modal .buttons .secondary { background: #eee; color: #333; }
 
-/* Popup растения на холсте */
+/* ===== POPUPS ===== */
 .plant-popup {
   position: absolute;
   background: white;
@@ -641,7 +781,7 @@ header button:hover { background: rgba(255,255,255,0.35); }
 .plant-popup .popup-buttons .close-btn { background: #888; color: white; }
 .plant-popup .popup-buttons .delete-btn { background: #d9534f; color: white; }
 
-/* Подсветка цветения */
+/* ===== BLOOM FILTER ===== */
 .planting-blooming {
   filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
 }
@@ -649,6 +789,32 @@ header button:hover { background: rgba(255,255,255,0.35); }
 .planting-not-blooming {
   opacity: 0.3;
   filter: grayscale(0.7);
+}
+
+/* ===== ПОДСВЕТКА ЗАДАЧ НА КАРТЕ ===== */
+.planting-has-tasks {
+  filter: drop-shadow(0 0 6px rgba(255, 152, 0, 0.9));
+  animation: pulse-task 1.5s infinite;
+}
+
+.planting-task-urgent {
+  filter: drop-shadow(0 0 8px rgba(211, 47, 47, 1)) !important;
+  animation: pulse-urgent 1s infinite !important;
+}
+
+.planting-no-tasks {
+  opacity: 0.3;
+  filter: grayscale(0.8);
+}
+
+@keyframes pulse-task {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 152, 0, 0.9)); }
+  50% { filter: drop-shadow(0 0 14px rgba(255, 152, 0, 1)); }
+}
+
+@keyframes pulse-urgent {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(211, 47, 47, 1)); }
+  50% { filter: drop-shadow(0 0 18px rgba(211, 47, 47, 1)); }
 }
 
 #bloomMapModal .modal,
@@ -667,7 +833,7 @@ input[type="number"]::-webkit-inner-spin-button {
   opacity: 1;
 }
 
-/* Заголовки секций */
+/* ===== SECTION HEADERS ===== */
 .section-header {
   font-size: 11px;
   font-weight: 600;
@@ -680,7 +846,7 @@ input[type="number"]::-webkit-inner-spin-button {
   grid-column: span 2;
 }
 
-/* Папки */
+/* ===== FOLDERS ===== */
 .folder-container {
   margin-bottom: 6px;
   grid-column: span 2;
@@ -764,7 +930,7 @@ input[type="number"]::-webkit-inner-spin-button {
   margin-bottom: 0;
 }
 
-/* Контекстное меню */
+/* ===== CONTEXT MENU ===== */
 .context-menu {
   position: absolute;
   background: white;
@@ -787,7 +953,7 @@ input[type="number"]::-webkit-inner-spin-button {
   background: #f4f1ea;
 }
 
-/* Кнопка создания папки */
+/* ===== ADD FOLDER BUTTON ===== */
 .add-folder-btn {
   background: #fff3cd;
   border: 2px dashed #d4a017;
@@ -807,7 +973,7 @@ input[type="number"]::-webkit-inner-spin-button {
   background: #ffe89a;
 }
 
-/* Сворачиваемые разделы */
+/* ===== COLLAPSIBLE SECTIONS ===== */
 .collapsible-section {
   margin-top: 12px;
 }
@@ -847,19 +1013,19 @@ input[type="number"]::-webkit-inner-spin-button {
   display: none;
 }
 
-/* Popup для дерева использует те же стили, что и plant-popup */
+/* ===== TREE POPUP ===== */
 #treePopup h4 {
   font-size: 14px;
   margin-bottom: 10px;
   color: #2d3a2e;
 }
 
-/* Декоративные объекты в панели */
+/* ===== DECORATIVE OBJECTS ===== */
 .obj-btn[data-obj="water"] .icon { color: #29b6f6; }
 .obj-btn[data-obj="stone"] .icon { color: #757575; }
 .obj-btn[data-obj="mulch"] .icon { color: #795548; }
 
-/* Панель задач */
+/* ===== TASKS PANEL ===== */
 .tasks-panel {
   position: absolute;
   top: 60px;
@@ -986,7 +1152,7 @@ input[type="number"]::-webkit-inner-spin-button {
   background: #e8e3d8;
 }
 
-/* Кнопка сетки */
+/* ===== GRID BUTTON ===== */
 #gridBtn.active {
   background: #4a7c59;
   color: white;
@@ -996,45 +1162,9 @@ input[type="number"]::-webkit-inner-spin-button {
   filter: brightness(0) invert(1);
 }
 
-/* ===== 3D РЕЖИМ ===== */
+/* ===== 3D MODE ===== */
 
-/* Кнопки переключения 2D/3D — сверху по центру */
-.view-mode-buttons {
-  position: fixed;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 8px;
-  z-index: 2000;
-  background: white;
-  padding: 6px;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-.view-mode-btn {
-  padding: 8px 20px;
-  border: 2px solid #4a7c59;
-  background: white;
-  color: #4a7c59;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.view-mode-btn.active {
-  background: #4a7c59;
-  color: white;
-}
-
-.view-mode-btn:hover {
-  transform: scale(1.05);
-}
-
-/* 3D контейнер */
+/* 3D container */
 #threeContainer {
   position: absolute;
   top: 0;
@@ -1050,7 +1180,7 @@ input[type="number"]::-webkit-inner-spin-button {
   display: block;
 }
 
-/* Панель управления блоками */
+/* Block control panel */
 .block-panel {
   position: absolute;
   top: 60px;
@@ -1123,29 +1253,29 @@ input[type="number"]::-webkit-inner-spin-button {
   transition: all 0.15s;
 }
 
-.block-actions .btn-primary { 
-  background: #4a7c59; 
-  color: white; 
+.block-actions .btn-primary {
+  background: #4a7c59;
+  color: white;
 }
 
-.block-actions .btn-primary:hover { 
-  background: #3a6347; 
+.block-actions .btn-primary:hover {
+  background: #3a6347;
 }
 
-.block-actions .btn-secondary { 
-  background: #eee; 
-  color: #333; 
+.block-actions .btn-secondary {
+  background: #eee;
+  color: #333;
 }
 
-.block-actions .btn-secondary:hover { 
-  background: #ddd; 
+.block-actions .btn-secondary:hover {
+  background: #ddd;
 }
 
-.block-actions .btn-danger { 
-  background: #d9534f; 
-  color: white; 
+.block-actions .btn-danger {
+  background: #d9534f;
+  color: white;
 }
 
-.block-actions .btn-danger:hover { 
-  background: #c9302c; 
+.block-actions .btn-danger:hover {
+  background: #c9302c;
 }

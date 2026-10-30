@@ -374,3 +374,64 @@ function renderPlantingTaskMarkers(pl, x, y, r) {
   
   objectsLayer.appendChild(marker);
 }
+
+// ===== DROPDOWN "КАРТЫ" =====
+
+function toggleDropdown(dropdownId) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  // Закрываем все другие dropdown'ы
+  document.querySelectorAll('.dropdown').forEach(d => {
+    if (d.id !== dropdownId) d.classList.remove('open');
+  });
+  
+  dropdown.classList.toggle('open');
+}
+
+function closeAllDropdowns() {
+  document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+}
+
+// Закрытие dropdown при клике вне
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.dropdown')) {
+    closeAllDropdowns();
+  }
+});
+
+// ===== КАРТА ЗАДАЧ =====
+
+function toggleTaskHighlight() {
+  state.taskHighlightMode = !state.taskHighlightMode;
+  
+  const hintBar = document.getElementById('hintBar');
+  
+  if (state.taskHighlightMode) {
+    // Считаем статистику
+    let totalActive = 0;
+    let totalOverdue = 0;
+    let plantsWithTasks = 0;
+    
+    state.objects.forEach(obj => {
+      if (obj.plants) {
+        obj.plants.forEach(pl => {
+          const count = getTasksCount(pl);
+          if (count.active > 0) {
+            plantsWithTasks++;
+            totalActive += count.active;
+            totalOverdue += count.overdue;
+          }
+        });
+      }
+    });
+    
+    hintBar.textContent = `📋 Карта задач: ${plantsWithTasks} растений с ${totalActive} активными задачами${totalOverdue > 0 ? ` (${totalOverdue} просроченных!)` : ''}. Нажмите "🗺️ Карты → Карта задач" ещё раз, чтобы выключить.`;
+    hintBar.classList.add('task-highlight-active');
+  } else {
+    hintBar.textContent = '💡 Выберите инструмент или объект из панели слева.';
+    hintBar.classList.remove('task-highlight-active');
+  }
+  
+  render();
+}

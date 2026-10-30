@@ -1,9 +1,6 @@
 // ===== POPUP'Ы ДЛЯ ОБЪЕКТОВ НА ХОЛСТЕ =====
-// Содержит: showPlantPopup, showTreePopup, showDecorPopup, showMulchPopup, showPathPopup
-// и функции закрытия/удаления через popup
 
 // ===== POPUP ДЛЯ РАСТЕНИЯ =====
-
 function showPlantPopup(planting, obj) {
   const popup = document.getElementById('plantPopup');
 
@@ -86,7 +83,6 @@ function showPlantPopup(planting, obj) {
     document.addEventListener('mousedown', closeOnOutsideClick);
   }, 0);
 
-  // Обновляем кнопку задач с правильным контекстом
   const tasksBtn = document.getElementById('plantTasksBtn');
   if (tasksBtn) {
     const taskCount = getTasksCount(planting);
@@ -94,7 +90,9 @@ function showPlantPopup(planting, obj) {
     tasksBtn.onclick = () => openTasksForObject('planting', obj.id, planting.id);
   }
 
+  // ★ ДОБАВЛЕНО: saveState() при смене растения
   plantSelect.onchange = () => {
+    saveState();
     const newPlant = plants.find(p => p.id === plantSelect.value);
     planting.plantId = plantSelect.value;
     if (newPlant) {
@@ -102,40 +100,55 @@ function showPlantPopup(planting, obj) {
     }
     render();
   };
+  
+  // ★ ДОБАВЛЕНО: saveState() при смене формы
   shapeSelect.onchange = () => {
+    saveState();
     planting.shape = shapeSelect.value;
     render();
   };
+  
+  // ★ ДОБАВЛЕНО: oninput для живого обновления + onchange для saveState
   sizeInput.oninput = () => {
     planting.r = +sizeInput.value;
     document.getElementById('popupSizeVal').textContent = Math.round(planting.r);
     render();
   };
+  sizeInput.onchange = () => {
+    saveState();
+  };
   
+  // ★ ДОБАВЛЕНО: saveState() при смене месяцев цветения
   bloomStartMonthSelect.onchange = () => {
+    saveState();
     planting.bloomStartMonth = bloomStartMonthSelect.value ? parseInt(bloomStartMonthSelect.value) : null;
     updateEndMonthSelect(bloomStartMonthSelect, bloomEndMonthSelect, true);
     planting.bloomEndMonth = bloomEndMonthSelect.value ? parseInt(bloomEndMonthSelect.value) : null;
   };
   bloomEndMonthSelect.onchange = () => {
+    saveState();
     planting.bloomEndMonth = bloomEndMonthSelect.value ? parseInt(bloomEndMonthSelect.value) : null;
   };
   bloomStartMonthSelect2.onchange = () => {
+    saveState();
     const m = bloomStartMonthSelect2.value ? parseInt(bloomStartMonthSelect2.value) : null;
     const d = bloomStartDayInput.value ? parseInt(bloomStartDayInput.value) : 1;
     planting.bloomStartDate = m ? makeDateStr(m, d) : null;
   };
   bloomStartDayInput.onchange = () => {
+    saveState();
     const m = bloomStartMonthSelect2.value ? parseInt(bloomStartMonthSelect2.value) : null;
     const d = bloomStartDayInput.value ? parseInt(bloomStartDayInput.value) : 1;
     planting.bloomStartDate = m ? makeDateStr(m, d) : null;
   };
   bloomEndMonthSelect2.onchange = () => {
+    saveState();
     const m = bloomEndMonthSelect2.value ? parseInt(bloomEndMonthSelect2.value) : null;
     const d = bloomEndDayInput.value ? parseInt(bloomEndDayInput.value) : (m ? (DAYS_IN_MONTH[m] || 31) : null);
     planting.bloomEndDate = m ? makeDateStr(m, d) : null;
   };
   bloomEndDayInput.onchange = () => {
+    saveState();
     const m = bloomEndMonthSelect2.value ? parseInt(bloomEndMonthSelect2.value) : null;
     const d = bloomEndDayInput.value ? parseInt(bloomEndDayInput.value) : (m ? (DAYS_IN_MONTH[m] || 31) : null);
     planting.bloomEndDate = m ? makeDateStr(m, d) : null;
@@ -162,7 +175,6 @@ function deletePlantingFromPopup() {
 }
 
 // ===== POPUP ДЛЯ ДЕРЕВА =====
-
 function showTreePopup(treeObj) {
   const popup = document.getElementById('treePopup');
   const tree = trees.find(t => t.id === treeObj.treeId);
@@ -198,7 +210,6 @@ function showTreePopup(treeObj) {
     document.addEventListener('mousedown', closeOnOutsideClick);
   }, 0);
 
-  // Обновляем кнопку задач с правильным контекстом
   const tasksBtn = document.getElementById('treeTasksBtn');
   if (tasksBtn) {
     const taskCount = getTasksCount(treeObj);
@@ -206,10 +217,14 @@ function showTreePopup(treeObj) {
     tasksBtn.onclick = () => openTasksForObject('object', treeObj.id);
   }
   
+  // ★ ДОБАВЛЕНО: oninput для живого обновления + onchange для saveState
   sizeInput.oninput = () => {
     treeObj.r = +sizeInput.value;
     document.getElementById('treePopupSizeVal').textContent = Math.round(treeObj.r);
     render();
+  };
+  sizeInput.onchange = () => {
+    saveState();
   };
   
   state.selectedId = treeObj.id;
@@ -233,13 +248,12 @@ function deleteTreeFromPopup() {
 }
 
 // ===== POPUP ДЛЯ ДЕКОРАТИВНЫХ ОБЪЕКТОВ =====
-
 function showDecorPopup(decorObj) {
   const popup = document.getElementById('decorPopup');
   
   const titles = {
     water: '💧 Настройка водоёма',
-    stone: ' Настройка камней'
+    stone: '🪨 Настройка камней'
   };
   document.getElementById('decorPopupTitle').textContent = titles[decorObj.decorType] || '⚙️ Настройка объекта';
   
@@ -276,6 +290,7 @@ function showDecorPopup(decorObj) {
     document.addEventListener('mousedown', closeOnOutsideClick);
   }, 0);
 
+  // ★ ДОБАВЛЕНО: oninput для живого обновления + onchange для saveState
   sizeInput.oninput = () => {
     const val = +sizeInput.value;
     document.getElementById('decorPopupSizeVal').textContent = Math.round(val);
@@ -284,10 +299,17 @@ function showDecorPopup(decorObj) {
     decorObj.h *= ratio;
     render();
   };
+  sizeInput.onchange = () => {
+    saveState();
+  };
   
+  // ★ ДОБАВЛЕНО: oninput для живого обновления + onchange для saveState
   colorInput.oninput = () => {
     decorObj.fill = colorInput.value;
     render();
+  };
+  colorInput.onchange = () => {
+    saveState();
   };
   
   state.selectedId = decorObj.id;
@@ -311,7 +333,6 @@ function deleteDecorFromPopup() {
 }
 
 // ===== POPUP ДЛЯ МУЛЬЧИ =====
-
 function showMulchPopup(mulchObj) {
   const popup = document.getElementById('mulchPopup');
   
@@ -382,7 +403,9 @@ function showMulchPopup(mulchObj) {
     document.addEventListener('mousedown', closeOnOutsideClick);
   }, 0);
 
+  // ★ ДОБАВЛЕНО: saveState() при смене скина
   document.getElementById('mulchPopupSkin').onchange = (e) => {
+    saveState();
     mulchObj.skin = e.target.value;
     const skinData = MULCH_SKINS.find(s => s.id === e.target.value);
     if (skinData) {
@@ -391,19 +414,27 @@ function showMulchPopup(mulchObj) {
     render();
   };
   
+  // ★ ДОБАВЛЕНО: saveState() при смене формы
   document.getElementById('mulchPopupShape').onchange = (e) => {
+    saveState();
     mulchObj.shape = e.target.value;
     render();
   };
   
+  // ★ ДОБАВЛЕНО: oninput для живого обновления + onchange для saveState
   document.getElementById('mulchPopupDensity').oninput = (e) => {
     const val = parseFloat(e.target.value);
     mulchObj.densityMultiplier = val;
     document.getElementById('mulchPopupDensityVal').textContent = '×' + val.toFixed(1);
     render();
   };
+  document.getElementById('mulchPopupDensity').onchange = () => {
+    saveState();
+  };
   
+  // ★ ДОБАВЛЕНО: saveState() при изменении ширины/высоты
   document.getElementById('mulchPopupWidth').onchange = (e) => {
+    saveState();
     const val = Math.max(0.5, Math.min(100, parseFloat(e.target.value) || 1));
     mulchObj.w = val * state.scale;
     e.target.value = val;
@@ -411,6 +442,7 @@ function showMulchPopup(mulchObj) {
   };
   
   document.getElementById('mulchPopupHeight').onchange = (e) => {
+    saveState();
     const val = Math.max(0.5, Math.min(100, parseFloat(e.target.value) || 1));
     mulchObj.h = val * state.scale;
     e.target.value = val;
@@ -438,7 +470,6 @@ function deleteMulchFromPopup() {
 }
 
 // ===== POPUP ДЛЯ ДОРОЖКИ =====
-
 function showPathPopup(pathObj) {
   const popup = document.getElementById('pathPopup');
   
@@ -449,7 +480,7 @@ function showPathPopup(pathObj) {
   const densityVal = pathObj.densityMultiplier != null ? pathObj.densityMultiplier : 1.0;
   
   popup.innerHTML = `
-    <h4>️ Настройка дорожки</h4>
+    <h4>🛤️ Настройка дорожки</h4>
     <div class="popup-row">
       <span>Скин:</span>
       <select id="pathPopupSkin" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:4px;font-size:12px;">
@@ -498,21 +529,31 @@ function showPathPopup(pathObj) {
     document.addEventListener('mousedown', closeOnOutsideClick);
   }, 0);
 
+  // ★ ДОБАВЛЕНО: saveState() при смене скина
   document.getElementById('pathPopupSkin').onchange = (e) => {
+    saveState();
     pathObj.skin = e.target.value;
     render();
   };
   
+  // ★ ДОБАВЛЕНО: oninput для живого обновления + onchange для saveState
   document.getElementById('pathPopupDensity').oninput = (e) => {
     const val = parseFloat(e.target.value);
     pathObj.densityMultiplier = val;
     document.getElementById('pathPopupDensityVal').textContent = '×' + val.toFixed(1);
     render();
   };
+  document.getElementById('pathPopupDensity').onchange = () => {
+    saveState();
+  };
   
+  // ★ ДОБАВЛЕНО: oninput для живого обновления + onchange для saveState
   document.getElementById('pathPopupColor').oninput = (e) => {
     pathObj.fill = e.target.value;
     render();
+  };
+  document.getElementById('pathPopupColor').onchange = () => {
+    saveState();
   };
   
   state.selectedId = pathObj.id;

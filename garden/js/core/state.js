@@ -41,6 +41,7 @@ const state = {
   // История undo/redo
   history: [],
   historyIndex: -1,
+  currentSnapGuides: [],
   // ↓↓↓ ДОБАВИТЬ ЭТИ ДВА ПОЛЯ ↓↓↓
   terrainBlocks: {
     gridSize: 3,

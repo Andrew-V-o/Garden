@@ -357,6 +357,12 @@ function render() {
   objectsLayer.innerHTML = '';
   handlesLayer.innerHTML = '';
   clearSnapGuides();
+  
+  // ★ ДОБАВЛЕНО: отрисовка snap-guides из state (после очистки)
+  if (state.currentSnapGuides && state.currentSnapGuides.length > 0) {
+    renderSnapGuides(state.currentSnapGuides);
+  }
+  
   renderGrid();
   renderPlot();
   state.objects.filter(o => o.type === 'bed').forEach(obj => renderBedPolygon(obj));

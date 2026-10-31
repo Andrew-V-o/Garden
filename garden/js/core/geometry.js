@@ -69,6 +69,17 @@ function pointInPolygon(x, y, pts) {
   for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
     const xi = pts[i][0], yi = pts[i][1];
     const xj = pts[j][0], yj = pts[j][1];
+    
+    // Если точка лежит прямо на ребре (с учетом погрешности), это касание, а не пересечение внутри
+    const eps = 0.05;
+    const cross = (y - yi) * (xj - xi) - (x - xi) * (yj - yi);
+    if (Math.abs(cross) < eps) {
+      if (x >= Math.min(xi, xj) - eps && x <= Math.max(xi, xj) + eps &&
+          y >= Math.min(yi, yj) - eps && y <= Math.max(yi, yj) + eps) {
+        return false;
+      }
+    }
+
     const intersect = ((yi > y) !== (yj > y)) &&
       (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
@@ -332,7 +343,7 @@ function getPolygonBBox(points) {
 
 // ===== SNAP-НАПРАВЛЯЮЩИЕ =====
 
-const SNAP_THRESHOLD = 10;
+const SNAP_THRESHOLD = 15;
 
 function computeSnapGuides(movingBBox, otherBBox) {
   const guides = [];
@@ -364,4 +375,40 @@ function computeSnapGuides(movingBBox, otherBBox) {
   if (dy.centerY < SNAP_THRESHOLD) guides.push({ type: 'h', y: (otherBBox.top + otherBBox.bottom) / 2, offset: (otherBBox.top + otherBBox.bottom) / 2 - (movingBBox.top + movingBBox.bottom) / 2 });
   
   return guides;
+}
+
+// ===== ПРОВЕРКА ПЕРЕСЕЧЕНИЯ ПОЛИГОНОВ =====
+
+// ★ ИСПРАВЛЕНО: строгие неравенства — касание концов не считается пересечением
+// Это позволяет клумбам быть "в притык" друг к другу
+
+function segmentsIntersect(a, b, c, d) {
+  const denom = (b[0] - a[0]) * (d[1] - c[1]) - (b[1] - a[1]) * (d[0] - c[0]);
+  if (Math.abs(denom) < 1e-10) return false;
+  const t = ((c[0] - a[0]) * (d[1] - c[1]) - (c[1] - a[1]) * (d[0] - c[0])) / denom;
+  const u = -((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / denom;
+  
+  // ★ ИЗМЕНЕНО: уменьшаем эпсилон до 0.00001, чтобы клумбы можно было ставить практически вплотную друг к другу
+  const eps = 0.00001;
+  return t > eps && t < 1 - eps && u > eps && u < 1 - eps;
+}
+function polygonsIntersect(poly1, poly2) {
+  // Проверяем, есть ли точка одного полигона внутри другого
+  for (let i = 0; i < poly1.length; i++) {
+    if (pointInPolygon(poly1[i][0], poly1[i][1], poly2)) return true;
+  }
+  for (let i = 0; i < poly2.length; i++) {
+    if (pointInPolygon(poly2[i][0], poly2[i][1], poly1)) return true;
+  }
+  // Проверяем пересечение рёбер (теперь только строгое пересечение, не касание)
+  for (let i = 0; i < poly1.length; i++) {
+    const a1 = poly1[i];
+    const a2 = poly1[(i + 1) % poly1.length];
+    for (let j = 0; j < poly2.length; j++) {
+      const b1 = poly2[j];
+      const b2 = poly2[(j + 1) % poly2.length];
+      if (segmentsIntersect(a1, a2, b1, b2)) return true;
+    }
+  }
+  return false;
 }

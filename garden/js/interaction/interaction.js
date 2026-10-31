@@ -3,13 +3,9 @@ document.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
   
   if (e.ctrlKey || e.metaKey) {
-    // ★ ИСПРАВЛЕНО: используем e.code вместо e.key
-    // e.code возвращает физическую клавишу (всегда 'KeyZ'), 
-    // а e.key зависит от раскладки ('z' на английской, 'я' на русской)
     if (e.code === 'KeyZ') {
       e.preventDefault();
       if (e.shiftKey) {
-        // Ctrl+Shift+Z = Redo (альтернатива Ctrl+Y)
         redo();
       } else {
         undo();
@@ -611,19 +607,24 @@ function onMouseMove(e) {
           obj.x = d.startPos.x + moveDx;
           obj.y = d.startPos.y + moveDy;
         } else if (obj.points && d.startPoints && (obj.type === 'bed' || obj.type === 'plot')) {
+          // ===== SNAP + ЗАПРЕТ НАЛОЖЕНИЯ ДЛЯ КЛУМБ =====
           let newPoints = d.startPoints.map(p => [p[0] + moveDx, p[1] + moveDy]);
           const movingBBox = getPolygonBBox(newPoints);
+
           let bestSnapDx = 0, bestSnapDy = 0;
           let hasSnapX = false, hasSnapY = false;
-          let activeGuides = [];
+          let allGuides = [];
+
           state.objects.forEach(other => {
             if (other.id === obj.id) return;
-            if (other.type !== 'bed') return;
+            if (other.type !== 'bed' && other.type !== 'plot') return;
             if (!other.points || other.points.length < 3) return;
+
             const otherBBox = getPolygonBBox(other.points);
             const guides = computeSnapGuides(movingBBox, otherBBox);
             const vGuide = guides.find(g => g.type === 'v');
             const hGuide = guides.find(g => g.type === 'h');
+
             if (vGuide && (!hasSnapX || Math.abs(vGuide.offset) < Math.abs(bestSnapDx))) {
               bestSnapDx = vGuide.offset;
               hasSnapX = true;
@@ -632,31 +633,35 @@ function onMouseMove(e) {
               bestSnapDy = hGuide.offset;
               hasSnapY = true;
             }
-            activeGuides = activeGuides.concat(guides);
+            allGuides = allGuides.concat(guides);
           });
+
           let finalDx = moveDx;
           let finalDy = moveDy;
+          let activeGuides = [];
+
           if (hasSnapX || hasSnapY) {
             finalDx += hasSnapX ? bestSnapDx : 0;
             finalDy += hasSnapY ? bestSnapDy : 0;
             newPoints = d.startPoints.map(p => [p[0] + finalDx, p[1] + finalDy]);
-            const filteredGuides = activeGuides.filter(g => 
+            activeGuides = allGuides.filter(g => 
               (g.type === 'v' && hasSnapX && Math.abs(g.offset - bestSnapDx) < 0.5) ||
               (g.type === 'h' && hasSnapY && Math.abs(g.offset - bestSnapDy) < 0.5)
             );
-            renderSnapGuides(filteredGuides);
-          } else {
-            clearSnapGuides();
           }
+
+          state.currentSnapGuides = activeGuides;
+
           let hasIntersection = false;
           state.objects.forEach(other => {
             if (other.id === obj.id) return;
-            if (other.type !== 'bed') return;
+            if (other.type !== 'bed') return; // Проверяем пересечение только с другими клумбами
             if (!other.points || other.points.length < 3) return;
             if (polygonsIntersect(newPoints, other.points)) {
               hasIntersection = true;
             }
           });
+
           if (!hasIntersection) {
             obj.points = newPoints;
             if (obj.basePoints && d.startBasePoints) {
@@ -671,8 +676,15 @@ function onMouseMove(e) {
                 }
               });
             }
+            if (obj.plants && d.startPlants) {
+              obj.plants = d.startPlants.map(pl => ({
+                ...pl,
+                x: pl.x + finalDx,
+                y: pl.y + finalDy
+              }));
+            }
           } else {
-            clearSnapGuides();
+            state.currentSnapGuides = [];
           }
         } else if (obj.points && d.startPoints) {
           obj.points = d.startPoints.map(p => [p[0] + moveDx, p[1] + moveDy]);
@@ -688,13 +700,13 @@ function onMouseMove(e) {
               }
             });
           }
-        }
-        if (obj.plants && d.startPlants) {
-          obj.plants = d.startPlants.map(pl => ({
-            ...pl,
-            x: pl.x + moveDx,
-            y: pl.y + moveDy
-          }));
+          if (obj.plants && d.startPlants) {
+            obj.plants = d.startPlants.map(pl => ({
+              ...pl,
+              x: pl.x + moveDx,
+              y: pl.y + moveDy
+            }));
+          }
         }
         render();
       }
@@ -778,19 +790,24 @@ function onMouseMove(e) {
           obj.x = d.startPos.x + dx;
           obj.y = d.startPos.y + dy;
         } else if (obj.points && d.startPoints && (obj.type === 'bed' || obj.type === 'plot')) {
+          // ===== SNAP + ЗАПРЕТ НАЛОЖЕНИЯ ДЛЯ КЛУМБ (активное dragging) =====
           let newPoints = d.startPoints.map(p => [p[0] + dx, p[1] + dy]);
           const movingBBox = getPolygonBBox(newPoints);
+
           let bestSnapDx = 0, bestSnapDy = 0;
           let hasSnapX = false, hasSnapY = false;
-          let activeGuides = [];
+          let allGuides = [];
+
           state.objects.forEach(other => {
             if (other.id === obj.id) return;
-            if (other.type !== 'bed') return;
+            if (other.type !== 'bed' && other.type !== 'plot') return;
             if (!other.points || other.points.length < 3) return;
+
             const otherBBox = getPolygonBBox(other.points);
             const guides = computeSnapGuides(movingBBox, otherBBox);
             const vGuide = guides.find(g => g.type === 'v');
             const hGuide = guides.find(g => g.type === 'h');
+
             if (vGuide && (!hasSnapX || Math.abs(vGuide.offset) < Math.abs(bestSnapDx))) {
               bestSnapDx = vGuide.offset;
               hasSnapX = true;
@@ -799,31 +816,35 @@ function onMouseMove(e) {
               bestSnapDy = hGuide.offset;
               hasSnapY = true;
             }
-            activeGuides = activeGuides.concat(guides);
+            allGuides = allGuides.concat(guides);
           });
+
           let finalDx = dx;
           let finalDy = dy;
+          let activeGuides = [];
+
           if (hasSnapX || hasSnapY) {
             finalDx += hasSnapX ? bestSnapDx : 0;
             finalDy += hasSnapY ? bestSnapDy : 0;
             newPoints = d.startPoints.map(p => [p[0] + finalDx, p[1] + finalDy]);
-            const filteredGuides = activeGuides.filter(g => 
+            activeGuides = allGuides.filter(g => 
               (g.type === 'v' && hasSnapX && Math.abs(g.offset - bestSnapDx) < 0.5) ||
               (g.type === 'h' && hasSnapY && Math.abs(g.offset - bestSnapDy) < 0.5)
             );
-            renderSnapGuides(filteredGuides);
-          } else {
-            clearSnapGuides();
           }
+
+          state.currentSnapGuides = activeGuides;
+
           let hasIntersection = false;
           state.objects.forEach(other => {
             if (other.id === obj.id) return;
-            if (other.type !== 'bed') return;
+            if (other.type !== 'bed') return; // Проверяем пересечение только с другими клумбами
             if (!other.points || other.points.length < 3) return;
             if (polygonsIntersect(newPoints, other.points)) {
               hasIntersection = true;
             }
           });
+
           if (!hasIntersection) {
             obj.points = newPoints;
             if (obj.basePoints && d.startBasePoints) {
@@ -838,8 +859,15 @@ function onMouseMove(e) {
                 }
               });
             }
+            if (obj.plants && d.startPlants) {
+              obj.plants = d.startPlants.map(pl => ({
+                ...pl,
+                x: pl.x + finalDx,
+                y: pl.y + finalDy
+              }));
+            }
           } else {
-            clearSnapGuides();
+            state.currentSnapGuides = [];
           }
         } else if (obj.points && d.startPoints) {
           obj.points = d.startPoints.map(p => [p[0] + dx, p[1] + dy]);
@@ -855,13 +883,13 @@ function onMouseMove(e) {
               }
             });
           }
-        }
-        if (obj.plants && d.startPlants && obj.type !== 'plot') {
-          obj.plants = d.startPlants.map(pl => ({
-            ...pl,
-            x: pl.x + dx,
-            y: pl.y + dy
-          }));
+          if (obj.plants && d.startPlants) {
+            obj.plants = d.startPlants.map(pl => ({
+              ...pl,
+              x: pl.x + dx,
+              y: pl.y + dy
+            }));
+          }
         }
         render();
       }
@@ -931,11 +959,11 @@ function onMouseMove(e) {
 function onMouseUp(e) {
   const pos = getMousePos(e);
   
-  // Если было потенциальное перетаскивание, но не сдвинулись — обрабатываем как клик
   if (state.pendingDrag && state.tool === 'select') {
     const d = state.pendingDrag;
     state.pendingDrag = null;
     clearSnapGuides();
+    state.currentSnapGuides = [];
     svg.style.cursor = 'default';
     
     if (d.type === 'planting') {
@@ -983,13 +1011,14 @@ function onMouseUp(e) {
   
   state.pendingDrag = null;
   clearSnapGuides();
+  state.currentSnapGuides = [];
   svg.style.cursor = 'default';
 
-  // ★ ИСПРАВЛЕНИЕ: сохраняем состояние ПОСЛЕ завершения перемещения
   if (state.dragging) {
-    saveState(); // ← ДОБАВЛЕНО
+    saveState();
     state.dragging = null;
     clearSnapGuides();
+    state.currentSnapGuides = [];
     render();
     return;
   }
@@ -1097,9 +1126,10 @@ function onKeyDown(e) {
     closeMulchPopup();
     closePathPopup();
     closeGridPopup();
+    clearSnapGuides();
+    state.currentSnapGuides = [];
     state.pendingDrag = null;
     state.dragging = null;
-    clearSnapGuides();
     svg.style.cursor = 'default';
     render();
   }

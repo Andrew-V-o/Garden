@@ -3,12 +3,12 @@
 function initApp() {
   initDomRefs();
   loadCustomPlants();
-  loadCustomTrees(); // <--- Добавлено для загрузки деревьев
+  loadCustomTrees();
   fitCanvasToScreen();
   createDefaultPlot();
   updateSvgViewBox();
   renderPlantList();
-  renderTreeList();  // <--- Добавлено для отрисовки списка деревьев
+  renderTreeList();
   render();
   updateHint();
   updateCanvasInfo();
@@ -68,7 +68,7 @@ function initApp() {
               plants = [...DEFAULT_PLANTS, ...raw.plants];
               saveCustomPlants();
               renderPlantList();
-              renderTreeList(); // <--- Добавлено
+              renderTreeList();
             }
           }
           updateSvgViewBox();
@@ -86,6 +86,15 @@ function initApp() {
   }
   
   initHistory();
+
+  // ★ ДОБАВЛЕНО: Даем браузеру завершить отрисовку разметки, затем принудительно подгоняем размер под окно
+  setTimeout(() => {
+    if (typeof fitPlotToCanvas === 'function') {
+      fitPlotToCanvas();
+    } else if (typeof fitCanvasToScreen === 'function') {
+      fitCanvasToScreen();
+    }
+  }, 50);
 }
 
 document.addEventListener('DOMContentLoaded', initApp);

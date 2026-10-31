@@ -1,4 +1,4 @@
-// ===== 3D РАСТЕНИЯ И ДЕРЕВЬЯ =====
+// ===== 3D РАСТЕНИЯ И ДЕРЕВЬЯ С ПРИВЯЗКОЙ К РЕЛЬЕФУ =====
 
 function buildThreePlants() {
   state.objects.forEach(obj => {
@@ -13,14 +13,18 @@ function buildThreePlants() {
 function buildThreeTree(treeObj) {
   const tree = trees.find(t => t.id === treeObj.treeId);
   const color = new THREE.Color(tree ? tree.color : '#2e7d32');
-  const r = treeObj.r / state.scale; // радиус в метрах
+  const r = treeObj.r / state.scale;
+  
+  const plot = state.objects.find(o => o.type === 'plot');
+  const bbox = getObjBBox(plot);
+  
+  // Мировые координаты
+  const worldX = (treeObj.x - bbox.x) / state.scale - bbox.w / state.scale / 2;
+  const worldZ = (treeObj.y - bbox.y) / state.scale - bbox.h / state.scale / 2;
+  const worldY = getSmoothHeightAt(worldX, worldZ);
   
   const group = new THREE.Group();
-  group.position.set(
-    (treeObj.x - getObjBBox(state.objects.find(o => o.type === 'plot')).x) / state.scale - 25,
-    getBlockHeightAt(treeObj.x, treeObj.y),
-    (treeObj.y - getObjBBox(state.objects.find(o => o.type === 'plot')).y) / state.scale - 25
-  );
+  group.position.set(worldX, worldY, worldZ);
   
   // Ствол
   const trunkHeight = r * 1.5;
@@ -32,8 +36,27 @@ function buildThreeTree(treeObj) {
   trunk.castShadow = true;
   group.add(trunk);
   
-  // Крона (зависит от типа дерева)
-  const crownGeo = new THREE.SphereGeometry(r * 0.8, 12, 12);
+  // Крона (разные формы для разных деревьев)
+  let crownGeo;
+  const shape = tree?.defaultShape || 'oak';
+  
+  switch (shape) {
+    case 'pine':
+    case 'spruce':
+      crownGeo = new THREE.ConeGeometry(r * 0.7, r * 1.8, 8);
+      break;
+    case 'willow':
+      crownGeo = new THREE.SphereGeometry(r * 0.9, 12, 12);
+      crownGeo.scale(1, 0.7, 1);
+      break;
+    case 'palm':
+      crownGeo = new THREE.SphereGeometry(r * 0.8, 12, 8);
+      crownGeo.scale(1.3, 0.5, 1.3);
+      break;
+    default:
+      crownGeo = new THREE.SphereGeometry(r * 0.8, 12, 12);
+  }
+  
   const crownMat = new THREE.MeshLambertMaterial({ color: color });
   const crown = new THREE.Mesh(crownGeo, crownMat);
   crown.position.y = trunkHeight + r * 0.6;
@@ -50,18 +73,18 @@ function buildThreePlant(planting, bedObj) {
   const color = new THREE.Color(plant.color);
   const r = planting.r / state.scale;
   
-  const group = new THREE.Group();
   const plot = state.objects.find(o => o.type === 'plot');
   const bbox = getObjBBox(plot);
   
-  group.position.set(
-    (planting.x - bbox.x) / state.scale - bbox.w / state.scale / 2,
-    getBlockHeightAt(planting.x, planting.y) + 0.1,
-    (planting.y - bbox.y) / state.scale - bbox.h / state.scale / 2
-  );
+  const worldX = (planting.x - bbox.x) / state.scale - bbox.w / state.scale / 2;
+  const worldZ = (planting.y - bbox.y) / state.scale - bbox.h / state.scale / 2;
+  const worldY = getSmoothHeightAt(worldX, worldZ);
+  
+  const group = new THREE.Group();
+  group.position.set(worldX, worldY, worldZ);
   
   // Стебель
-  const stemHeight = (plant.height || 50) / 100; // см -> м
+  const stemHeight = (plant.height || 50) / 100;
   const stemGeo = new THREE.CylinderGeometry(0.02, 0.02, stemHeight, 6);
   const stemMat = new THREE.MeshLambertMaterial({ color: 0x2e7d32 });
   const stem = new THREE.Mesh(stemGeo, stemMat);
@@ -80,21 +103,14 @@ function buildThreePlant(planting, bedObj) {
   threeScene.add(group);
 }
 
+// Функция для получения высоты в точке (используется другими модулями)
 function getBlockHeightAt(x, y) {
   const plot = state.objects.find(o => o.type === 'plot');
-  if (!plot || !state.terrainBlocks) return 0;
+  if (!plot) return 0;
   
   const bbox = getObjBBox(plot);
-  const plotWidth = bbox.w / state.scale;
-  const plotHeight = bbox.h / state.scale;
-  const gridSize = state.terrainBlocks.gridSize || 3;
+  const worldX = (x - bbox.x) / state.scale - bbox.w / state.scale / 2;
+  const worldZ = (y - bbox.y) / state.scale - bbox.h / state.scale / 2;
   
-  const relX = (x - bbox.x) / state.scale;
-  const relY = (y - bbox.y) / state.scale;
-  
-  const blockX = Math.floor(relX / plotWidth * gridSize);
-  const blockY = Math.floor(relY / plotHeight * gridSize);
-  
-  const block = state.terrainBlocks.blocks.find(b => b.x === blockX && b.y === blockY);
-  return block ? block.height : 0;
+  return getSmoothHeightAt(worldX, worldZ);
 }

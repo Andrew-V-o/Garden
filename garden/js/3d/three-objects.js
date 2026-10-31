@@ -1,4 +1,4 @@
-// ===== 3D ОБЪЕКТЫ =====
+// ===== 3D ОБЪЕКТЫ (ДОРОЖКИ, МУЛЬЧА, ВОДОЁМЫ) =====
 
 function buildThreeObjects() {
   state.objects.forEach(obj => {
@@ -15,7 +15,6 @@ function buildThreePath(pathObj) {
   const plot = state.objects.find(o => o.type === 'plot');
   const bbox = getObjBBox(plot);
   
-  // Создаём путь как серию box'ов
   for (let i = 0; i < points.length - 1; i++) {
     const p1 = points[i];
     const p2 = points[i + 1];
@@ -24,6 +23,11 @@ function buildThreePath(pathObj) {
     const z1 = (p1[1] - bbox.y) / state.scale - bbox.h / state.scale / 2;
     const x2 = (p2[0] - bbox.x) / state.scale - bbox.w / state.scale / 2;
     const z2 = (p2[1] - bbox.y) / state.scale - bbox.h / state.scale / 2;
+    
+    // Средняя высота для сегмента
+    const midX = (x1 + x2) / 2;
+    const midZ = (z1 + z2) / 2;
+    const midY = getSmoothHeightAt(midX, midZ);
     
     const dx = x2 - x1;
     const dz = z2 - z1;
@@ -34,7 +38,7 @@ function buildThreePath(pathObj) {
     const mat = new THREE.MeshLambertMaterial({ color: 0xb8a88a });
     const mesh = new THREE.Mesh(geo, mat);
     
-    mesh.position.set((x1 + x2) / 2, 0.025, (z1 + z2) / 2);
+    mesh.position.set(midX, midY + 0.025, midZ);
     mesh.rotation.y = angle;
     mesh.receiveShadow = true;
     
@@ -53,11 +57,14 @@ function buildThreeMulch(mulchObj) {
   const z = (mulchObj.y - bbox.y) / state.scale - bbox.h / state.scale / 2;
   const w = mulchObj.w / state.scale;
   const h = mulchObj.h / state.scale;
+  const y = getSmoothHeightAt(x, z);
   
   const geo = new THREE.BoxGeometry(w, 0.1, h);
-  const mat = new THREE.MeshLambertMaterial({ color: 0x795548 });
+  const skinData = MULCH_SKINS.find(s => s.id === mulchObj.skin);
+  const color = skinData ? new THREE.Color(skinData.baseColor) : new THREE.Color(0x795548);
+  const mat = new THREE.MeshLambertMaterial({ color: color });
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(x, 0.05, z);
+  mesh.position.set(x, y + 0.05, z);
   mesh.receiveShadow = true;
   threeScene.add(mesh);
 }
@@ -70,6 +77,7 @@ function buildThreeDecor(decorObj) {
   const z = (decorObj.y - bbox.y) / state.scale - bbox.h / state.scale / 2;
   const w = decorObj.w / state.scale;
   const h = decorObj.h / state.scale;
+  const y = getSmoothHeightAt(x, z);
   
   if (decorObj.decorType === 'water') {
     const geo = new THREE.CylinderGeometry(w / 2, w / 2, 0.3, 32);
@@ -79,7 +87,7 @@ function buildThreeDecor(decorObj) {
       opacity: 0.7
     });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, 0.15, z);
+    mesh.position.set(x, y + 0.15, z);
     mesh.scale.z = h / w;
     threeScene.add(mesh);
   }

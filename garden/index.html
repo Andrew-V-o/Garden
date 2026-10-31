@@ -13,8 +13,8 @@
   /* Кнопки отмены/повтора */
   .history-buttons {
     position: fixed;
-    top: 72px; /* Было 55px, сместили ниже */
-    left: 15px; /* Можно также немного сдвинуть вправо, если нужно выровнять по отступам */
+    top: 72px;
+    left: 15px;
     display: flex;
     gap: 5px;
     z-index: 1000;
@@ -89,6 +89,16 @@
   }
   #threeContainer.active {
     display: block;
+  }
+
+  /* Рамка выделения блоков в 3D */
+  #selectionBox {
+    position: absolute;
+    border: 2px dashed #ffa726;
+    background: rgba(255, 167, 38, 0.2);
+    display: none;
+    pointer-events: none;
+    z-index: 10;
   }
 
   /* Панель управления блоками */
@@ -289,7 +299,6 @@
   </div>
   
   <div class="header-actions">
-    <!-- УБРАЛИ отсюда кнопку "Карта цветения" -->
     <button onclick="toggleTasksPanel()">📋 Задачи</button>
     <button onclick="clearAll()">🗑️ Очистить</button>
     <button onclick="saveProject()">💾 Сохранить</button>
@@ -396,24 +405,27 @@
     </svg>
 
     <!-- 3D контейнер -->
-    <div id="threeContainer"></div>
+    <div id="threeContainer">
+      <!-- Рамка для выделения мышью -->
+      <div id="selectionBox"></div>
+    </div>
 
     <!-- Панель управления блоками (3D режим) -->
     <div class="block-panel" id="blockPanel">
       <h4>⛰️ Управление блоком</h4>
-      <div class="block-info" id="blockInfo">Кликните на блок участка</div>
+      <div class="block-info" id="blockInfo">Зажмите ЛКМ и выделите блоки</div>
       <div id="blockControls" style="display:none;">
         <div class="block-control">
           <label>Высота (м):</label>
           <input type="range" id="blockHeight" min="0" max="5" step="0.1" value="0">
-          <span class="value" id="blockHeightVal">0</span>
+          <span class="value" id="blockHeightVal">0.0</span>
         </div>
-        <div class="block-control">
+        <div class="block-control" style="display:none;">
           <label>Наклон X:</label>
           <input type="range" id="blockTiltX" min="-30" max="30" step="1" value="0">
           <span class="value" id="blockTiltXVal">0°</span>
         </div>
-        <div class="block-control">
+        <div class="block-control" style="display:none;">
           <label>Наклон Z:</label>
           <input type="range" id="blockTiltZ" min="-30" max="30" step="1" value="0">
           <span class="value" id="blockTiltZVal">0°</span>
@@ -424,10 +436,11 @@
         </div>
       </div>
       <div class="block-actions" style="margin-top:12px;">
-        <button class="btn-secondary" onclick="setGridSize(2)">2×2</button>
-        <button class="btn-secondary" onclick="setGridSize(3)">3×3</button>
-        <button class="btn-secondary" onclick="setGridSize(4)">4×4</button>
         <button class="btn-secondary" onclick="setGridSize(5)">5×5</button>
+        <button class="btn-secondary" onclick="setGridSize(10)">10×10</button>
+        <button class="btn-secondary" onclick="setGridSize(20)">20×20</button>
+        <button class="btn-secondary" onclick="setGridSize(50)">50×50</button>
+        
       </div>
     </div>
 
@@ -607,7 +620,7 @@
 
 <div class="hint-bar" id="hintBar">💡 Выберите инструмент или объект из панели слева.</div>
 
-<!-- Модалка создания нового растения -->
+<!-- Модальные окна (оставлены без изменений для корректности) -->
 <div class="modal-bg" id="plantModal">
   <div class="modal">
     <h2>🌺 Новое растение</h2>
@@ -682,7 +695,6 @@
   </div>
 </div>
 
-<!-- Модалка настроек вида растения -->
 <div class="modal-bg" id="plantSettingsModal">
   <div class="modal">
     <h2>⚙️ Настройки вида растения</h2>
@@ -758,7 +770,6 @@
   </div>
 </div>
 
-<!-- Модалка создания нового дерева -->
 <div class="modal-bg" id="treeModal">
   <div class="modal">
     <h2>🌳 Новое дерево</h2>
@@ -793,7 +804,6 @@
   </div>
 </div>
 
-<!-- Модалка настроек вида дерева -->
 <div class="modal-bg" id="treeSettingsModal">
   <div class="modal">
     <h2>⚙️ Настройки вида дерева</h2>
@@ -829,7 +839,6 @@
   </div>
 </div>
 
-<!-- Модалка карты цветения -->
 <div class="modal-bg" id="bloomMapModal">
   <div class="modal" style="width:420px;">
     <h2>🌸 Карта цветения</h2>
@@ -876,7 +885,6 @@
   </div>
 </div>
 
-<!-- Модалка задачи -->
 <div class="modal-bg" id="taskModal">
   <div class="modal" style="width:400px;">
     <h2 id="taskModalTitle">📝 Новая задача</h2>
@@ -920,36 +928,31 @@
   </div>
 </div>
 
-<!-- 1. Core: Константы и состояние -->
+<!-- Подключение JS модулей -->
 <script src="js/core/constants.js"></script>
 <script src="js/core/state.js"></script>
 <script src="js/core/geometry.js"></script>
 <script src="js/core/shapes.js"></script>
 
-<!-- 2. Data: Работа с данными -->
 <script src="js/data/folders.js"></script>
 <script src="js/data/tasks.js"></script>
 
-<!-- 3. UI: Интерфейс -->
 <script src="js/ui/plants-ui.js"></script>
 <script src="js/ui/popups.js"></script>
 <script src="js/ui/tasks-ui.js"></script>
 <script src="js/ui/grid.js"></script>
 
-<!-- 4. Interaction: Взаимодействие -->
 <script src="js/interaction/interaction.js"></script>
 
-<!-- 5. Render: Отрисовка -->
 <script src="js/render/render.js"></script>
 <script src="js/render/render-mulch.js"></script>
 <script src="js/render/render-path.js"></script>
 <script src="js/render/render-props.js"></script>
 
-<!-- 6. Storage: Хранение и инициализация -->
 <script src="js/storage/storage.js"></script>
 <script src="js/storage/init.js"></script>
 
-<!-- 7. 3D модули -->
+<!-- 3D модули -->
 <script src="js/3d/three-view.js"></script>
 <script src="js/3d/three-terrain.js"></script>
 <script src="js/3d/three-plants.js"></script>

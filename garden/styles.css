@@ -1279,3 +1279,13 @@ input[type="number"]::-webkit-inner-spin-button {
 .block-actions .btn-danger:hover {
   background: #c9302c;
 }
+
+/* Рамка выделения (Marquee Selection) в 3D */
+#selectionBox {
+  position: absolute;
+  border: 2px dashed #ffa726;
+  background: rgba(255, 167, 38, 0.15);
+  display: none;
+  pointer-events: none;
+  z-index: 1000;
+}

@@ -14,13 +14,11 @@ function switchTo2D() {
   document.getElementById('canvas').style.display = 'block';
   document.getElementById('blockPanel').classList.remove('active');
   
-  // Останавливаем 3D анимацию
   if (threeAnimFrameId) {
     cancelAnimationFrame(threeAnimFrameId);
     threeAnimFrameId = null;
   }
   
-  // Возвращаем sidebar'ы
   document.querySelectorAll('.sidebar').forEach(s => s.style.display = '');
   document.getElementById('hintBar').style.display = '';
   
@@ -38,12 +36,12 @@ function switchTo3D() {
   document.getElementById('threeContainer').classList.add('active');
   document.getElementById('blockPanel').classList.add('active');
   
-  // Скрываем sidebar'ы в 3D режиме
   document.querySelectorAll('.sidebar').forEach(s => s.style.display = 'none');
   document.getElementById('hintBar').style.display = 'none';
   
   initThreeScene();
   rebuildThreeScene();
+  updateBlockPanel();
   
   if (!threeAnimFrameId) {
     animateThree();
@@ -58,7 +56,6 @@ function animateThree() {
   }
 }
 
-// Горячая клавиша Tab для переключения
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Tab' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
     e.preventDefault();

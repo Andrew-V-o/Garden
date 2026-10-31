@@ -1,5 +1,4 @@
 // ===== РАЗМЕРНАЯ СЕТКА =====
-// Содержит ТОЛЬКО: toggleGrid, showGridPopup, closeGridPopup, renderGrid
 
 function toggleGrid() {
   state.showGrid = !state.showGrid;
@@ -17,9 +16,16 @@ function toggleGrid() {
 
 function showGridPopup() {
   const popup = document.getElementById('gridPopup');
-  document.getElementById('gridSize').value = state.gridSize;
-  document.getElementById('gridColor').value = state.gridColor;
-  document.getElementById('gridOpacity').value = state.gridOpacity;
+  if (!popup) return;
+  
+  const gridSizeEl = document.getElementById('gridSize');
+  const gridColorEl = document.getElementById('gridColor');
+  const gridOpacityEl = document.getElementById('gridOpacity');
+
+  if (gridSizeEl) gridSizeEl.value = state.gridSize;
+  if (gridColorEl) gridColorEl.value = state.gridColor;
+  if (gridOpacityEl) gridOpacityEl.value = state.gridOpacity;
+
   const gridBtn = document.getElementById('gridBtn');
   if (gridBtn) {
     const rect = gridBtn.getBoundingClientRect();
@@ -27,18 +33,25 @@ function showGridPopup() {
     popup.style.top = (rect.bottom + 5) + 'px';
   }
   popup.classList.add('show');
-  document.getElementById('gridSize').onchange = (e) => {
-    state.gridSize = parseFloat(e.target.value) || 1;
-    render();
-  };
-  document.getElementById('gridColor').oninput = (e) => {
-    state.gridColor = e.target.value;
-    render();
-  };
-  document.getElementById('gridOpacity').oninput = (e) => {
-    state.gridOpacity = parseFloat(e.target.value) || 0.5;
-    render();
-  };
+
+  if (gridSizeEl) {
+    gridSizeEl.onchange = (e) => {
+      state.gridSize = parseFloat(e.target.value) || 1;
+      render();
+    };
+  }
+  if (gridColorEl) {
+    gridColorEl.oninput = (e) => {
+      state.gridColor = e.target.value;
+      render();
+    };
+  }
+  if (gridOpacityEl) {
+    gridOpacityEl.oninput = (e) => {
+      state.gridOpacity = parseFloat(e.target.value) || 0.5;
+      render();
+    };
+  }
 }
 
 function closeGridPopup() {
@@ -47,27 +60,43 @@ function closeGridPopup() {
 }
 
 function renderGrid() {
+  const currentSvg = svg || document.getElementById('canvas');
+  if (!currentSvg) return;
+
+  let gridLayer = document.getElementById('gridLayer');
+
   if (!state.showGrid) {
-    const gridLayer = document.getElementById('gridLayer');
     if (gridLayer) gridLayer.remove();
     return;
   }
+
   const ns = 'http://www.w3.org/2000/svg';
   const gridSizePx = state.gridSize * state.scale;
-  let gridLayer = document.getElementById('gridLayer');
+
   if (!gridLayer) {
     gridLayer = document.createElementNS(ns, 'g');
     gridLayer.setAttribute('id', 'gridLayer');
     gridLayer.setAttribute('pointer-events', 'none');
-    svg.insertBefore(gridLayer, plotLayer);
+    
+    // Вставляем перед plotLayer или просто в начало svg
+    const plotL = document.getElementById('plotLayer');
+    if (plotL && plotL.parentNode === currentSvg) {
+      currentSvg.insertBefore(gridLayer, plotL);
+    } else {
+      currentSvg.prepend(gridLayer);
+    }
+    currentSvg.appendChild(gridLayer);
   } else {
     gridLayer.innerHTML = '';
   }
-  const vb = state.viewBox || { x: 0, y: 0, w: getSvgInternalSize().w, h: getSvgInternalSize().h };
+
+  const vb = state.viewBox || { x: 0, y: 0, w: currentSvg.clientWidth || 800, h: currentSvg.clientHeight || 600 };
   const startX = Math.floor(vb.x / gridSizePx) * gridSizePx;
   const startY = Math.floor(vb.y / gridSizePx) * gridSizePx;
   const endX = vb.x + vb.w;
   const endY = vb.y + vb.h;
+
+  // Отрисовка вертикальных и горизонтальных линий
   for (let x = startX; x <= endX; x += gridSizePx) {
     const line = document.createElementNS(ns, 'line');
     line.setAttribute('x1', x); line.setAttribute('y1', startY);
@@ -77,6 +106,7 @@ function renderGrid() {
     line.setAttribute('opacity', state.gridOpacity);
     gridLayer.appendChild(line);
   }
+
   for (let y = startY; y <= endY; y += gridSizePx) {
     const line = document.createElementNS(ns, 'line');
     line.setAttribute('x1', startX); line.setAttribute('y1', y);
@@ -86,8 +116,11 @@ function renderGrid() {
     line.setAttribute('opacity', state.gridOpacity);
     gridLayer.appendChild(line);
   }
+
+  // Метки метров
   const labelInterval = gridSizePx < 50 ? 5 : 1;
   const fontSize = Math.max(8, Math.min(12, gridSizePx / 3));
+
   for (let x = startX; x <= endX; x += gridSizePx * labelInterval) {
     const meters = Math.round(x / state.scale);
     if (meters >= 0) {
@@ -101,6 +134,7 @@ function renderGrid() {
       gridLayer.appendChild(text);
     }
   }
+
   for (let y = startY; y <= endY; y += gridSizePx * labelInterval) {
     const meters = Math.round(y / state.scale);
     if (meters >= 0) {

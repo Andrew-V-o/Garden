@@ -36,7 +36,7 @@ const state = {
   // Размерная сетка
   showGrid: false,
   gridSize: 1,
-  gridColor: '#d4cfc0',
+  gridColor: '#000000',
   gridOpacity: 0.5,
   // История undo/redo
   history: [],

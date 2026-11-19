@@ -414,3 +414,23 @@ function rebuildTerrain() {
         selectBlocks(selectedBlocks);
     }
 }
+
+// ===== Обновление позиций 3D-объектов при изменении рельефа =====
+function updateThreeObjectsHeight() {
+    if (!threeScene) return;
+    
+    threeScene.children.forEach(obj => {
+        if (obj.userData && obj.userData.isTerrainObject) {
+            const worldX = obj.userData.worldX;
+            const worldZ = obj.userData.worldZ;
+            const yOffset = obj.userData.yOffset || 0;
+            const newHeight = getSmoothHeightAt(worldX, worldZ) + yOffset;
+            obj.position.y = newHeight;
+        }
+    });
+}
+
+window.getSmoothHeightAt = getSmoothHeightAt;
+window.buildTerrain = buildTerrain;
+window.updateSmoothTerrainHeights = updateSmoothTerrainHeights;
+window.rebuildTerrain = rebuildTerrain;

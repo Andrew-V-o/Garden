@@ -44,7 +44,7 @@ const state = {
   currentSnapGuides: [],
   // ↓↓↓ ДОБАВИТЬ ЭТИ ДВА ПОЛЯ ↓↓↓
   terrainBlocks: {
-    gridSize: 3,
+    gridSize: 10,
     blocks: []
   },
   viewMode: '2d' // '2d' или '3d'

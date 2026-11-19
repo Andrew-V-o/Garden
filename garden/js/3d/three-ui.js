@@ -47,6 +47,7 @@ function onBlockHeightChange(e) {
     });
     
     updateSmoothTerrainHeights();
+    updateThreeObjectsHeight(); // ★ НОВОЕ: обновляем позиции 3D-объектов
     refreshSelectionWireframe();
 }
 
@@ -56,6 +57,7 @@ function resetBlock() {
         state.terrainBlocks.blocks[idx].height = 0;
     });
     updateSmoothTerrainHeights();
+    updateThreeObjectsHeight(); // ★ НОВОЕ
     refreshSelectionWireframe();
     updateBlockPanel();
 }
@@ -68,6 +70,7 @@ function applyToAll() {
         block.height = targetHeight;
     });
     updateSmoothTerrainHeights();
+    updateThreeObjectsHeight(); // ★ НОВОЕ
     refreshSelectionWireframe();
     updateBlockPanel();
 }
@@ -141,6 +144,31 @@ function setGridSize(size) {
     updateBlockPanel();
     
     console.log(`✅ Сетка изменена с ${oldGridSize}×${oldGridSize} на ${size}×${size}. Создано ${size * size} блоков.`);
+}
+
+async function handleAIGeneration() {
+    const fileInput = document.getElementById('aiImageInput');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Пожалуйста, выберите изображение (PNG или JPEG) для генерации.');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    
+    // Определяем, куда поставить модель. 
+    // Для примера ставим в центр участка (0, 0, 0) или в центр выделенного блока
+    let targetPosition = new THREE.Vector3(0, 0, 0);
+    
+    if (typeof selectedBlocks !== 'undefined' && selectedBlocks.length > 0) {
+        // Если есть выделенные блоки, ставим модель в центр первого выделенного блока
+        const center = getBlockCenter(selectedBlocks[0]); // Ваша существующая функция
+        if (center) {
+            targetPosition = center;
+        }
+    }
+
+    // Вызываем функцию из модуля (она доступна глобально благодаря window.generateAndPlace3DModel)
+    await window.generateAndPlace3DModel(file, targetPosition);
 }
 
 // Привязка обработчиков

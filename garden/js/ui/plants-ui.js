@@ -39,10 +39,10 @@ function toggleBloomMode() {
   const modeElement = document.querySelector('input[name="bloomMode"]:checked');
   if (!modeElement) return;
   const mode = modeElement.value;
-  
+
   const monthsSection = document.getElementById('bloomMonthsSection');
   const datesSection = document.getElementById('bloomDatesSection');
-  
+
   if (monthsSection) monthsSection.style.display = mode === 'months' ? 'flex' : 'none';
   if (datesSection) datesSection.style.display = mode === 'dates' ? 'flex' : 'none';
 }
@@ -569,6 +569,11 @@ function saveNewPlant() {
   renderPlantList();
   closePlantModal();
   selectPlant(plant.id);
+
+  // ★ НОВОЕ: Запускаем фоновую генерацию 3D модели по названию
+  if (typeof window.generateAndAssign3DModel === 'function') {
+    window.generateAndAssign3DModel(plant.id, plant.name, 'plant');
+  }
 }
 
 function openPlantModalInFolder(folderId) {
@@ -824,6 +829,11 @@ function saveNewTree() {
   renderTreeList();
   closeTreeModal();
   selectTree(tree.id);
+
+  // ★ НОВОЕ: Запускаем фоновую генерацию 3D модели по названию
+  if (typeof window.generateAndAssign3DModel === 'function') {
+    window.generateAndAssign3DModel(tree.id, tree.name, 'tree');
+  }
 }
 
 function openTreeModalInFolder(folderId) {
